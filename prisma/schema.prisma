@@ -159,6 +159,8 @@ model RosterMember {
   memberRole           MemberRole
   medicalFlags         String?
   dietaryRestrictions  String?
+  isFirstTime          Boolean               @default(false)
+  isMedicalPersonnel   Boolean               @default(false)
   masterGuide          Boolean               @default(false)
   rolloverStatus       RolloverStatus        @default(CONTINUING)
   isActive             Boolean               @default(true)

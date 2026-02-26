@@ -454,6 +454,13 @@ export function EventRegistrationPdfDocument({ data }: { data: RegistrationData 
                 .map((enrollment) => enrollment.eventClassOffering.classCatalog.title)
                 .join(", ");
 
+              const tags = [
+                attendee.rosterMember.isFirstTime ? "[1st]" : null,
+                attendee.rosterMember.isMedicalPersonnel ? "[Med]" : null,
+              ]
+                .filter(Boolean)
+                .join(" ");
+
               return (
                 <View
                   key={attendee.id}
@@ -461,6 +468,7 @@ export function EventRegistrationPdfDocument({ data }: { data: RegistrationData 
                 >
                   <Text style={[styles.tableCell, styles.colName]}>
                     {attendee.rosterMember.firstName} {attendee.rosterMember.lastName}
+                    {tags ? ` ${tags}` : ""}
                   </Text>
                   <Text style={[styles.tableCell, styles.colRole]}>
                     {friendlyRole(attendee.rosterMember.memberRole)}
