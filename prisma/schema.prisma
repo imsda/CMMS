@@ -59,6 +59,9 @@ enum FormFieldType {
   DATE
   SINGLE_SELECT
   MULTI_SELECT
+  ROSTER_SELECT
+  ROSTER_MULTI_SELECT
+  FIELD_GROUP
 }
 
 enum ClassType {
@@ -77,62 +80,62 @@ enum RequirementType {
 }
 
 model User {
-  id                   String               @id @default(cuid())
-  email                String               @unique
-  name                 String
-  role                 UserRole
-  passwordHash         String?
-  createdAt            DateTime             @default(now())
-  updatedAt            DateTime             @updatedAt
+  id                    String               @id @default(cuid())
+  email                 String               @unique
+  name                  String
+  role                  UserRole
+  passwordHash          String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
 
-  memberships          ClubMembership[]
-  taughtOfferings      EventClassOffering[] @relation("OfferingTeacher")
+  memberships           ClubMembership[]
+  taughtOfferings       EventClassOffering[] @relation("OfferingTeacher")
   completedRequirements MemberRequirement[]
 }
 
 model Club {
-  id                String             @id @default(cuid())
-  name              String
-  code              String             @unique
-  type              ClubType
-  city              String?
-  state             String?
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime           @updatedAt
+  id            String              @id @default(cuid())
+  name          String
+  code          String              @unique
+  type          ClubType
+  city          String?
+  state         String?
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
 
-  memberships       ClubMembership[]
-  rosterYears       ClubRosterYear[]
-  registrations     EventRegistration[]
+  memberships   ClubMembership[]
+  rosterYears   ClubRosterYear[]
+  registrations EventRegistration[]
 }
 
 model ClubMembership {
-  id         String    @id @default(cuid())
-  clubId      String
-  userId      String
-  title       String?
-  isPrimary   Boolean   @default(false)
-  createdAt   DateTime  @default(now())
+  id        String   @id @default(cuid())
+  clubId    String
+  userId    String
+  title     String?
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
 
-  club        Club      @relation(fields: [clubId], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([clubId, userId])
   @@index([userId])
 }
 
 model ClubRosterYear {
-  id             String             @id @default(cuid())
+  id              String           @id @default(cuid())
   clubId          String
   yearLabel       String
   startsOn        DateTime
   endsOn          DateTime
-  isActive        Boolean            @default(true)
+  isActive        Boolean          @default(true)
   copiedFromYearId String?
-  createdAt       DateTime           @default(now())
+  createdAt       DateTime         @default(now())
 
-  club            Club               @relation(fields: [clubId], references: [id], onDelete: Cascade)
-  copiedFromYear  ClubRosterYear?    @relation("RosterYearRollover", fields: [copiedFromYearId], references: [id])
-  rolledIntoYears ClubRosterYear[]   @relation("RosterYearRollover")
+  club            Club             @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  copiedFromYear  ClubRosterYear?  @relation("RosterYearRollover", fields: [copiedFromYearId], references: [id])
+  rolledIntoYears ClubRosterYear[] @relation("RosterYearRollover")
   members         RosterMember[]
 
   @@unique([clubId, yearLabel])
@@ -140,200 +143,194 @@ model ClubRosterYear {
 }
 
 model RosterMember {
-  id                    String              @id @default(cuid())
-  clubRosterYearId       String
-  firstName              String
-  lastName               String
-  dateOfBirth            DateTime?
-  ageAtStart             Int?
-  gender                 Gender?
-  memberRole             MemberRole
-  medicalFlags           String?
-  dietaryRestrictions    String?
-  masterGuide            Boolean             @default(false)
-  rolloverStatus         RolloverStatus      @default(CONTINUING)
-  isActive               Boolean             @default(true)
-  emergencyContactName   String?
-  emergencyContactPhone  String?
-  createdAt              DateTime            @default(now())
-  updatedAt              DateTime            @updatedAt
+  id                   String                @id @default(cuid())
+  clubRosterYearId     String
+  firstName            String
+  lastName             String
+  dateOfBirth          DateTime?
+  ageAtStart           Int?
+  gender               Gender?
+  memberRole           MemberRole
+  medicalFlags         String?
+  dietaryRestrictions  String?
+  masterGuide          Boolean               @default(false)
+  rolloverStatus       RolloverStatus        @default(CONTINUING)
+  isActive             Boolean               @default(true)
+  emergencyContactName String?
+  emergencyContactPhone String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
 
-  clubRosterYear         ClubRosterYear      @relation(fields: [clubRosterYearId], references: [id], onDelete: Cascade)
-  registrations          RegistrationAttendee[]
-  classEnrollments       ClassEnrollment[]
-  completedRequirements  MemberRequirement[]
+  clubRosterYear        ClubRosterYear       @relation(fields: [clubRosterYearId], references: [id], onDelete: Cascade)
+  registrations         RegistrationAttendee[]
+  classEnrollments      ClassEnrollment[]
+  completedRequirements MemberRequirement[]
 
   @@index([clubRosterYearId, isActive])
   @@index([lastName, firstName])
 }
 
 model Event {
-  id                  String                @id @default(cuid())
-  name                String
-  slug                String                @unique
-  description         String?
-  startsAt            DateTime
-  endsAt              DateTime
-  registrationOpensAt DateTime
+  id                   String               @id @default(cuid())
+  name                 String
+  slug                 String               @unique
+  description          String?
+  startsAt             DateTime
+  endsAt               DateTime
+  registrationOpensAt  DateTime
   registrationClosesAt DateTime
-  locationName        String?
-  locationAddress     String?
-  createdByUserId     String?
-  createdAt           DateTime              @default(now())
-  updatedAt           DateTime              @updatedAt
+  locationName         String?
+  locationAddress      String?
+  createdByUserId      String?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
 
-  dynamicFields       EventFormField[]
-  registrations       EventRegistration[]
-  classOfferings      EventClassOffering[]
+  dynamicFields  EventFormField[]
+  registrations  EventRegistration[]
+  classOfferings EventClassOffering[]
 }
 
 model EventFormField {
-  id             String         @id @default(cuid())
-  eventId         String
-  key             String
-  label           String
-  description     String?
-  type            FormFieldType
-  options         Json?
-  isRequired      Boolean        @default(false)
-  sortOrder       Int            @default(0)
+  id            String         @id @default(cuid())
+  eventId        String
+  parentFieldId  String?
+  key            String
+  label          String
+  description    String?
+  type           FormFieldType
+  options        Json?
+  isRequired     Boolean        @default(false)
+  sortOrder      Int            @default(0)
 
-  event           Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  responses       EventFormResponse[]
+  event          Event          @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  parentField    EventFormField? @relation("EventFormFieldHierarchy", fields: [parentFieldId], references: [id], onDelete: Cascade)
+  childFields    EventFormField[] @relation("EventFormFieldHierarchy")
+  responses      EventFormResponse[]
 
   @@unique([eventId, key])
   @@index([eventId, sortOrder])
+  @@index([eventId, parentFieldId])
 }
 
 model EventRegistration {
-  id                    String               @id @default(cuid())
+  id                    String             @id @default(cuid())
   eventId               String
   clubId                String
-  registrationCode      String               @unique
-  status                RegistrationStatus   @default(DRAFT)
+  registrationCode      String             @unique
+  status                RegistrationStatus @default(DRAFT)
   submittedAt           DateTime?
   approvedAt            DateTime?
-  overrideLimitsAllowed Boolean              @default(false)
+  overrideLimitsAllowed Boolean            @default(false)
   notes                 String?
-  createdAt             DateTime             @default(now())
-  updatedAt             DateTime             @updatedAt
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
 
-  event                 Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  club                  Club                 @relation(fields: [clubId], references: [id], onDelete: Cascade)
-  attendees             RegistrationAttendee[]
-  formResponses         EventFormResponse[]
+  event         Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  club          Club                 @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  attendees     RegistrationAttendee[]
+  formResponses EventFormResponse[]
 
   @@unique([eventId, clubId])
   @@index([clubId, status])
 }
 
 model RegistrationAttendee {
-  id                   String            @id @default(cuid())
-  eventRegistrationId   String
-  rosterMemberId        String
-  checkedInAt           DateTime?
-  createdAt             DateTime          @default(now())
+  id                  String            @id @default(cuid())
+  eventRegistrationId String
+  rosterMemberId      String
+  checkedInAt         DateTime?
+  createdAt           DateTime          @default(now())
 
-  eventRegistration     EventRegistration @relation(fields: [eventRegistrationId], references: [id], onDelete: Cascade)
-  rosterMember          RosterMember      @relation(fields: [rosterMemberId], references: [id], onDelete: Cascade)
+  eventRegistration EventRegistration @relation(fields: [eventRegistrationId], references: [id], onDelete: Cascade)
+  rosterMember      RosterMember      @relation(fields: [rosterMemberId], references: [id], onDelete: Cascade)
 
   @@unique([eventRegistrationId, rosterMemberId])
   @@index([rosterMemberId])
 }
 
 model ClassCatalog {
-  id                   String                @id @default(cuid())
-  title                String
-  code                 String                @unique
-  description          String?
-  classType            ClassType
-  active               Boolean               @default(true)
-  createdAt            DateTime              @default(now())
-  updatedAt            DateTime              @updatedAt
+  id          String      @id @default(cuid())
+  title       String
+  code        String      @unique
+  description String?
+  classType   ClassType
+  active      Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
 
-  requirements         ClassRequirement[]
-  offerings            EventClassOffering[]
+  requirements ClassRequirement[]
+  offerings    EventClassOffering[]
 }
 
 model ClassRequirement {
-  id                    String            @id @default(cuid())
-  classCatalogId        String
-  requirementType       RequirementType
-  minAge                Int?
-  maxAge                Int?
-  requiredMemberRole    MemberRole?
-  requiredHonorCode     String?
-  requiredMasterGuide   Boolean?
+  id             String          @id @default(cuid())
+  classCatalogId String
+  requirementType RequirementType
+  config         Json
 
-  classCatalog          ClassCatalog      @relation(fields: [classCatalogId], references: [id], onDelete: Cascade)
+  classCatalog ClassCatalog @relation(fields: [classCatalogId], references: [id], onDelete: Cascade)
 
-  @@index([classCatalogId, requirementType])
+  @@index([classCatalogId])
 }
 
 model EventClassOffering {
-  id                  String             @id @default(cuid())
-  eventId             String
-  classCatalogId      String
-  instructorUserId    String?
-  location            String?
-  dayIndex            Int
-  startsAt            DateTime
-  endsAt              DateTime
-  capacity            Int
-  waitlistCapacity    Int               @default(0)
-  createdAt           DateTime          @default(now())
+  id            String   @id @default(cuid())
+  eventId       String
+  classCatalogId String
+  teacherUserId String?
+  capacity      Int?
+  createdAt     DateTime @default(now())
 
-  event               Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  classCatalog        ClassCatalog      @relation(fields: [classCatalogId], references: [id], onDelete: Cascade)
-  instructor          User?             @relation("OfferingTeacher", fields: [instructorUserId], references: [id])
-  enrollments         ClassEnrollment[]
+  event        Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  classCatalog ClassCatalog @relation(fields: [classCatalogId], references: [id], onDelete: Cascade)
+  teacher      User?        @relation("OfferingTeacher", fields: [teacherUserId], references: [id], onDelete: SetNull)
+  enrollments  ClassEnrollment[]
 
-  @@unique([eventId, classCatalogId, dayIndex, startsAt])
-  @@index([eventId, dayIndex, startsAt])
+  @@unique([eventId, classCatalogId])
+  @@index([teacherUserId])
 }
 
 model ClassEnrollment {
-  id                    String              @id @default(cuid())
-  eventClassOfferingId   String
-  rosterMemberId         String
-  isWaitlisted           Boolean             @default(false)
-  enrolledAt             DateTime            @default(now())
+  id                 String   @id @default(cuid())
+  eventClassOfferingId String
+  rosterMemberId     String
+  assignedAt         DateTime @default(now())
 
-  eventClassOffering     EventClassOffering  @relation(fields: [eventClassOfferingId], references: [id], onDelete: Cascade)
-  rosterMember           RosterMember        @relation(fields: [rosterMemberId], references: [id], onDelete: Cascade)
+  offering     EventClassOffering @relation(fields: [eventClassOfferingId], references: [id], onDelete: Cascade)
+  rosterMember RosterMember       @relation(fields: [rosterMemberId], references: [id], onDelete: Cascade)
 
   @@unique([eventClassOfferingId, rosterMemberId])
   @@index([rosterMemberId])
 }
 
-model EventFormResponse {
-  id                   String             @id @default(cuid())
-  eventRegistrationId   String
-  eventFormFieldId      String
-  attendeeId            String?
-  value                 Json
-  createdAt             DateTime           @default(now())
-  updatedAt             DateTime           @updatedAt
+model MemberRequirement {
+  id             String   @id @default(cuid())
+  userId         String
+  requirementType RequirementType
+  metadata       Json?
+  completedAt    DateTime
+  createdAt      DateTime @default(now())
 
-  eventRegistration     EventRegistration  @relation(fields: [eventRegistrationId], references: [id], onDelete: Cascade)
-  eventFormField        EventFormField     @relation(fields: [eventFormFieldId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([eventRegistrationId, eventFormFieldId, attendeeId])
-  @@index([eventRegistrationId])
+  @@index([userId, requirementType])
 }
 
-model MemberRequirement {
-  id                  String        @id @default(cuid())
-  userId              String?
-  rosterMemberId      String?
-  honorCode           String
-  completedAt         DateTime
-  verifiedBy          String?
-  notes               String?
+model EventFormResponse {
+  id                  String   @id @default(cuid())
+  eventRegistrationId String
+  eventFormFieldId    String
+  attendeeId          String?
+  value               Json
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
-  user                User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
-  rosterMember        RosterMember? @relation(fields: [rosterMemberId], references: [id], onDelete: SetNull)
+  registration EventRegistration @relation(fields: [eventRegistrationId], references: [id], onDelete: Cascade)
+  field        EventFormField    @relation(fields: [eventFormFieldId], references: [id], onDelete: Cascade)
+  attendee     RosterMember?     @relation(fields: [attendeeId], references: [id], onDelete: SetNull)
 
-  @@index([honorCode])
-  @@index([rosterMemberId])
+  @@index([eventRegistrationId])
+  @@index([eventFormFieldId])
+  @@index([attendeeId])
+  @@unique([eventRegistrationId, eventFormFieldId, attendeeId])
 }

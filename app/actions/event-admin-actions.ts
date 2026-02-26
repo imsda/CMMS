@@ -9,6 +9,7 @@ import { prisma } from "../../lib/prisma";
 
 type IncomingDynamicField = {
   id?: string;
+  parentFieldId?: string | null;
   key?: string;
   label?: string;
   description?: string;
@@ -119,14 +120,24 @@ function parseDynamicFields(value: FormDataEntryValue | null) {
     FormFieldType.SHORT_TEXT,
     FormFieldType.MULTI_SELECT,
     FormFieldType.BOOLEAN,
+    FormFieldType.NUMBER,
+    FormFieldType.ROSTER_SELECT,
+    FormFieldType.ROSTER_MULTI_SELECT,
+    FormFieldType.FIELD_GROUP,
   ];
 
-  return parsed.map((field, index) => {
+  const normalized = parsed.map((field, index) => {
     const candidate = field as IncomingDynamicField;
+    const id = (candidate.id ?? "").trim();
     const key = (candidate.key ?? "").trim();
     const label = (candidate.label ?? "").trim();
     const description = (candidate.description ?? "").trim();
     const type = candidate.type;
+    const parentFieldId = typeof candidate.parentFieldId === "string" ? candidate.parentFieldId.trim() : null;
+
+    if (id.length === 0) {
+      throw new Error(`Dynamic field ${index + 1} is missing an id.`);
+    }
 
     if (key.length === 0) {
       throw new Error(`Dynamic field ${index + 1} is missing a key.`);
@@ -138,7 +149,7 @@ function parseDynamicFields(value: FormDataEntryValue | null) {
 
     if (typeof type !== "string" || !supportedTypes.includes(type as FormFieldType)) {
       throw new Error(
-        `Dynamic field ${index + 1} has an unsupported type. Use SHORT_TEXT, MULTI_SELECT, or BOOLEAN.`,
+        `Dynamic field ${index + 1} has an unsupported type. Use SHORT_TEXT, NUMBER, MULTI_SELECT, BOOLEAN, ROSTER_SELECT, ROSTER_MULTI_SELECT, or FIELD_GROUP.`,
       );
     }
 
@@ -150,15 +161,40 @@ function parseDynamicFields(value: FormDataEntryValue | null) {
     }
 
     return {
+      id,
+      parentFieldId: parentFieldId && parentFieldId.length > 0 ? parentFieldId : null,
       key,
       label,
       description: description.length > 0 ? description : null,
       type: type as FormFieldType,
       options: options ?? null,
-      isRequired: Boolean(candidate.isRequired),
+      isRequired: type === FormFieldType.FIELD_GROUP ? false : Boolean(candidate.isRequired),
       sortOrder: index,
     };
   });
+
+  const byId = new Map(normalized.map((field) => [field.id, field]));
+
+  for (const field of normalized) {
+    if (!field.parentFieldId) {
+      continue;
+    }
+
+    const parent = byId.get(field.parentFieldId);
+    if (!parent) {
+      throw new Error(`Field "${field.key}" references an unknown parent field.`);
+    }
+
+    if (parent.type !== FormFieldType.FIELD_GROUP) {
+      throw new Error(`Field "${field.key}" must reference a FIELD_GROUP parent.`);
+    }
+
+    if (field.type === FormFieldType.FIELD_GROUP) {
+      throw new Error("Nested FIELD_GROUP values are not supported.");
+    }
+  }
+
+  return normalized;
 }
 
 async function buildUniqueSlug(name: string) {
@@ -240,18 +276,54 @@ export async function createEventWithDynamicFields(formData: FormData) {
     });
 
     if (dynamicFields.length > 0) {
-      await tx.eventFormField.createMany({
-        data: dynamicFields.map((field) => ({
-          eventId: event.id,
-          key: field.key,
-          label: field.label,
-          description: field.description,
-          type: field.type,
-          options: field.options,
-          isRequired: field.isRequired,
-          sortOrder: field.sortOrder,
-        })),
-      });
+      const idMap = new Map<string, string>();
+
+      for (const field of dynamicFields.filter((entry) => entry.parentFieldId === null)) {
+        const created = await tx.eventFormField.create({
+          data: {
+            eventId: event.id,
+            key: field.key,
+            label: field.label,
+            description: field.description,
+            type: field.type,
+            options: field.options,
+            isRequired: field.isRequired,
+            sortOrder: field.sortOrder,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        idMap.set(field.id, created.id);
+      }
+
+      for (const field of dynamicFields.filter((entry) => entry.parentFieldId !== null)) {
+        const mappedParentId = idMap.get(field.parentFieldId as string);
+
+        if (!mappedParentId) {
+          throw new Error(`Could not resolve parent for field: ${field.key}`);
+        }
+
+        const created = await tx.eventFormField.create({
+          data: {
+            eventId: event.id,
+            parentFieldId: mappedParentId,
+            key: field.key,
+            label: field.label,
+            description: field.description,
+            type: field.type,
+            options: field.options,
+            isRequired: field.isRequired,
+            sortOrder: field.sortOrder,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        idMap.set(field.id, created.id);
+      }
     }
   });
 

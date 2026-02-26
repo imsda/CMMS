@@ -151,6 +151,7 @@ export default async function DirectorEventRegistrationPage({
           type: field.type,
           isRequired: field.isRequired,
           options: field.options,
+          parentFieldId: field.parentFieldId,
         }))}
         initialSelectedAttendeeIds={registration?.attendees.map((attendee) => attendee.rosterMemberId) ?? []}
         initialResponses={
