@@ -1,0 +1,7 @@
+{
+  "name": "cmms",
+  "private": true,
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  }
+}
