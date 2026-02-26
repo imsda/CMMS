@@ -14,6 +14,8 @@ type RosterMemberRow = {
   memberRole: MemberRole;
   medicalFlags: string | null;
   dietaryRestrictions: string | null;
+  isFirstTime: boolean;
+  isMedicalPersonnel: boolean;
   masterGuide: boolean;
   dateOfBirth: string | null;
   emergencyContactName: string | null;
@@ -95,6 +97,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
             <tr>
               {[
                 "Name",
+                "Tags",
                 "Role",
                 "Age",
                 "Gender",
@@ -115,7 +118,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
           <tbody className="divide-y divide-slate-100">
             {sortedMembers.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-sm text-slate-500">
+                <td colSpan={9} className="px-4 py-10 text-center text-sm text-slate-500">
                   No active members found in this roster year yet.
                 </td>
               </tr>
@@ -124,6 +127,15 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                 <tr key={member.id} className="hover:bg-slate-50/80">
                   <td className="px-4 py-3 text-sm font-semibold text-slate-800">
                     {member.firstName} {member.lastName}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-1.5">
+                      {member.isMedicalPersonnel ? <Badge label="Medical" tone="good" /> : null}
+                      {member.isFirstTime ? <Badge label="1st Year" tone="warn" /> : null}
+                      {!member.isMedicalPersonnel && !member.isFirstTime ? (
+                        <Badge label="—" tone="neutral" />
+                      ) : null}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-sm text-slate-700">{member.memberRole.replaceAll("_", " ")}</td>
                   <td className="px-4 py-3 text-sm text-slate-700">{member.ageAtStart ?? "—"}</td>
@@ -283,6 +295,26 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                     defaultValue={modalState.member?.emergencyContactPhone ?? ""}
                     className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none"
                   />
+                </label>
+
+                <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <input
+                    type="checkbox"
+                    name="isFirstTime"
+                    defaultChecked={modalState.member?.isFirstTime ?? false}
+                    className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  First Time Member
+                </label>
+
+                <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <input
+                    type="checkbox"
+                    name="isMedicalPersonnel"
+                    defaultChecked={modalState.member?.isMedicalPersonnel ?? false}
+                    className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  Medical Personnel
                 </label>
 
                 <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
