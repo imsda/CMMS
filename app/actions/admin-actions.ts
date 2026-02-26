@@ -368,3 +368,98 @@ export async function getMasterEventAttendeesCsv(eventId: string) {
     content: lines.join("\n"),
   };
 }
+
+type PatchOrderRow = {
+  honorName: string;
+  honorCode: string;
+  totalCountNeeded: number;
+};
+
+export async function getEventPatchOrderReport(eventId: string) {
+  const session = await auth();
+  ensureSuperAdmin(session);
+
+  const event = await prisma.event.findUnique({
+    where: {
+      id: eventId,
+    },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      startsAt: true,
+      endsAt: true,
+    },
+  });
+
+  if (!event) {
+    return null;
+  }
+
+  const groupedCompletions = await prisma.memberRequirement.groupBy({
+    by: ["honorCode"],
+    where: {
+      completedAt: {
+        gte: event.startsAt,
+        lte: event.endsAt,
+      },
+    },
+    _count: {
+      honorCode: true,
+    },
+    orderBy: {
+      honorCode: "asc",
+    },
+  });
+
+  const honorCodes = groupedCompletions.map((completion) => completion.honorCode);
+
+  const honors = await prisma.classCatalog.findMany({
+    where: {
+      classType: ClassType.HONOR,
+      code: {
+        in: honorCodes,
+      },
+    },
+    select: {
+      code: true,
+      title: true,
+    },
+  });
+
+  const honorTitleByCode = new Map(honors.map((honor) => [honor.code, honor.title]));
+
+  const rows: PatchOrderRow[] = groupedCompletions.map((completion) => ({
+    honorName: honorTitleByCode.get(completion.honorCode) ?? "Unknown Honor",
+    honorCode: completion.honorCode,
+    totalCountNeeded: completion._count.honorCode,
+  }));
+
+  return {
+    event,
+    rows,
+  };
+}
+
+export async function getEventPatchOrderCsv(eventId: string) {
+  const report = await getEventPatchOrderReport(eventId);
+
+  if (!report) {
+    throw new Error("Event not found.");
+  }
+
+  const header = ["Honor Name", "Honor Code", "Total Count Needed"];
+
+  const rows = report.rows.map((row) => [
+    row.honorName,
+    row.honorCode,
+    row.totalCountNeeded.toString(),
+  ]);
+
+  const lines = [header, ...rows].map((row) => row.map((cell) => escapeCsvCell(cell)).join(","));
+
+  return {
+    fileName: `${report.event.slug}-patch-order-report.csv`,
+    content: lines.join("\n"),
+  };
+}
