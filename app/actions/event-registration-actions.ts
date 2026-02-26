@@ -4,6 +4,7 @@ import { RegistrationStatus, type Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "../../auth";
+import { sendRegistrationReceiptEmail } from "../../lib/email/resend";
 import { prisma } from "../../lib/prisma";
 
 type RegistrationPayload = {
@@ -68,8 +69,15 @@ async function requireDirectorClubForEvent(eventId: string) {
       userId: session.user.id,
     },
     include: {
+      user: {
+        select: {
+          email: true,
+        },
+      },
       club: {
-        include: {
+        select: {
+          id: true,
+          name: true,
           rosterYears: {
             where: {
               isActive: true,
@@ -107,6 +115,7 @@ async function requireDirectorClubForEvent(eventId: string) {
     },
     select: {
       id: true,
+      name: true,
       dynamicFields: {
         select: {
           id: true,
@@ -126,6 +135,8 @@ async function requireDirectorClubForEvent(eventId: string) {
   return {
     event,
     clubId: membership.club.id,
+    clubName: membership.club.name,
+    directorEmail: membership.user.email ?? session.user.email ?? null,
     validAttendeeIds,
     validFieldIds,
   };
@@ -140,7 +151,7 @@ async function persistRegistration(formData: FormData, nextStatus: RegistrationS
   const eventId = eventIdEntry.trim();
   const payload = parsePayload(formData.get("registrationPayload"));
 
-  const { clubId, validAttendeeIds, validFieldIds } = await requireDirectorClubForEvent(eventId);
+  const { clubId, clubName, directorEmail, event, validAttendeeIds, validFieldIds } = await requireDirectorClubForEvent(eventId);
 
   const attendeeIds = payload.attendeeIds.filter((attendeeId) => validAttendeeIds.has(attendeeId));
   const attendeeIdSet = new Set(attendeeIds);
@@ -222,6 +233,15 @@ async function persistRegistration(formData: FormData, nextStatus: RegistrationS
 
   revalidatePath(`/director/events/${eventId}`);
   revalidatePath("/director/dashboard");
+
+  if (nextStatus === RegistrationStatus.SUBMITTED && directorEmail) {
+    await sendRegistrationReceiptEmail({
+      to: directorEmail,
+      clubName,
+      eventName: event.name,
+      attendeeCount: attendeeIds.length,
+    });
+  }
 }
 
 export async function saveEventRegistrationDraft(formData: FormData) {
