@@ -1,6 +1,6 @@
 "use server";
 
-import { RegistrationStatus, type Prisma } from "@prisma/client";
+import { PaymentStatus, RegistrationStatus, type Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "../../auth";
@@ -116,6 +116,9 @@ async function requireDirectorClubForEvent(eventId: string) {
     select: {
       id: true,
       name: true,
+      basePrice: true,
+      lateFeePrice: true,
+      lateFeeStartsAt: true,
       dynamicFields: {
         select: {
           id: true,
@@ -174,6 +177,10 @@ async function persistRegistration(formData: FormData, nextStatus: RegistrationS
       value: response.value,
     }));
 
+  const now = new Date();
+  const pricePerAttendee = now >= event.lateFeeStartsAt ? event.lateFeePrice : event.basePrice;
+  const totalDue = attendeeIds.length * pricePerAttendee;
+
   await prisma.$transaction(async (tx) => {
     const registration = await tx.eventRegistration.upsert({
       where: {
@@ -188,10 +195,14 @@ async function persistRegistration(formData: FormData, nextStatus: RegistrationS
         registrationCode: generateRegistrationCode(),
         status: nextStatus,
         submittedAt: nextStatus === RegistrationStatus.SUBMITTED ? new Date() : null,
+        totalDue,
+        paymentStatus: totalDue <= 0 ? PaymentStatus.PAID : PaymentStatus.PENDING,
       },
       update: {
         status: nextStatus,
         submittedAt: nextStatus === RegistrationStatus.SUBMITTED ? new Date() : null,
+        totalDue,
+        paymentStatus: totalDue <= 0 ? PaymentStatus.PAID : PaymentStatus.PENDING,
       },
       select: {
         id: true,

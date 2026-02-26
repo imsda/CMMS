@@ -51,6 +51,12 @@ enum RegistrationStatus {
   REJECTED
 }
 
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+}
+
 enum FormFieldType {
   SHORT_TEXT
   LONG_TEXT
@@ -179,6 +185,9 @@ model Event {
   endsAt               DateTime
   registrationOpensAt  DateTime
   registrationClosesAt DateTime
+  basePrice            Float
+  lateFeePrice         Float
+  lateFeeStartsAt      DateTime
   locationName         String?
   locationAddress      String?
   createdByUserId      String?
@@ -222,6 +231,9 @@ model EventRegistration {
   approvedAt            DateTime?
   overrideLimitsAllowed Boolean            @default(false)
   notes                 String?
+  totalDue              Float
+  amountPaid            Float              @default(0)
+  paymentStatus         PaymentStatus      @default(PENDING)
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
 

@@ -15,7 +15,7 @@ const STEPS = [
   },
   {
     title: "Registration & Location",
-    description: "Configure registration windows and location details.",
+    description: "Configure registration windows, pricing, and location details.",
   },
   {
     title: "Dynamic Questions",
@@ -126,6 +126,42 @@ export default function AdminCreateEventPage() {
                 <span>Registration Closes</span>
                 <input
                   name="registrationClosesAt"
+                  type="datetime-local"
+                  required
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2"
+                />
+              </label>
+
+              <label className="space-y-1 text-sm text-slate-700">
+                <span>Base Price (per attendee)</span>
+                <input
+                  name="basePrice"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  required
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2"
+                  placeholder="35.00"
+                />
+              </label>
+
+              <label className="space-y-1 text-sm text-slate-700">
+                <span>Late Fee Price (per attendee)</span>
+                <input
+                  name="lateFeePrice"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  required
+                  className="w-full rounded-lg border border-slate-300 px-3 py-2"
+                  placeholder="50.00"
+                />
+              </label>
+
+              <label className="space-y-1 text-sm text-slate-700 md:col-span-2">
+                <span>Late Fee Starts At</span>
+                <input
+                  name="lateFeeStartsAt"
                   type="datetime-local"
                   required
                   className="w-full rounded-lg border border-slate-300 px-3 py-2"

@@ -53,6 +53,19 @@ function parseRequiredDate(value: FormDataEntryValue | null, fieldLabel: string)
   return parsed;
 }
 
+function parseRequiredFloat(value: FormDataEntryValue | null, fieldLabel: string) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    throw new Error(`${fieldLabel} is required.`);
+  }
+
+  const parsed = Number.parseFloat(value);
+  if (Number.isNaN(parsed) || parsed < 0) {
+    throw new Error(`${fieldLabel} must be a valid non-negative number.`);
+  }
+
+  return parsed;
+}
+
 function parseMultiSelectOptions(raw: string, fieldKey: string) {
   try {
     const parsed = JSON.parse(raw);
@@ -234,6 +247,9 @@ export async function createEventWithDynamicFields(formData: FormData) {
     formData.get("registrationClosesAt"),
     "Registration close date",
   );
+  const basePrice = parseRequiredFloat(formData.get("basePrice"), "Base price");
+  const lateFeePrice = parseRequiredFloat(formData.get("lateFeePrice"), "Late fee price");
+  const lateFeeStartsAt = parseRequiredDate(formData.get("lateFeeStartsAt"), "Late fee start date");
 
   if (endsAt <= startsAt) {
     throw new Error("Event end date must be after start date.");
@@ -241,6 +257,10 @@ export async function createEventWithDynamicFields(formData: FormData) {
 
   if (registrationClosesAt <= registrationOpensAt) {
     throw new Error("Registration close date must be after registration open date.");
+  }
+
+  if (lateFeeStartsAt < registrationOpensAt) {
+    throw new Error("Late fee start date cannot be before registration opens.");
   }
 
   const locationName = optionalTrimmedString(formData.get("locationName"));
@@ -266,6 +286,9 @@ export async function createEventWithDynamicFields(formData: FormData) {
         endsAt,
         registrationOpensAt,
         registrationClosesAt,
+        basePrice,
+        lateFeePrice,
+        lateFeeStartsAt,
         locationName,
         locationAddress,
         createdByUserId,
