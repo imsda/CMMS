@@ -13,6 +13,13 @@ function formatDateRange(startsAt: Date, endsAt: Date) {
   return `${formatter.format(startsAt)} - ${formatter.format(endsAt)}`;
 }
 
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+  }).format(value);
+}
+
 export default async function DirectorEventRegistrationPage({
   params,
 }: {
@@ -107,6 +114,10 @@ export default async function DirectorEventRegistrationPage({
   const registration = event.registrations[0] ?? null;
   const activeRoster = membership.club.rosterYears[0];
   const attendees = activeRoster?.members ?? [];
+  const attendeeCount = registration?.attendees.length ?? 0;
+  const inLateFeeWindow = new Date() >= event.lateFeeStartsAt;
+  const currentPricePerAttendee = inLateFeeWindow ? event.lateFeePrice : event.basePrice;
+  const estimatedTotal = attendeeCount * currentPricePerAttendee;
 
   return (
     <section className="space-y-6">
@@ -131,6 +142,14 @@ export default async function DirectorEventRegistrationPage({
           <div>
             <dt className="font-semibold text-slate-900">Address</dt>
             <dd>{event.locationAddress ?? "TBD"}</dd>
+          </div>
+          <div>
+            <dt className="font-semibold text-slate-900">Current Price / Attendee</dt>
+            <dd>{formatCurrency(currentPricePerAttendee)}</dd>
+          </div>
+          <div>
+            <dt className="font-semibold text-slate-900">Estimated Total</dt>
+            <dd>{formatCurrency(estimatedTotal)} ({attendeeCount} attendee{attendeeCount === 1 ? "" : "s"})</dd>
           </div>
         </dl>
       </header>
