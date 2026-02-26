@@ -104,6 +104,10 @@ export async function saveRosterMember(formData: FormData) {
 
   const ageAtStartValue = parseOptionalNumber(formData.get("ageAtStart"));
   const dateOfBirthRaw = parseOptionalString(formData.get("dateOfBirth"));
+  const backgroundCheckDateRaw = parseOptionalString(formData.get("backgroundCheckDate"));
+  const backgroundCheckDate = backgroundCheckDateRaw
+    ? new Date(`${backgroundCheckDateRaw}T00:00:00.000Z`)
+    : null;
 
   const payload: Prisma.RosterMemberUncheckedCreateInput = {
     clubRosterYearId: rosterYear.id,
@@ -118,6 +122,8 @@ export async function saveRosterMember(formData: FormData) {
     isFirstTime: formData.get("isFirstTime") === "on",
     isMedicalPersonnel: formData.get("isMedicalPersonnel") === "on",
     masterGuide: formData.get("masterGuide") === "on",
+    backgroundCheckDate,
+    backgroundCheckCleared: Boolean(backgroundCheckDate),
     emergencyContactName: parseOptionalString(formData.get("emergencyContactName")),
     emergencyContactPhone: parseOptionalString(formData.get("emergencyContactPhone")),
     isActive: formData.get("isActive") === "on",
@@ -153,6 +159,8 @@ export async function saveRosterMember(formData: FormData) {
       isFirstTime: payload.isFirstTime,
       isMedicalPersonnel: payload.isMedicalPersonnel,
       masterGuide: payload.masterGuide,
+      backgroundCheckDate: payload.backgroundCheckDate,
+      backgroundCheckCleared: payload.backgroundCheckCleared,
       emergencyContactName: payload.emergencyContactName,
       emergencyContactPhone: payload.emergencyContactPhone,
       isActive: payload.isActive,
@@ -271,6 +279,8 @@ export async function executeYearlyRollover(
           isFirstTime: member.isFirstTime,
           isMedicalPersonnel: member.isMedicalPersonnel,
           masterGuide: member.masterGuide,
+          backgroundCheckDate: member.backgroundCheckDate,
+          backgroundCheckCleared: member.backgroundCheckCleared,
           emergencyContactName: member.emergencyContactName,
           emergencyContactPhone: member.emergencyContactPhone,
           isActive: true,

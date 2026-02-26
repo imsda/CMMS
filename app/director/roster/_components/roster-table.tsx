@@ -17,6 +17,8 @@ type RosterMemberRow = {
   isFirstTime: boolean;
   isMedicalPersonnel: boolean;
   masterGuide: boolean;
+  backgroundCheckDate: string | null;
+  backgroundCheckCleared: boolean;
   dateOfBirth: string | null;
   emergencyContactName: string | null;
   emergencyContactPhone: string | null;
@@ -35,14 +37,17 @@ type ModalState = {
 
 const roleOptions = Object.values(MemberRole);
 const genderOptions = Object.values(Gender);
+const adultRoles = new Set<MemberRole>([MemberRole.STAFF, MemberRole.DIRECTOR, MemberRole.COUNSELOR]);
 
-function Badge({ label, tone }: { label: string; tone: "neutral" | "good" | "warn" }) {
+function Badge({ label, tone }: { label: string; tone: "neutral" | "good" | "warn" | "danger" }) {
   const toneClass =
     tone === "good"
       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
       : tone === "warn"
         ? "border-amber-200 bg-amber-50 text-amber-700"
-        : "border-slate-200 bg-slate-100 text-slate-700";
+        : tone === "danger"
+          ? "border-red-200 bg-red-50 text-red-700"
+          : "border-slate-200 bg-slate-100 text-slate-700";
 
   return (
     <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${toneClass}`}>
@@ -57,6 +62,10 @@ function toDateInputValue(value: string | null) {
   }
 
   return value.slice(0, 10);
+}
+
+function formatDateLabel(value: string) {
+  return new Date(value).toLocaleDateString();
 }
 
 export function RosterTable({ rosterYearId, members }: RosterTableProps) {
@@ -99,6 +108,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                 "Name",
                 "Tags",
                 "Role",
+                "Background Check",
                 "Age",
                 "Gender",
                 "Medical",
@@ -118,50 +128,69 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
           <tbody className="divide-y divide-slate-100">
             {sortedMembers.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-10 text-center text-sm text-slate-500">
+                <td colSpan={10} className="px-4 py-10 text-center text-sm text-slate-500">
                   No active members found in this roster year yet.
                 </td>
               </tr>
             ) : (
-              sortedMembers.map((member) => (
-                <tr key={member.id} className="hover:bg-slate-50/80">
-                  <td className="px-4 py-3 text-sm font-semibold text-slate-800">
-                    {member.firstName} {member.lastName}
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap gap-1.5">
-                      {member.isMedicalPersonnel ? <Badge label="Medical" tone="good" /> : null}
-                      {member.isFirstTime ? <Badge label="1st Year" tone="warn" /> : null}
-                      {!member.isMedicalPersonnel && !member.isFirstTime ? (
-                        <Badge label="—" tone="neutral" />
-                      ) : null}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-slate-700">{member.memberRole.replaceAll("_", " ")}</td>
-                  <td className="px-4 py-3 text-sm text-slate-700">{member.ageAtStart ?? "—"}</td>
-                  <td className="px-4 py-3 text-sm text-slate-700">
-                    {member.gender ? member.gender.replaceAll("_", " ") : "—"}
-                  </td>
-                  <td className="px-4 py-3">
-                    {member.medicalFlags ? <Badge label="Flagged" tone="warn" /> : <Badge label="None" tone="neutral" />}
-                  </td>
-                  <td className="px-4 py-3">
-                    {member.dietaryRestrictions ? <Badge label="Yes" tone="warn" /> : <Badge label="None" tone="neutral" />}
-                  </td>
-                  <td className="px-4 py-3">
-                    {member.masterGuide ? <Badge label="Certified" tone="good" /> : <Badge label="No" tone="neutral" />}
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      type="button"
-                      onClick={() => setModalState({ mode: "edit", member })}
-                      className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-indigo-300 hover:text-indigo-700"
-                    >
-                      Edit
-                    </button>
-                  </td>
-                </tr>
-              ))
+              sortedMembers.map((member) => {
+                const requiresCheck = adultRoles.has(member.memberRole);
+                const missingClearance = requiresCheck && !member.backgroundCheckDate;
+
+                return (
+                  <tr key={member.id} className="hover:bg-slate-50/80">
+                    <td className="px-4 py-3 text-sm font-semibold text-slate-800">
+                      {member.firstName} {member.lastName}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap gap-1.5">
+                        {member.isMedicalPersonnel ? <Badge label="Medical" tone="good" /> : null}
+                        {member.isFirstTime ? <Badge label="1st Year" tone="warn" /> : null}
+                        {!member.isMedicalPersonnel && !member.isFirstTime ? <Badge label="—" tone="neutral" /> : null}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-700">{member.memberRole.replaceAll("_", " ")}</td>
+                    <td className="px-4 py-3">
+                      {!requiresCheck ? (
+                        <Badge label="Not Required" tone="neutral" />
+                      ) : missingClearance ? (
+                        <Badge label="Missing Clearance" tone="danger" />
+                      ) : (
+                        <Badge
+                          label={
+                            member.backgroundCheckCleared
+                              ? `Cleared ${formatDateLabel(member.backgroundCheckDate)}`
+                              : `Date Logged ${formatDateLabel(member.backgroundCheckDate)}`
+                          }
+                          tone="good"
+                        />
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-slate-700">{member.ageAtStart ?? "—"}</td>
+                    <td className="px-4 py-3 text-sm text-slate-700">
+                      {member.gender ? member.gender.replaceAll("_", " ") : "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      {member.medicalFlags ? <Badge label="Flagged" tone="warn" /> : <Badge label="None" tone="neutral" />}
+                    </td>
+                    <td className="px-4 py-3">
+                      {member.dietaryRestrictions ? <Badge label="Yes" tone="warn" /> : <Badge label="None" tone="neutral" />}
+                    </td>
+                    <td className="px-4 py-3">
+                      {member.masterGuide ? <Badge label="Certified" tone="good" /> : <Badge label="No" tone="neutral" />}
+                    </td>
+                    <td className="px-4 py-3">
+                      <button
+                        type="button"
+                        onClick={() => setModalState({ mode: "edit", member })}
+                        className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-indigo-300 hover:text-indigo-700"
+                      >
+                        Edit
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -259,6 +288,17 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                     defaultValue={toDateInputValue(modalState.member?.dateOfBirth ?? null)}
                     className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none"
                   />
+                </label>
+
+                <label className="space-y-1 text-sm font-medium text-slate-700">
+                  Background Check Date
+                  <input
+                    type="date"
+                    name="backgroundCheckDate"
+                    defaultValue={toDateInputValue(modalState.member?.backgroundCheckDate ?? null)}
+                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none"
+                  />
+                  <p className="text-xs font-normal text-slate-500">Required for staff, directors, and counselors.</p>
                 </label>
 
                 <label className="space-y-1 text-sm font-medium text-slate-700 md:col-span-2">

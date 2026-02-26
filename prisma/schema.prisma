@@ -162,6 +162,8 @@ model RosterMember {
   isFirstTime          Boolean               @default(false)
   isMedicalPersonnel   Boolean               @default(false)
   masterGuide          Boolean               @default(false)
+  backgroundCheckDate  DateTime?
+  backgroundCheckCleared Boolean             @default(false)
   rolloverStatus       RolloverStatus        @default(CONTINUING)
   isActive             Boolean               @default(true)
   emergencyContactName String?

@@ -1,6 +1,6 @@
 "use server";
 
-import { PaymentStatus, RegistrationStatus, type Prisma } from "@prisma/client";
+import { MemberRole, PaymentStatus, RegistrationStatus, type Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "../../auth";
@@ -89,6 +89,10 @@ async function requireDirectorClubForEvent(eventId: string) {
                 },
                 select: {
                   id: true,
+                  firstName: true,
+                  lastName: true,
+                  memberRole: true,
+                  backgroundCheckCleared: true,
                 },
               },
             },
@@ -132,7 +136,8 @@ async function requireDirectorClubForEvent(eventId: string) {
   }
 
   const activeRoster = membership.club.rosterYears[0];
-  const validAttendeeIds = new Set(activeRoster?.members.map((member) => member.id) ?? []);
+  const rosterMembers = activeRoster?.members ?? [];
+  const validAttendeeIds = new Set(rosterMembers.map((member) => member.id));
   const validFieldIds = new Set(event.dynamicFields.map((field) => field.id));
 
   return {
@@ -140,6 +145,7 @@ async function requireDirectorClubForEvent(eventId: string) {
     clubId: membership.club.id,
     clubName: membership.club.name,
     directorEmail: membership.user.email ?? session.user.email ?? null,
+    rosterMembers,
     validAttendeeIds,
     validFieldIds,
   };
@@ -154,7 +160,15 @@ async function persistRegistration(formData: FormData, nextStatus: RegistrationS
   const eventId = eventIdEntry.trim();
   const payload = parsePayload(formData.get("registrationPayload"));
 
-  const { clubId, clubName, directorEmail, event, validAttendeeIds, validFieldIds } = await requireDirectorClubForEvent(eventId);
+  const {
+    clubId,
+    clubName,
+    directorEmail,
+    event,
+    rosterMembers,
+    validAttendeeIds,
+    validFieldIds,
+  } = await requireDirectorClubForEvent(eventId);
 
   const attendeeIds = payload.attendeeIds.filter((attendeeId) => validAttendeeIds.has(attendeeId));
   const attendeeIdSet = new Set(attendeeIds);
@@ -177,6 +191,25 @@ async function persistRegistration(formData: FormData, nextStatus: RegistrationS
       value: response.value,
     }));
 
+
+  if (nextStatus === RegistrationStatus.SUBMITTED) {
+    const attendeeLookup = new Map(rosterMembers.map((member) => [member.id, member]));
+    const adultsMissingClearance = attendeeIds
+      .map((attendeeId) => attendeeLookup.get(attendeeId))
+      .filter((member): member is NonNullable<typeof member> => Boolean(member))
+      .filter(
+        (member) =>
+          (member.memberRole === MemberRole.STAFF || member.memberRole === MemberRole.DIRECTOR) &&
+          !member.backgroundCheckCleared,
+      )
+      .map((member) => `${member.firstName} ${member.lastName}`);
+
+    if (adultsMissingClearance.length > 0) {
+      throw new Error(
+        `Registration blocked: Sterling Volunteers clearance is missing for ${adultsMissingClearance.join(", ")}.`,
+      );
+    }
+  }
   const now = new Date();
   const pricePerAttendee = now >= event.lateFeeStartsAt ? event.lateFeePrice : event.basePrice;
   const totalDue = attendeeIds.length * pricePerAttendee;
