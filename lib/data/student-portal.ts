@@ -19,38 +19,49 @@ type StudentPortalData = {
   }>;
 };
 
+type LinkedRosterMember = {
+  id: string;
+  firstName: string;
+  lastName: string;
+};
+
 function getRosterMemberName(member: { firstName: string; lastName: string }) {
   return `${member.firstName} ${member.lastName}`.trim();
 }
 
-async function getLinkedRosterMemberIds(userId: string) {
-  const linkedRequirements = await prisma.memberRequirement.findMany({
+async function getLinkedRosterMembers(userId: string): Promise<LinkedRosterMember[]> {
+  return prisma.rosterMember.findMany({
     where: {
-      userId,
-      rosterMemberId: {
-        not: null,
+      completedRequirements: {
+        some: {
+          userId,
+        },
       },
     },
     select: {
-      rosterMemberId: true,
+      id: true,
+      firstName: true,
+      lastName: true,
     },
-    distinct: ["rosterMemberId"],
+    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
   });
-
-  return linkedRequirements
-    .map((record) => record.rosterMemberId)
-    .filter((record): record is string => record !== null);
 }
 
 export async function getStudentPortalData(userId: string): Promise<StudentPortalData> {
-  const linkedRosterMemberIds = await getLinkedRosterMemberIds(userId);
+  const linkedRosterMembers = await getLinkedRosterMembers(userId);
 
-  if (linkedRosterMemberIds.length === 0) {
+  if (linkedRosterMembers.length === 0) {
     return {
       completedHonors: [],
       schedule: [],
     };
   }
+
+  const linkedRosterMemberIds = linkedRosterMembers.map((member) => member.id);
+  const rosterMemberNameById = new Map(
+    linkedRosterMembers.map((member) => [member.id, getRosterMemberName(member)]),
+  );
+  const now = new Date();
 
   const [completedRequirements, upcomingEnrollments] = await Promise.all([
     prisma.memberRequirement.findMany({
@@ -63,12 +74,7 @@ export async function getStudentPortalData(userId: string): Promise<StudentPorta
         id: true,
         honorCode: true,
         completedAt: true,
-        rosterMember: {
-          select: {
-            firstName: true,
-            lastName: true,
-          },
-        },
+        rosterMemberId: true,
       },
       orderBy: [{ completedAt: "desc" }, { honorCode: "asc" }],
     }),
@@ -79,19 +85,19 @@ export async function getStudentPortalData(userId: string): Promise<StudentPorta
         },
         isWaitlisted: false,
         eventClassOffering: {
+          event: {
+            endsAt: {
+              gte: now,
+            },
+          },
           startsAt: {
-            gte: new Date(),
+            gte: now,
           },
         },
       },
       select: {
         id: true,
-        rosterMember: {
-          select: {
-            firstName: true,
-            lastName: true,
-          },
-        },
+        rosterMemberId: true,
         eventClassOffering: {
           select: {
             startsAt: true,
@@ -128,18 +134,20 @@ export async function getStudentPortalData(userId: string): Promise<StudentPorta
   ]);
 
   const uniqueHonorCodes = [...new Set(completedRequirements.map((item) => item.honorCode))];
-
-  const honorCatalog = await prisma.classCatalog.findMany({
-    where: {
-      code: {
-        in: uniqueHonorCodes,
-      },
-    },
-    select: {
-      code: true,
-      title: true,
-    },
-  });
+  const honorCatalog =
+    uniqueHonorCodes.length === 0
+      ? []
+      : await prisma.classCatalog.findMany({
+          where: {
+            code: {
+              in: uniqueHonorCodes,
+            },
+          },
+          select: {
+            code: true,
+            title: true,
+          },
+        });
 
   const honorByCode = new Map(honorCatalog.map((item) => [item.code, item.title]));
 
@@ -149,9 +157,10 @@ export async function getStudentPortalData(userId: string): Promise<StudentPorta
       honorCode: requirement.honorCode,
       honorTitle: honorByCode.get(requirement.honorCode) ?? requirement.honorCode,
       completedAt: requirement.completedAt,
-      rosterMemberName: requirement.rosterMember
-        ? getRosterMemberName(requirement.rosterMember)
-        : "Linked Student",
+      rosterMemberName:
+        requirement.rosterMemberId === null
+          ? "Linked Student"
+          : rosterMemberNameById.get(requirement.rosterMemberId) ?? "Linked Student",
     })),
     schedule: upcomingEnrollments.map((enrollment) => ({
       enrollmentId: enrollment.id,
@@ -160,7 +169,8 @@ export async function getStudentPortalData(userId: string): Promise<StudentPorta
       startsAt: enrollment.eventClassOffering.startsAt,
       endsAt: enrollment.eventClassOffering.endsAt,
       location: enrollment.eventClassOffering.location,
-      rosterMemberName: getRosterMemberName(enrollment.rosterMember),
+      rosterMemberName:
+        rosterMemberNameById.get(enrollment.rosterMemberId) ?? "Linked Student",
     })),
   };
 }

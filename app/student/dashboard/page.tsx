@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+
 import { auth } from "../../../auth";
 import { getStudentPortalData } from "../../../lib/data/student-portal";
 
@@ -19,7 +21,7 @@ export default async function StudentDashboardPage() {
   const session = await auth();
 
   if (!session?.user || session.user.role !== "STUDENT_PARENT") {
-    throw new Error("Only students/parents can access this dashboard.");
+    redirect("/login");
   }
 
   const portalData = await getStudentPortalData(session.user.id);
