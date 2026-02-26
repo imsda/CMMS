@@ -62,6 +62,12 @@ export default async function EventOverseerPage({ params }: EventOverseerPagePro
             Download Master Attendees CSV
           </a>
           <Link
+            href={`/admin/events/${eventId}/reports/operational`}
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+          >
+            Open Operational Reports
+          </Link>
+          <Link
             href="/admin/dashboard"
             className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
           >
