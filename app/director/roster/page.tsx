@@ -135,6 +135,10 @@ export default async function DirectorRosterPage() {
               isFirstTime: member.isFirstTime,
               isMedicalPersonnel: member.isMedicalPersonnel,
               masterGuide: member.masterGuide,
+              backgroundCheckDate: member.backgroundCheckDate
+                ? member.backgroundCheckDate.toISOString()
+                : null,
+              backgroundCheckCleared: member.backgroundCheckCleared,
               dateOfBirth: member.dateOfBirth ? member.dateOfBirth.toISOString() : null,
               emergencyContactName: member.emergencyContactName,
               emergencyContactPhone: member.emergencyContactPhone,
