@@ -168,6 +168,12 @@ model RosterMember {
   isActive             Boolean               @default(true)
   emergencyContactName String?
   emergencyContactPhone String?
+  insuranceCompany     String?
+  insurancePolicyNumber String?
+  lastTetanusDate      DateTime?
+  photoReleaseConsent  Boolean               @default(false)
+  medicalTreatmentConsent Boolean            @default(false)
+  membershipAgreementConsent Boolean         @default(false)
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
 

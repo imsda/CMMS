@@ -142,6 +142,12 @@ export default async function DirectorRosterPage() {
               dateOfBirth: member.dateOfBirth ? member.dateOfBirth.toISOString() : null,
               emergencyContactName: member.emergencyContactName,
               emergencyContactPhone: member.emergencyContactPhone,
+              insuranceCompany: member.insuranceCompany,
+              insurancePolicyNumber: member.insurancePolicyNumber,
+              lastTetanusDate: member.lastTetanusDate ? member.lastTetanusDate.toISOString() : null,
+              photoReleaseConsent: member.photoReleaseConsent,
+              medicalTreatmentConsent: member.medicalTreatmentConsent,
+              membershipAgreementConsent: member.membershipAgreementConsent,
               isActive: member.isActive,
             }))}
           />

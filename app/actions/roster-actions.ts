@@ -108,6 +108,15 @@ export async function saveRosterMember(formData: FormData) {
   const backgroundCheckDate = backgroundCheckDateRaw
     ? new Date(`${backgroundCheckDateRaw}T00:00:00.000Z`)
     : null;
+  const lastTetanusDateRaw = parseOptionalString(formData.get("lastTetanusDate"));
+
+  const photoReleaseConsent = formData.get("photoReleaseConsent") === "on";
+  const medicalTreatmentConsent = formData.get("medicalTreatmentConsent") === "on";
+  const membershipAgreementConsent = formData.get("membershipAgreementConsent") === "on";
+
+  if (!photoReleaseConsent || !medicalTreatmentConsent || !membershipAgreementConsent) {
+    throw new Error("All required consent agreements must be accepted.");
+  }
 
   const payload: Prisma.RosterMemberUncheckedCreateInput = {
     clubRosterYearId: rosterYear.id,
@@ -126,6 +135,12 @@ export async function saveRosterMember(formData: FormData) {
     backgroundCheckCleared: Boolean(backgroundCheckDate),
     emergencyContactName: parseOptionalString(formData.get("emergencyContactName")),
     emergencyContactPhone: parseOptionalString(formData.get("emergencyContactPhone")),
+    insuranceCompany: parseOptionalString(formData.get("insuranceCompany")),
+    insurancePolicyNumber: parseOptionalString(formData.get("insurancePolicyNumber")),
+    lastTetanusDate: lastTetanusDateRaw ? new Date(`${lastTetanusDateRaw}T00:00:00.000Z`) : null,
+    photoReleaseConsent,
+    medicalTreatmentConsent,
+    membershipAgreementConsent,
     isActive: formData.get("isActive") === "on",
     rolloverStatus: RolloverStatus.NEW,
   };
@@ -163,6 +178,12 @@ export async function saveRosterMember(formData: FormData) {
       backgroundCheckCleared: payload.backgroundCheckCleared,
       emergencyContactName: payload.emergencyContactName,
       emergencyContactPhone: payload.emergencyContactPhone,
+      insuranceCompany: payload.insuranceCompany,
+      insurancePolicyNumber: payload.insurancePolicyNumber,
+      lastTetanusDate: payload.lastTetanusDate,
+      photoReleaseConsent: payload.photoReleaseConsent,
+      medicalTreatmentConsent: payload.medicalTreatmentConsent,
+      membershipAgreementConsent: payload.membershipAgreementConsent,
       isActive: payload.isActive,
     };
 
@@ -283,6 +304,12 @@ export async function executeYearlyRollover(
           backgroundCheckCleared: member.backgroundCheckCleared,
           emergencyContactName: member.emergencyContactName,
           emergencyContactPhone: member.emergencyContactPhone,
+          insuranceCompany: member.insuranceCompany,
+          insurancePolicyNumber: member.insurancePolicyNumber,
+          lastTetanusDate: member.lastTetanusDate,
+          photoReleaseConsent: member.photoReleaseConsent,
+          medicalTreatmentConsent: member.medicalTreatmentConsent,
+          membershipAgreementConsent: member.membershipAgreementConsent,
           isActive: true,
           rolloverStatus: RolloverStatus.CONTINUING,
         })),

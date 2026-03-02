@@ -22,6 +22,12 @@ type RosterMemberRow = {
   dateOfBirth: string | null;
   emergencyContactName: string | null;
   emergencyContactPhone: string | null;
+  insuranceCompany: string | null;
+  insurancePolicyNumber: string | null;
+  lastTetanusDate: string | null;
+  photoReleaseConsent: boolean;
+  medicalTreatmentConsent: boolean;
+  membershipAgreementConsent: boolean;
   isActive: boolean;
 };
 
@@ -68,6 +74,10 @@ function formatDateLabel(value: string) {
   return new Date(value).toLocaleDateString();
 }
 
+function hasMissingRequiredConsent(member: RosterMemberRow) {
+  return !(member.photoReleaseConsent && member.medicalTreatmentConsent && member.membershipAgreementConsent);
+}
+
 export function RosterTable({ rosterYearId, members }: RosterTableProps) {
   const [modalState, setModalState] = useState<ModalState | null>(null);
 
@@ -109,6 +119,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                 "Tags",
                 "Role",
                 "Background Check",
+                "Consents",
                 "Age",
                 "Gender",
                 "Medical",
@@ -128,7 +139,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
           <tbody className="divide-y divide-slate-100">
             {sortedMembers.length === 0 ? (
               <tr>
-                <td colSpan={10} className="px-4 py-10 text-center text-sm text-slate-500">
+                <td colSpan={11} className="px-4 py-10 text-center text-sm text-slate-500">
                   No active members found in this roster year yet.
                 </td>
               </tr>
@@ -136,6 +147,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
               sortedMembers.map((member) => {
                 const requiresCheck = adultRoles.has(member.memberRole);
                 const missingClearance = requiresCheck && !member.backgroundCheckDate;
+                const missingConsent = hasMissingRequiredConsent(member);
 
                 return (
                   <tr key={member.id} className="hover:bg-slate-50/80">
@@ -164,6 +176,15 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                           }
                           tone="good"
                         />
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {missingConsent ? (
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700" title="Missing one or more required consents">
+                          ⚠️ Missing
+                        </span>
+                      ) : (
+                        <Badge label="Complete" tone="good" />
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm text-slate-700">{member.ageAtStart ?? "—"}</td>
@@ -198,7 +219,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
 
       {modalState ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white shadow-xl">
+          <div className="w-full max-w-3xl rounded-2xl border border-slate-200 bg-white shadow-xl">
             <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
               <h3 className="text-lg font-semibold text-slate-900">
                 {modalState.mode === "create" ? "Add roster member" : "Edit roster member"}
@@ -212,7 +233,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
               </button>
             </div>
 
-            <form action={saveRosterMember} className="space-y-4 px-6 py-5">
+            <form action={saveRosterMember} className="space-y-6 px-6 py-5">
               <input type="hidden" name="clubRosterYearId" value={rosterYearId} />
               {modalState.member ? <input type="hidden" name="memberId" value={modalState.member.id} /> : null}
 
@@ -377,6 +398,91 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                   Active Member
                 </label>
               </div>
+
+              <section className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <div>
+                  <h4 className="text-base font-semibold text-slate-900">Agreements &amp; Medical</h4>
+                  <p className="text-sm text-slate-600">
+                    Capture parent/guardian consent confirmations and key health record details.
+                  </p>
+                </div>
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="space-y-1 text-sm font-medium text-slate-700">
+                    Insurance Company
+                    <input
+                      name="insuranceCompany"
+                      defaultValue={modalState.member?.insuranceCompany ?? ""}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none"
+                    />
+                  </label>
+
+                  <label className="space-y-1 text-sm font-medium text-slate-700">
+                    Insurance Policy Number
+                    <input
+                      name="insurancePolicyNumber"
+                      defaultValue={modalState.member?.insurancePolicyNumber ?? ""}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none"
+                    />
+                  </label>
+
+                  <label className="space-y-1 text-sm font-medium text-slate-700 md:col-span-2">
+                    Last Tetanus Date
+                    <input
+                      type="date"
+                      name="lastTetanusDate"
+                      defaultValue={toDateInputValue(modalState.member?.lastTetanusDate ?? null)}
+                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none"
+                    />
+                  </label>
+                </div>
+
+                <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">Required Consents</p>
+
+                  <label className="flex items-start gap-3 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      name="photoReleaseConsent"
+                      required
+                      defaultChecked={modalState.member?.photoReleaseConsent ?? false}
+                      className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span>
+                      <strong>Photo/Video Release:</strong> I authorize Pathfinder activities to capture and use photos/videos
+                      of my child for club communications and ministry promotion.
+                    </span>
+                  </label>
+
+                  <label className="flex items-start gap-3 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      name="medicalTreatmentConsent"
+                      required
+                      defaultChecked={modalState.member?.medicalTreatmentConsent ?? false}
+                      className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span>
+                      <strong>Medical Treatment Consent:</strong> I authorize staff to secure emergency medical care when
+                      I cannot be reached, including transport and treatment as needed.
+                    </span>
+                  </label>
+
+                  <label className="flex items-start gap-3 text-sm text-slate-700">
+                    <input
+                      type="checkbox"
+                      name="membershipAgreementConsent"
+                      required
+                      defaultChecked={modalState.member?.membershipAgreementConsent ?? false}
+                      className="mt-0.5 h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span>
+                      <strong>Membership Agreement:</strong> I agree to Pathfinder participation standards, expectations,
+                      and parent/guardian responsibilities for this membership year.
+                    </span>
+                  </label>
+                </div>
+              </section>
 
               <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
                 <button
