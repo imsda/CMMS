@@ -68,6 +68,12 @@ export default async function EventOverseerPage({ params }: EventOverseerPagePro
             Open Operational Reports
           </Link>
           <Link
+            href={`/admin/events/${eventId}/reports/compliance`}
+            className="rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-500"
+          >
+            Open Compliance Dashboard
+          </Link>
+          <Link
             href="/admin/dashboard"
             className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
           >
