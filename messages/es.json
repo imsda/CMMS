@@ -1,0 +1,22 @@
+{
+  "Navigation": {
+    "dashboard": "Panel",
+    "roster": "Nómina",
+    "events": "Eventos",
+    "reports": "Informes"
+  },
+  "Auth": {
+    "login": "Iniciar sesión",
+    "register": "Registrarse",
+    "signIn": "Entrar",
+    "signOut": "Cerrar sesión"
+  },
+  "Common": {
+    "submit": "Enviar",
+    "cancel": "Cancelar",
+    "save": "Guardar",
+    "language": "Idioma",
+    "platformTitle": "Gestión de Clubes y Registro de Eventos",
+    "conference": "Conferencia de Iowa-Misuri"
+  }
+}
