@@ -90,6 +90,12 @@ enum ReportStatus {
   SUBMITTED
 }
 
+enum NominationStatus {
+  SUBMITTED
+  REVIEWED
+  WINNER
+}
+
 model User {
   id                    String               @id @default(cuid())
   email                 String               @unique
@@ -119,6 +125,7 @@ model Club {
   registrations   EventRegistration[]
   monthlyReports  MonthlyReport[]
   yearEndReports  YearEndReport[]
+  nominations     Nomination[]
 }
 
 model ClubMembership {
@@ -188,9 +195,29 @@ model RosterMember {
   registrations          RegistrationAttendee[]
   classEnrollments       ClassEnrollment[]
   completedRequirements  MemberRequirement[]
+  nominations            Nomination[]
 
   @@index([clubRosterYearId, isActive])
   @@index([lastName, firstName])
+}
+
+model Nomination {
+  id                      String           @id @default(cuid())
+  clubId                  String
+  rosterMemberId          String
+  awardType               String
+  year                    Int
+  justificationText       String
+  communityServiceDetails String
+  status                  NominationStatus @default(SUBMITTED)
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+
+  club         Club         @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  rosterMember RosterMember @relation(fields: [rosterMemberId], references: [id], onDelete: Cascade)
+
+  @@index([clubId, year])
+  @@index([status])
 }
 
 model Event {
