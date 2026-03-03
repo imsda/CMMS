@@ -102,6 +102,11 @@ enum TltApplicationStatus {
   REJECTED
 }
 
+enum TltRecommendationStatus {
+  PENDING
+  COMPLETED
+}
+
 model User {
   id                    String               @id @default(cuid())
   email                 String               @unique
@@ -225,10 +230,32 @@ model TltApplication {
   status           TltApplicationStatus @default(PENDING)
   createdAt        DateTime             @default(now())
 
-  rosterMember RosterMember @relation(fields: [rosterMemberId], references: [id], onDelete: Cascade)
-  club         Club         @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  rosterMember     RosterMember         @relation(fields: [rosterMemberId], references: [id], onDelete: Cascade)
+  club             Club                 @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  recommendations  TltRecommendation[]
 
   @@index([clubId, status])
+}
+
+model TltRecommendation {
+  id                String                  @id @default(cuid())
+  tltApplicationId  String
+  secureToken       String                  @unique
+  recommenderName   String?
+  recommenderEmail  String
+  relationship      String?
+  qualities         String?
+  stressResponse    String?
+  potentialProblems String?
+  status            TltRecommendationStatus @default(PENDING)
+  submittedAt       DateTime?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  tltApplication TltApplication @relation(fields: [tltApplicationId], references: [id], onDelete: Cascade)
+
+  @@index([tltApplicationId])
+  @@index([status])
 }
 
 model Nomination {
