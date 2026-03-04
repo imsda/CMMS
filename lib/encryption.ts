@@ -29,7 +29,7 @@ function getEncryptionKey() {
   );
 }
 
-export function encryptMedicalText(plainText: string | null | undefined) {
+export function encrypt(plainText: string | null | undefined) {
   if (!plainText) {
     return null;
   }
@@ -50,7 +50,7 @@ export function encryptMedicalText(plainText: string | null | undefined) {
   return `${iv.toString("base64")}:${authTag.toString("base64")}:${encrypted.toString("base64")}`;
 }
 
-export function decryptMedicalText(payload: string | null | undefined) {
+export function decrypt(payload: string | null | undefined) {
   if (!payload) {
     return null;
   }
@@ -72,3 +72,6 @@ export function decryptMedicalText(payload: string | null | undefined) {
   const decrypted = Buffer.concat([decipher.update(encrypted), decipher.final()]);
   return decrypted.toString("utf8");
 }
+
+export const encryptMedicalText = encrypt;
+export const decryptMedicalText = decrypt;

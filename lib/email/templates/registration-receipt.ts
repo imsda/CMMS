@@ -4,11 +4,22 @@ export type RegistrationReceiptTemplateProps = {
   attendeeCount: number;
 };
 
+function escapeHtml(value: string) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
 export function buildRegistrationReceiptHtml({
   clubName,
   eventName,
   attendeeCount,
 }: RegistrationReceiptTemplateProps) {
+  const safeClubName = escapeHtml(clubName);
+  const safeEventName = escapeHtml(eventName);
+
   return `
     <!doctype html>
     <html>
@@ -29,7 +40,7 @@ export function buildRegistrationReceiptHtml({
                 </tr>
                 <tr>
                   <td style="padding:24px;line-height:1.6;font-size:16px;">
-                    <p style="margin:0 0 16px;">Thank you for registering <strong>${clubName}</strong> for <strong>${eventName}</strong>.</p>
+                    <p style="margin:0 0 16px;">Thank you for registering <strong>${safeClubName}</strong> for <strong>${safeEventName}</strong>.</p>
                     <p style="margin:0 0 12px;">Registration summary:</p>
                     <ul style="padding-left:20px;margin:0 0 24px;">
                       <li>Total attendees registered: <strong>${attendeeCount}</strong></li>

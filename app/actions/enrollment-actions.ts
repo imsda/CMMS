@@ -1,5 +1,6 @@
 "use server";
 
+import { RequirementType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "../../auth";
@@ -112,6 +113,9 @@ export async function enrollAttendeeInClass(input: EnrollAttendeeInput) {
         memberRole: true,
         masterGuide: true,
         completedRequirements: {
+          where: {
+            requirementType: RequirementType.COMPLETED_HONOR,
+          },
           select: {
             honorCode: true,
           },
@@ -159,7 +163,7 @@ export async function enrollAttendeeInClass(input: EnrollAttendeeInput) {
       },
     });
 
-    if (enrollmentCount >= offering.capacity) {
+    if (offering.capacity !== null && enrollmentCount >= offering.capacity) {
       throw new Error("This class is full. Please choose another class.");
     }
 
