@@ -1,14 +1,28 @@
 "use client";
 
-import { useActionState } from "react";
+import { useFormState, useFormStatus } from "react-dom";
 
 import {
   initialComplianceSyncState,
   syncSterlingBackgroundChecks,
 } from "../../actions/compliance-actions";
 
+function SubmitButton() {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {pending ? "Syncing..." : "Sync Background Checks"}
+    </button>
+  );
+}
+
 export default function ComplianceDashboardPage() {
-  const [state, formAction, isPending] = useActionState(
+  const [state, formAction] = useFormState(
     syncSterlingBackgroundChecks,
     initialComplianceSyncState,
   );
@@ -42,13 +56,7 @@ export default function ComplianceDashboardPage() {
           />
         </label>
 
-        <button
-          type="submit"
-          disabled={isPending}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          {isPending ? "Syncing..." : "Sync Background Checks"}
-        </button>
+        <SubmitButton />
       </form>
 
       <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">

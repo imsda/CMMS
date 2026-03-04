@@ -12,7 +12,7 @@ type ParsedRequirementInput = {
   maxAge: number | null;
   requiredMemberRole: MemberRole | null;
   requiredHonorCode: string | null;
-  requiredMasterGuide: boolean | null;
+  requiredMasterGuide: boolean | undefined;
 };
 
 function ensureSuperAdmin(session: Awaited<ReturnType<typeof auth>>) {
@@ -92,7 +92,7 @@ function parseOptionalMemberRole(value: FormDataEntryValue | null) {
 
 function parseOptionalBoolean(value: FormDataEntryValue | null) {
   if (typeof value !== "string" || value.trim().length === 0 || value === "NONE") {
-    return null;
+    return undefined;
   }
 
   if (value === "true") {

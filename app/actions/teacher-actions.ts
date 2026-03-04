@@ -1,5 +1,6 @@
 "use server";
 
+import { RequirementType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "../../auth";
@@ -27,7 +28,7 @@ async function assertTeacherAccessToOffering(offeringId: string) {
   const offering = await prisma.eventClassOffering.findFirst({
     where: {
       id: offeringId,
-      instructorUserId: session.user.id,
+      teacherUserId: session.user.id,
     },
     select: {
       id: true,
@@ -158,11 +159,13 @@ export async function signOffRequirementsForStudents(input: SignOffRequirementsI
     await prisma.memberRequirement.createMany({
       data: requirementsToCreate.map((rosterMemberId) => ({
         rosterMemberId,
-        userId: teacherUserId,
         honorCode: offering.classCatalog.code,
+        requirementType: RequirementType.COMPLETED_HONOR,
         completedAt: new Date(),
-        verifiedBy: "STAFF_TEACHER",
-        notes: input.notes?.trim() || `Completed in class: ${offering.classCatalog.title}`,
+        metadata: {
+          verifiedBy: teacherUserId,
+          notes: input.notes?.trim() || `Completed in class: ${offering.classCatalog.title}`,
+        },
       })),
     });
   }

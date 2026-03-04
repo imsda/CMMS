@@ -86,6 +86,10 @@ export async function createMonthlyReport(formData: FormData) {
   const session = await auth();
   ensureRole(session, UserRole.CLUB_DIRECTOR, "Only club directors can submit monthly reports.");
 
+  if (!session?.user) {
+    throw new Error("Not authenticated.");
+  }
+
   const meetingCount = requireNumber(formData.get("meetingCount"), "Meeting count");
   const averagePathfinderAttendance = requireNumber(
     formData.get("averagePathfinderAttendance"),
@@ -146,6 +150,10 @@ export async function createMonthlyReport(formData: FormData) {
 export async function getDirectorReportsDashboardData() {
   const session = await auth();
   ensureRole(session, UserRole.CLUB_DIRECTOR, "Only club directors can view this page.");
+
+  if (!session?.user) {
+    throw new Error("Not authenticated.");
+  }
 
   const clubId = await getDirectorClubId(session.user.id);
 
