@@ -1,9 +1,38 @@
 import { UserRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import NextAuth from "next-auth";
+import NextAuth, { type DefaultSession } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 
 import { prisma } from "./lib/prisma";
+
+/**
+ * Extend the built-in NextAuth types so that `session.user.id` and
+ * `session.user.role` are recognised by TypeScript everywhere `auth()` is
+ * called.  Without this augmentation the compiler reports a type error
+ * because the default `Session` interface only contains `name`, `email`
+ * and `image`.
+ */
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      role: UserRole;
+    } & DefaultSession["user"];
+  }
+
+  // The shape returned by `authorize()` — also used internally by NextAuth.
+  interface User {
+    id?: string;
+    role: UserRole;
+  }
+}
+
+declare module "next-auth/jwt" {
+  interface JWT {
+    id: string;
+    role: UserRole;
+  }
+}
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: {
@@ -32,7 +61,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const user = await prisma.user.findUnique({
           where: {
-            email: credentials.email,
+            email: credentials.email as string,
           },
         });
 
@@ -41,7 +70,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }
 
         const passwordMatches = await bcrypt.compare(
-          credentials.password,
+          credentials.password as string,
           user.passwordHash,
         );
 
@@ -60,17 +89,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, user }) {
+      // `user` is only present on the first sign-in; persist custom fields
+      // into the JWT so they survive between requests.
       if (user) {
-        token.id = user.id;
-        token.role = user.role as UserRole;
+        token.id = user.id as string;
+        token.role = user.role;
       }
 
       return token;
     },
     async session({ session, token }) {
+      // Copy the custom JWT fields into the session object that is exposed
+      // to client components and server actions via `auth()`.
       if (session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as UserRole;
+        session.user.id = token.id;
+        session.user.role = token.role;
       }
 
       return session;

@@ -1,5 +1,6 @@
 "use server";
 
+import { RequirementType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "../../auth";
@@ -17,6 +18,14 @@ type SignOffRequirementsInput = {
   notes?: string;
 };
 
+/**
+ * Verify the current user is a STAFF_TEACHER and is assigned to the given
+ * offering.
+ *
+ * Schema note: the instructor FK on EventClassOffering is `teacherUserId`,
+ * NOT `instructorUserId`.  Using the wrong field name causes Prisma to return
+ * no rows (instead of throwing), silently breaking all teacher actions.
+ */
 async function assertTeacherAccessToOffering(offeringId: string) {
   const session = await auth();
 
@@ -27,7 +36,8 @@ async function assertTeacherAccessToOffering(offeringId: string) {
   const offering = await prisma.eventClassOffering.findFirst({
     where: {
       id: offeringId,
-      instructorUserId: session.user.id,
+      // ✅ Correct field name from schema: EventClassOffering.teacherUserId
+      teacherUserId: session.user.id,
     },
     select: {
       id: true,
@@ -137,6 +147,7 @@ export async function signOffRequirementsForStudents(input: SignOffRequirementsI
   const existingCompletions = await prisma.memberRequirement.findMany({
     where: {
       honorCode: offering.classCatalog.code,
+      requirementType: RequirementType.COMPLETED_HONOR,
       rosterMemberId: {
         in: selectedIds,
       },
@@ -155,14 +166,31 @@ export async function signOffRequirementsForStudents(input: SignOffRequirementsI
   const requirementsToCreate = selectedIds.filter((id) => !completedIdSet.has(id));
 
   if (requirementsToCreate.length > 0) {
+    /**
+     * Schema fields for MemberRequirement:
+     *   id              – auto (cuid)
+     *   rosterMemberId  – required String
+     *   honorCode       – required String
+     *   requirementType – required RequirementType enum  ← was missing before
+     *   metadata        – optional Json  ← used to store teacher + notes
+     *   completedAt     – required DateTime
+     *   createdAt       – auto
+     *
+     * Fields that do NOT exist in the schema (removed):
+     *   userId     ← was incorrectly included
+     *   verifiedBy ← was incorrectly included
+     *   notes      ← was incorrectly included
+     */
     await prisma.memberRequirement.createMany({
       data: requirementsToCreate.map((rosterMemberId) => ({
         rosterMemberId,
-        userId: teacherUserId,
         honorCode: offering.classCatalog.code,
+        requirementType: RequirementType.COMPLETED_HONOR,
         completedAt: new Date(),
-        verifiedBy: "STAFF_TEACHER",
-        notes: input.notes?.trim() || `Completed in class: ${offering.classCatalog.title}`,
+        metadata: {
+          signedOffByUserId: teacherUserId,
+          notes: input.notes?.trim() || `Completed in class: ${offering.classCatalog.title}`,
+        },
       })),
     });
   }

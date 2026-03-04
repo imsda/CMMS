@@ -209,6 +209,7 @@ model RosterMember {
   completedRequirements  MemberRequirement[]
   nominations            Nomination[]
   tltApplication         TltApplication?
+  eventFormResponses     EventFormResponse[]
 
   @@index([clubRosterYearId, isActive])
   @@index([lastName, firstName])
