@@ -7,6 +7,8 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
+    // For future connection pooling/tuning, configure DATABASE_URL with query params,
+    // e.g. postgresql://.../cmms?schema=public&connection_limit=10.
     log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
   });
 

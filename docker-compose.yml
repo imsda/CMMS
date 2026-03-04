@@ -22,10 +22,12 @@ services:
       - postgres
     environment:
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/cmms?schema=public
-      NEXTAUTH_SECRET: ""
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       NEXTAUTH_URL: ""
     ports:
       - "3000:3000"
+    volumes:
+      - ./private-uploads:/app/private-uploads
 
 volumes:
   postgres_data:
