@@ -20,14 +20,24 @@ services:
     restart: unless-stopped
     depends_on:
       - postgres
-    environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/cmms?schema=public
-      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
-      NEXTAUTH_URL: ""
     ports:
       - "3000:3000"
     volumes:
       - ./private-uploads:/app/private-uploads
+    environment:
+      # We pass these through using the ${VAR} syntax so Docker knows 
+      # to pull the real values from your xCloud Environment Variables dashboard.
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/cmms?schema=public
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL: ${NEXTAUTH_URL}
+      MEDICAL_ENCRYPTION_KEY: ${MEDICAL_ENCRYPTION_KEY}
+      SEED_SUPER_ADMIN_NAME: ${SEED_SUPER_ADMIN_NAME}
+      SEED_SUPER_ADMIN_EMAIL: ${SEED_SUPER_ADMIN_EMAIL}
+      SEED_SUPER_ADMIN_PASSWORD: ${SEED_SUPER_ADMIN_PASSWORD}
+      RESEND_API_KEY: ${RESEND_API_KEY}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL}
+      # This ensures Next.js listens publicly so Nginx can reach it
+      HOSTNAME: "0.0.0.0" 
 
 volumes:
   postgres_data:
