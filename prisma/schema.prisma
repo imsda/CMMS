@@ -1,0 +1,497 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  CLUB_DIRECTOR
+  STAFF_TEACHER
+  STUDENT_PARENT
+}
+
+enum ClubType {
+  PATHFINDER
+  ADVENTURER
+  EAGER_BEAVER
+}
+
+enum MemberRole {
+  PATHFINDER
+  ADVENTURER
+  TLT
+  STAFF
+  CHILD
+  DIRECTOR
+  COUNSELOR
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  NON_BINARY
+  PREFER_NOT_TO_SAY
+}
+
+enum RolloverStatus {
+  CONTINUING
+  ARCHIVED
+  GRADUATED
+  NEW
+}
+
+enum RegistrationStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum PaymentStatus {
+  PENDING
+  PARTIAL
+  PAID
+}
+
+enum FormFieldType {
+  SHORT_TEXT
+  LONG_TEXT
+  NUMBER
+  BOOLEAN
+  DATE
+  SINGLE_SELECT
+  MULTI_SELECT
+  ROSTER_SELECT
+  ROSTER_MULTI_SELECT
+  FIELD_GROUP
+}
+
+enum ClassType {
+  HONOR
+  SPECIALTY
+  WORKSHOP
+  REQUIRED
+}
+
+enum RequirementType {
+  MIN_AGE
+  MAX_AGE
+  MEMBER_ROLE
+  COMPLETED_HONOR
+  MASTER_GUIDE
+}
+
+enum ReportStatus {
+  DRAFT
+  SUBMITTED
+}
+
+enum NominationStatus {
+  SUBMITTED
+  REVIEWED
+  WINNER
+}
+
+enum TltApplicationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TltRecommendationStatus {
+  PENDING
+  COMPLETED
+}
+
+model User {
+  id                    String               @id @default(cuid())
+  email                 String               @unique
+  name                  String
+  role                  UserRole
+  passwordHash          String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  memberships           ClubMembership[]
+  taughtOfferings       EventClassOffering[] @relation("OfferingTeacher")
+  completedRequirements MemberRequirement[]
+}
+
+model Club {
+  id              String              @id @default(cuid())
+  name            String
+  code            String              @unique
+  type            ClubType
+  city            String?
+  state           String?
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  memberships     ClubMembership[]
+  rosterYears     ClubRosterYear[]
+  registrations   EventRegistration[]
+  monthlyReports  MonthlyReport[]
+  yearEndReports  YearEndReport[]
+  nominations     Nomination[]
+  tltApplications TltApplication[]
+}
+
+model ClubMembership {
+  id        String   @id @default(cuid())
+  clubId    String
+  userId    String
+  title     String?
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([clubId, userId])
+  @@index([userId])
+}
+
+model ClubRosterYear {
+  id               String           @id @default(cuid())
+  clubId           String
+  yearLabel        String
+  startsOn         DateTime
+  endsOn           DateTime
+  isActive         Boolean          @default(true)
+  copiedFromYearId String?
+  createdAt        DateTime         @default(now())
+
+  club             Club             @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  copiedFromYear   ClubRosterYear?  @relation("RosterYearRollover", fields: [copiedFromYearId], references: [id])
+  rolledIntoYears  ClubRosterYear[] @relation("RosterYearRollover")
+  members          RosterMember[]
+
+  @@unique([clubId, yearLabel])
+  @@index([clubId, isActive])
+}
+
+model RosterMember {
+  id                         String                @id @default(cuid())
+  clubRosterYearId           String
+  firstName                  String
+  lastName                   String
+  dateOfBirth                DateTime?
+  ageAtStart                 Int?
+  gender                     Gender?
+  memberRole                 MemberRole
+  medicalFlags               String?
+  dietaryRestrictions        String?
+  isFirstTime                Boolean               @default(false)
+  isMedicalPersonnel         Boolean               @default(false)
+  masterGuide                Boolean               @default(false)
+  backgroundCheckDate        DateTime?
+  backgroundCheckCleared     Boolean               @default(false)
+  rolloverStatus             RolloverStatus        @default(CONTINUING)
+  isActive                   Boolean               @default(true)
+  emergencyContactName       String?
+  emergencyContactPhone      String?
+  insuranceCompany           String?
+  insurancePolicyNumber      String?
+  insuranceCardFilename      String?
+  lastTetanusDate            DateTime?
+  photoReleaseConsent        Boolean               @default(false)
+  medicalTreatmentConsent    Boolean               @default(false)
+  membershipAgreementConsent Boolean               @default(false)
+  createdAt                  DateTime              @default(now())
+  updatedAt                  DateTime              @updatedAt
+
+  clubRosterYear         ClubRosterYear        @relation(fields: [clubRosterYearId], references: [id], onDelete: Cascade)
+  registrations          RegistrationAttendee[]
+  classEnrollments       ClassEnrollment[]
+  completedRequirements  MemberRequirement[]
+  eventFormResponses     EventFormResponse[]
+  nominations            Nomination[]
+  tltApplication         TltApplication?
+
+  @@index([clubRosterYearId, isActive])
+  @@index([lastName, firstName])
+}
+
+model TltApplication {
+  id               String               @id @default(cuid())
+  rosterMemberId   String               @unique
+  clubId           String
+  grade            Int
+  citizenship      String
+  isBaptized       Boolean
+  tltYearWorkingOn Int
+  schoolName       String
+  schoolAddress    String
+  classesCompleted Json
+  tShirtSize       String
+  poloSize         String
+  status           TltApplicationStatus @default(PENDING)
+  createdAt        DateTime             @default(now())
+
+  rosterMember     RosterMember         @relation(fields: [rosterMemberId], references: [id], onDelete: Cascade)
+  club             Club                 @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  recommendations  TltRecommendation[]
+
+  @@index([clubId, status])
+}
+
+model TltRecommendation {
+  id                String                  @id @default(cuid())
+  tltApplicationId  String
+  secureToken       String                  @unique
+  recommenderName   String?
+  recommenderEmail  String
+  relationship      String?
+  qualities         String?
+  stressResponse    String?
+  potentialProblems String?
+  status            TltRecommendationStatus @default(PENDING)
+  submittedAt       DateTime?
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  tltApplication TltApplication @relation(fields: [tltApplicationId], references: [id], onDelete: Cascade)
+
+  @@index([tltApplicationId])
+  @@index([status])
+}
+
+model Nomination {
+  id                      String           @id @default(cuid())
+  clubId                  String
+  rosterMemberId          String
+  awardType               String
+  year                    Int
+  justificationText       String
+  communityServiceDetails String
+  status                  NominationStatus @default(SUBMITTED)
+  createdAt               DateTime         @default(now())
+  updatedAt               DateTime         @updatedAt
+
+  club         Club         @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  rosterMember RosterMember @relation(fields: [rosterMemberId], references: [id], onDelete: Cascade)
+
+  @@index([clubId, year])
+  @@index([status])
+}
+
+model Event {
+  id                   String               @id @default(cuid())
+  name                 String
+  slug                 String               @unique
+  description          String?
+  startsAt             DateTime
+  endsAt               DateTime
+  registrationOpensAt  DateTime
+  registrationClosesAt DateTime
+  basePrice            Float
+  lateFeePrice         Float
+  lateFeeStartsAt      DateTime
+  locationName         String?
+  locationAddress      String?
+  createdByUserId      String?
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+
+  dynamicFields  EventFormField[]
+  registrations  EventRegistration[]
+  classOfferings EventClassOffering[]
+}
+
+model EventFormField {
+  id            String           @id @default(cuid())
+  eventId       String
+  parentFieldId String?
+  key           String
+  label         String
+  description   String?
+  type          FormFieldType
+  options       Json?
+  isRequired    Boolean          @default(false)
+  sortOrder     Int              @default(0)
+
+  event         Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  parentField   EventFormField?  @relation("EventFormFieldHierarchy", fields: [parentFieldId], references: [id], onDelete: Cascade)
+  childFields   EventFormField[] @relation("EventFormFieldHierarchy")
+  responses     EventFormResponse[]
+
+  @@unique([eventId, key])
+  @@index([eventId, sortOrder])
+  @@index([eventId, parentFieldId])
+}
+
+model EventRegistration {
+  id                    String             @id @default(cuid())
+  eventId               String
+  clubId                String
+  registrationCode      String             @unique
+  status                RegistrationStatus @default(DRAFT)
+  submittedAt           DateTime?
+  approvedAt            DateTime?
+  overrideLimitsAllowed Boolean            @default(false)
+  notes                 String?
+  totalDue              Float
+  amountPaid            Float              @default(0)
+  paymentStatus         PaymentStatus      @default(PENDING)
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  event         Event                @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  club          Club                 @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  attendees     RegistrationAttendee[]
+  formResponses EventFormResponse[]
+
+  @@unique([eventId, clubId])
+  @@index([clubId, status])
+}
+
+model RegistrationAttendee {
+  id                  String   @id @default(cuid())
+  eventRegistrationId String
+  rosterMemberId      String
+  checkedInAt         DateTime?
+  createdAt           DateTime @default(now())
+
+  eventRegistration EventRegistration @relation(fields: [eventRegistrationId], references: [id], onDelete: Cascade)
+  rosterMember      RosterMember      @relation(fields: [rosterMemberId], references: [id], onDelete: Cascade)
+
+  @@unique([eventRegistrationId, rosterMemberId])
+  @@index([rosterMemberId])
+}
+
+model ClassCatalog {
+  id          String   @id @default(cuid())
+  title       String
+  code        String   @unique
+  description String?
+  classType   ClassType
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  requirements ClassRequirement[]
+  offerings    EventClassOffering[]
+}
+
+model ClassRequirement {
+  id              String          @id @default(cuid())
+  classCatalogId  String
+  requirementType RequirementType
+  config          Json
+
+  classCatalog ClassCatalog @relation(fields: [classCatalogId], references: [id], onDelete: Cascade)
+
+  @@index([classCatalogId])
+}
+
+model EventClassOffering {
+  id             String   @id @default(cuid())
+  eventId        String
+  classCatalogId String
+  teacherUserId  String?
+  capacity       Int?
+  createdAt      DateTime @default(now())
+
+  event        Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  classCatalog ClassCatalog     @relation(fields: [classCatalogId], references: [id], onDelete: Cascade)
+  teacher      User?            @relation("OfferingTeacher", fields: [teacherUserId], references: [id], onDelete: SetNull)
+  enrollments  ClassEnrollment[]
+
+  @@unique([eventId, classCatalogId])
+  @@index([teacherUserId])
+}
+
+model ClassEnrollment {
+  id                   String   @id @default(cuid())
+  eventClassOfferingId String
+  rosterMemberId       String
+  assignedAt           DateTime @default(now())
+
+  offering     EventClassOffering @relation(fields: [eventClassOfferingId], references: [id], onDelete: Cascade)
+  rosterMember RosterMember       @relation(fields: [rosterMemberId], references: [id], onDelete: Cascade)
+
+  @@unique([eventClassOfferingId, rosterMemberId])
+  @@index([rosterMemberId])
+}
+
+model MemberRequirement {
+  id              String          @id @default(cuid())
+  userId          String
+  rosterMemberId  String?
+  requirementType RequirementType
+  metadata        Json?
+  completedAt     DateTime
+  createdAt       DateTime        @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rosterMember RosterMember? @relation(fields: [rosterMemberId], references: [id], onDelete: SetNull)
+
+  @@index([userId, requirementType])
+  @@index([rosterMemberId, requirementType])
+}
+
+model EventFormResponse {
+  id                  String   @id @default(cuid())
+  eventRegistrationId String
+  eventFormFieldId    String
+  attendeeId          String?
+  value               Json
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  registration EventRegistration @relation(fields: [eventRegistrationId], references: [id], onDelete: Cascade)
+  field        EventFormField    @relation(fields: [eventFormFieldId], references: [id], onDelete: Cascade)
+  attendee     RosterMember?     @relation(fields: [attendeeId], references: [id], onDelete: SetNull)
+
+  @@index([eventRegistrationId])
+  @@index([eventFormFieldId])
+  @@index([attendeeId])
+  @@unique([eventRegistrationId, eventFormFieldId, attendeeId])
+}
+
+model MonthlyReport {
+  id                           String       @id @default(cuid())
+  clubId                       String
+  reportMonth                  DateTime
+  meetingCount                 Int
+  averagePathfinderAttendance  Int
+  averageStaffAttendance       Int
+  uniformCompliance            Int
+  pointsCalculated             Int
+  status                       ReportStatus @default(DRAFT)
+  submittedAt                  DateTime?
+  createdAt                    DateTime     @default(now())
+  updatedAt                    DateTime     @updatedAt
+
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@unique([clubId, reportMonth])
+  @@index([reportMonth])
+  @@index([status])
+}
+
+model YearEndReport {
+  id                 String       @id @default(cuid())
+  clubId             String
+  reportYear         Int
+  friendCompletions  Int          @default(0)
+  companionCompletions Int        @default(0)
+  explorerCompletions Int         @default(0)
+  rangerCompletions  Int          @default(0)
+  voyagerCompletions Int          @default(0)
+  guideCompletions   Int          @default(0)
+  status             ReportStatus @default(DRAFT)
+  submittedAt        DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@unique([clubId, reportYear])
+  @@index([reportYear])
+  @@index([status])
+}
