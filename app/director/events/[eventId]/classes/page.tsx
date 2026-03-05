@@ -1,5 +1,5 @@
 import { type MemberRole, type Prisma, type RequirementType } from "@prisma/client";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { auth } from "../../../../../auth";
 import { prisma } from "../../../../../lib/prisma";
@@ -75,7 +75,7 @@ export default async function DirectorClassSelectionPage({
   const session = await auth();
 
   if (!session?.user || session.user.role !== "CLUB_DIRECTOR") {
-    throw new Error("Only club directors can manage class assignments.");
+    redirect("/login");
   }
 
   const { eventId } = await params;

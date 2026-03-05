@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { auth } from "../../../../auth";
 import { prisma } from "../../../../lib/prisma";
@@ -26,7 +26,7 @@ export default async function TeacherClassRosterPage({
   const session = await auth();
 
   if (!session?.user || session.user.role !== "STAFF_TEACHER") {
-    throw new Error("Only teachers can access class rosters.");
+    redirect("/login");
   }
 
   const { offeringId } = await params;

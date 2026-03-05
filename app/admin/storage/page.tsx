@@ -1,6 +1,7 @@
 import { auth } from "../../../auth";
 import { purgeInactiveInsuranceCards } from "../../actions/storage-actions";
 import { bytesToMegabytes, getPrivateUploadsUsageBytes } from "../../../lib/local-storage";
+import { redirect } from "next/navigation";
 
 function formatMegabytes(value: number) {
   return value.toFixed(2);
@@ -10,7 +11,7 @@ export default async function AdminStoragePage() {
   const session = await auth();
 
   if (!session?.user || session.user.role !== "SUPER_ADMIN") {
-    throw new Error("Only super admins can access storage management.");
+    redirect("/login");
   }
 
   const usedBytes = await getPrivateUploadsUsageBytes();
