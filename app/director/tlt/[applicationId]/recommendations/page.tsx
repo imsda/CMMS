@@ -22,6 +22,22 @@ function getBaseUrl() {
   return appUrl.replace(/\/$/, "");
 }
 
+function formatInviteDeliveryStatus(input: {
+  inviteEmailStatus: "PENDING" | "SENT" | "FAILED";
+  inviteEmailSentAt: Date | null;
+  inviteEmailError: string | null;
+}) {
+  if (input.inviteEmailStatus === "SENT") {
+    return input.inviteEmailSentAt ? `Sent ${input.inviteEmailSentAt.toLocaleString()}` : "Sent";
+  }
+
+  if (input.inviteEmailStatus === "FAILED") {
+    return input.inviteEmailError ? `Failed: ${input.inviteEmailError}` : "Failed";
+  }
+
+  return "Not sent";
+}
+
 export default async function RecommendationManagerPage({
   params,
   searchParams,
@@ -149,6 +165,7 @@ export default async function RecommendationManagerPage({
                 <tr>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">Email</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">Status</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Email delivery</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">Submitted</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">Secure link</th>
                 </tr>
@@ -163,6 +180,13 @@ export default async function RecommendationManagerPage({
                     <tr key={recommendation.id}>
                       <td className="px-4 py-3 text-slate-900">{recommendation.recommenderEmail}</td>
                       <td className="px-4 py-3 text-slate-700">{recommendation.status}</td>
+                      <td className="px-4 py-3 text-slate-700">
+                        {formatInviteDeliveryStatus({
+                          inviteEmailStatus: recommendation.inviteEmailStatus,
+                          inviteEmailSentAt: recommendation.inviteEmailSentAt,
+                          inviteEmailError: recommendation.inviteEmailError,
+                        })}
+                      </td>
                       <td className="px-4 py-3 text-slate-700">
                         {recommendation.submittedAt ? recommendation.submittedAt.toLocaleString() : "—"}
                       </td>
