@@ -94,6 +94,12 @@ export default async function AdminEventsPage() {
                         >
                           Edit
                         </Link>
+                        <Link
+                          href={`/admin/events/${event.id}/classes`}
+                          className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
+                        >
+                          Classes
+                        </Link>
                       </div>
                     </td>
                   </tr>

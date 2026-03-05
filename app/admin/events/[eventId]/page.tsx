@@ -60,6 +60,12 @@ export default async function EventOverseerPage({ params }: EventOverseerPagePro
           >
             Edit Event Details
           </Link>
+          <Link
+            href={`/admin/events/${eventId}/classes`}
+            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
+          >
+            Manage Class Offerings
+          </Link>
           <a
             href={csvHref}
             download={csvData.fileName}

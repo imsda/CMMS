@@ -2,6 +2,7 @@
 
 import { ClassType, MemberRole, RequirementType, type Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { type Session } from "next-auth";
 
 import { auth } from "../../auth";
@@ -33,6 +34,42 @@ function ensureSuperAdmin(session: Session | null) {
   if (!session?.user || session.user.role !== "SUPER_ADMIN") {
     throw new Error("Only super admins can perform this action.");
   }
+}
+
+function isRedirectError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "digest" in error &&
+    typeof (error as { digest?: unknown }).digest === "string" &&
+    (error as { digest: string }).digest.startsWith("NEXT_REDIRECT")
+  );
+}
+
+function parseOptionalNonNegativeInt(value: FormDataEntryValue | null, label: string) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    throw new Error(`${label} must be a non-negative whole number.`);
+  }
+
+  return parsed;
+}
+
+function redirectEventClassOfferingAction(
+  eventId: string,
+  status: "success" | "error",
+  message: string,
+) {
+  const query = new URLSearchParams({
+    actionStatus: status,
+    actionMessage: message,
+  });
+
+  redirect(`/admin/events/${eventId}/classes?${query.toString()}`);
 }
 
 function requireTrimmedString(value: FormDataEntryValue | null, label: string) {
@@ -487,6 +524,122 @@ export async function getMasterEventAttendeesCsv(eventId: string) {
     fileName: `${event.slug}-master-attendees.csv`,
     content: lines.join("\n"),
   };
+}
+
+export async function createEventClassOfferingAction(formData: FormData) {
+  const session = await auth();
+  ensureSuperAdmin(session);
+
+  const eventId = requireTrimmedString(formData.get("eventId"), "Event");
+  const classCatalogId = requireTrimmedString(formData.get("classCatalogId"), "Catalog item");
+  const teacherUserId = optionalTrimmedString(formData.get("teacherUserId"));
+  const capacity = parseOptionalNonNegativeInt(formData.get("capacity"), "Capacity");
+
+  try {
+    await prisma.eventClassOffering.create({
+      data: {
+        eventId,
+        classCatalogId,
+        teacherUserId,
+        capacity,
+      },
+    });
+
+    revalidatePath(`/admin/events/${eventId}/classes`);
+    revalidatePath(`/admin/events/${eventId}`);
+    revalidatePath(`/director/events/${eventId}/classes`);
+    revalidatePath("/teacher/dashboard");
+
+    redirectEventClassOfferingAction(eventId, "success", "Class offering created.");
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code?: string }).code === "P2002"
+    ) {
+      redirectEventClassOfferingAction(eventId, "error", "That class is already assigned to this event.");
+    }
+
+    const message = error instanceof Error ? error.message : "Unable to create class offering.";
+    redirectEventClassOfferingAction(eventId, "error", message);
+  }
+}
+
+export async function updateEventClassOfferingAction(formData: FormData) {
+  const session = await auth();
+  ensureSuperAdmin(session);
+
+  const eventId = requireTrimmedString(formData.get("eventId"), "Event");
+  const offeringId = requireTrimmedString(formData.get("offeringId"), "Offering");
+  const teacherUserId = optionalTrimmedString(formData.get("teacherUserId"));
+  const capacity = parseOptionalNonNegativeInt(formData.get("capacity"), "Capacity");
+
+  try {
+    await prisma.eventClassOffering.update({
+      where: {
+        id: offeringId,
+      },
+      data: {
+        teacherUserId,
+        capacity,
+      },
+    });
+
+    revalidatePath(`/admin/events/${eventId}/classes`);
+    revalidatePath(`/admin/events/${eventId}`);
+    revalidatePath(`/director/events/${eventId}/classes`);
+    revalidatePath("/teacher/dashboard");
+
+    redirectEventClassOfferingAction(eventId, "success", "Class offering updated.");
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    const message = error instanceof Error ? error.message : "Unable to update class offering.";
+    redirectEventClassOfferingAction(eventId, "error", message);
+  }
+}
+
+export async function removeEventClassOfferingAction(formData: FormData) {
+  const session = await auth();
+  ensureSuperAdmin(session);
+
+  const eventId = requireTrimmedString(formData.get("eventId"), "Event");
+  const offeringId = requireTrimmedString(formData.get("offeringId"), "Offering");
+
+  try {
+    await prisma.classEnrollment.deleteMany({
+      where: {
+        eventClassOfferingId: offeringId,
+      },
+    });
+
+    await prisma.eventClassOffering.delete({
+      where: {
+        id: offeringId,
+      },
+    });
+
+    revalidatePath(`/admin/events/${eventId}/classes`);
+    revalidatePath(`/admin/events/${eventId}`);
+    revalidatePath(`/director/events/${eventId}/classes`);
+    revalidatePath("/teacher/dashboard");
+
+    redirectEventClassOfferingAction(eventId, "success", "Class offering removed.");
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    const message = error instanceof Error ? error.message : "Unable to remove class offering.";
+    redirectEventClassOfferingAction(eventId, "error", message);
+  }
 }
 
 type PatchOrderRow = {
