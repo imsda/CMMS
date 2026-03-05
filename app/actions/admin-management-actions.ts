@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "../../auth";
+import { sendAccountCredentialEmail } from "../../lib/email/resend";
 import { prisma } from "../../lib/prisma";
 
 export type AdminCreateFormState = {
@@ -37,6 +38,16 @@ function parseOptionalString(value: FormDataEntryValue | null) {
 
   const trimmed = value.trim();
   return trimmed.length === 0 ? null : trimmed;
+}
+
+function getLoginUrl() {
+  const baseUrl = process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL;
+
+  if (!baseUrl) {
+    return null;
+  }
+
+  return `${baseUrl.replace(/\/$/, "")}/login`;
 }
 
 function ensureSuperAdmin(role: UserRole | undefined) {
@@ -166,6 +177,7 @@ export async function createUserAction(
     const password = parseRequiredString(formData.get("password"), "Temporary password");
     const primaryClubId = parseOptionalString(formData.get("primaryClubId"));
     const membershipTitle = parseOptionalString(formData.get("membershipTitle"));
+    const sendInviteEmail = formData.get("sendInviteEmail") === "on";
 
     if (password.length < 8) {
       throw new Error("Temporary password must be at least 8 characters.");
@@ -177,8 +189,8 @@ export async function createUserAction(
 
     const passwordHash = await bcrypt.hash(password, 12);
 
-    await prisma.$transaction(async (tx) => {
-      const createdUser = await tx.user.create({
+    const createdUser = await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
         data: {
           name,
           email,
@@ -187,26 +199,55 @@ export async function createUserAction(
         },
         select: {
           id: true,
+          email: true,
+          name: true,
+          role: true,
         },
       });
 
       if (primaryClubId) {
         await tx.clubMembership.create({
           data: {
-            userId: createdUser.id,
+            userId: user.id,
             clubId: primaryClubId,
             title: membershipTitle,
             isPrimary: true,
           },
         });
       }
+
+      return user;
     });
+
+    let emailMessage = "";
+
+    if (sendInviteEmail) {
+      const loginUrl = getLoginUrl();
+
+      if (!loginUrl) {
+        emailMessage = " Invite email skipped because NEXTAUTH_URL or NEXT_PUBLIC_APP_URL is not configured.";
+      } else {
+        const emailResult = await sendAccountCredentialEmail({
+          to: createdUser.email,
+          recipientName: createdUser.name,
+          role: createdUser.role,
+          temporaryPassword: password,
+          loginUrl,
+        });
+
+        if (emailResult.sent) {
+          emailMessage = " Invite email sent.";
+        } else {
+          emailMessage = ` Invite email failed: ${emailResult.error ?? "Unknown email error."}`;
+        }
+      }
+    }
 
     revalidatePath("/admin/users");
 
     return {
       status: "success",
-      message: `User "${name}" created.`,
+      message: `User "${name}" created.${emailMessage}`,
     };
   } catch (error) {
     return {
@@ -474,6 +515,7 @@ export async function resetUserPasswordAction(
 
     const userId = parseRequiredString(formData.get("userId"), "User");
     const newPassword = parseRequiredString(formData.get("newPassword"), "New password");
+    const sendResetEmail = formData.get("sendResetEmail") === "on";
 
     if (newPassword.length < 8) {
       throw new Error("New password must be at least 8 characters.");
@@ -481,20 +523,49 @@ export async function resetUserPasswordAction(
 
     const passwordHash = await bcrypt.hash(newPassword, 12);
 
-    await prisma.user.update({
+    const updatedUser = await prisma.user.update({
       where: {
         id: userId,
       },
       data: {
         passwordHash,
       },
+      select: {
+        email: true,
+        name: true,
+        role: true,
+      },
     });
+
+    let emailMessage = "";
+
+    if (sendResetEmail) {
+      const loginUrl = getLoginUrl();
+
+      if (!loginUrl) {
+        emailMessage = " Reset email skipped because NEXTAUTH_URL or NEXT_PUBLIC_APP_URL is not configured.";
+      } else {
+        const emailResult = await sendAccountCredentialEmail({
+          to: updatedUser.email,
+          recipientName: updatedUser.name,
+          role: updatedUser.role,
+          temporaryPassword: newPassword,
+          loginUrl,
+        });
+
+        if (emailResult.sent) {
+          emailMessage = " Reset email sent.";
+        } else {
+          emailMessage = ` Reset email failed: ${emailResult.error ?? "Unknown email error."}`;
+        }
+      }
+    }
 
     revalidatePath("/admin/users");
 
     return {
       status: "success",
-      message: "Password updated.",
+      message: `Password updated.${emailMessage}`,
     };
   } catch (error) {
     return {

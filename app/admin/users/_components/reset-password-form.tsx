@@ -53,6 +53,16 @@ export function ResetPasswordForm({ users }: ResetPasswordFormProps) {
           />
         </label>
 
+        <label className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 md:col-span-2">
+          <input
+            name="sendResetEmail"
+            type="checkbox"
+            defaultChecked
+            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+          />
+          Send reset email with temporary password
+        </label>
+
         {state.status === "error" && state.message ? (
           <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 md:col-span-2">
             {state.message}
