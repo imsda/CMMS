@@ -3,38 +3,35 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-type AdminNavItem = {
+type DirectorNavItem = {
   href: string;
   label: string;
 };
 
-const navItems: AdminNavItem[] = [
-  { href: "/admin/dashboard", label: "Dashboard" },
-  { href: "/admin/clubs", label: "Clubs" },
-  { href: "/admin/users", label: "Users" },
-  { href: "/admin/events/new", label: "Create Event" },
-  { href: "/admin/catalog", label: "Class Catalog" },
-  { href: "/admin/compliance", label: "Compliance" },
-  { href: "/admin/nominations", label: "Nominations" },
-  { href: "/admin/reports", label: "Reports" },
-  { href: "/admin/storage", label: "Storage" },
+const navItems: DirectorNavItem[] = [
+  { href: "/director/dashboard", label: "Dashboard" },
+  { href: "/director/events", label: "Events" },
+  { href: "/director/roster", label: "Roster" },
+  { href: "/director/nominations", label: "Nominations" },
+  { href: "/director/tlt", label: "TLT" },
+  { href: "/director/reports", label: "Reports" },
 ];
 
-function isActivePath(pathname: string, href: string) {
+function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export function AdminNav() {
+export function DirectorNav() {
   const pathname = usePathname();
 
   return (
     <aside className="h-fit rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <h2 className="px-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-        Super Admin
+        Club Director
       </h2>
       <nav className="mt-2 flex flex-col gap-1">
         {navItems.map((item) => {
-          const active = isActivePath(pathname, item.href);
+          const active = isActive(pathname, item.href);
 
           return (
             <Link

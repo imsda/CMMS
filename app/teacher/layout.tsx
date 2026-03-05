@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { auth } from "../../auth";
+import { TeacherNav } from "./_components/teacher-nav";
 
 export default async function TeacherLayout({
   children,
@@ -13,5 +14,10 @@ export default async function TeacherLayout({
     redirect("/login");
   }
 
-  return <>{children}</>;
+  return (
+    <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
+      <TeacherNav />
+      <div>{children}</div>
+    </div>
+  );
 }

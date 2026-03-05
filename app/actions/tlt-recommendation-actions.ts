@@ -25,6 +25,10 @@ function parseOptionalString(value: FormDataEntryValue | null) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+function isValidEmailAddress(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 function getRecommendationInviteBaseUrl() {
   const appUrl = process.env.NEXTAUTH_URL ?? process.env.NEXT_PUBLIC_APP_URL;
 
@@ -109,6 +113,14 @@ export async function generateTltRecommendationLinks(formData: FormData) {
     throw new Error("Recommendation email addresses must be unique.");
   }
 
+  if (!emailEntries.every(isValidEmailAddress)) {
+    throw new Error("Each recommendation email must be a valid email address.");
+  }
+
+  if (shouldEmail && (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL)) {
+    redirect(`/director/tlt/${tltApplicationId}/recommendations?error=email_not_configured`);
+  }
+
   const application = await prisma.tltApplication.findFirst({
     where: {
       id: tltApplicationId,
@@ -152,18 +164,34 @@ export async function generateTltRecommendationLinks(formData: FormData) {
   if (shouldEmail) {
     const applicantName = `${application.rosterMember.firstName} ${application.rosterMember.lastName}`;
     const baseUrl = getRecommendationInviteBaseUrl();
+    const failedRecipients: string[] = [];
 
     for (const recommendation of createdRecommendations) {
       const recommendationUrl = `${baseUrl}/recommendation/${recommendation.secureToken}`;
-      await sendRecommendationInviteEmail({
-        to: recommendation.recommenderEmail,
-        applicantName,
-        recommendationUrl,
-      });
+      try {
+        await sendRecommendationInviteEmail({
+          to: recommendation.recommenderEmail,
+          applicantName,
+          recommendationUrl,
+        });
+      } catch {
+        failedRecipients.push(recommendation.recommenderEmail);
+      }
     }
+
+    revalidatePath(`/director/tlt/${tltApplicationId}/recommendations`);
+
+    if (failedRecipients.length > 0) {
+      redirect(
+        `/director/tlt/${tltApplicationId}/recommendations?generated=1&emails=partial&failed=${failedRecipients.length}`,
+      );
+    }
+
+    redirect(`/director/tlt/${tltApplicationId}/recommendations?generated=1&emails=sent`);
   }
 
   revalidatePath(`/director/tlt/${tltApplicationId}/recommendations`);
+  redirect(`/director/tlt/${tltApplicationId}/recommendations?generated=1`);
 }
 
 export async function submitPublicTltRecommendation(formData: FormData) {

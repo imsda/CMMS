@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { auth } from "../../auth";
+import { DirectorNav } from "./_components/director-nav";
 
 export default async function DirectorLayout({
   children,
@@ -13,5 +14,10 @@ export default async function DirectorLayout({
     redirect("/login");
   }
 
-  return <>{children}</>;
+  return (
+    <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
+      <DirectorNav />
+      <div>{children}</div>
+    </div>
+  );
 }

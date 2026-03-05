@@ -45,12 +45,18 @@ export default function ClubDirectorDashboardPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <button className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-indigo-300 hover:text-indigo-700">
+          <Link
+            href="/director/roster"
+            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-indigo-300 hover:text-indigo-700"
+          >
             View roster
-          </button>
-          <button className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500">
+          </Link>
+          <Link
+            href="/director/events"
+            className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
+          >
             Continue registration
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -140,3 +146,4 @@ export default function ClubDirectorDashboardPage() {
     </section>
   );
 }
+import Link from "next/link";
