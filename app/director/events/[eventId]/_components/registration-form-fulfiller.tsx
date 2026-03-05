@@ -90,6 +90,7 @@ export function RegistrationFormFulfiller({
   );
   const [draftState, draftAction] = useFormState(saveEventRegistrationDraft, INITIAL_ACTION_STATE);
   const [submitState, submitAction] = useFormState(submitEventRegistration, INITIAL_ACTION_STATE);
+  const [clientValidationMessage, setClientValidationMessage] = useState<string | null>(null);
 
   const selectedAttendeeSet = useMemo(() => new Set(selectedAttendeeIds), [selectedAttendeeIds]);
 
@@ -149,6 +150,42 @@ export function RegistrationFormFulfiller({
     });
   }
 
+  function hasResponseValue(value: unknown) {
+    if (value === null || typeof value === "undefined") {
+      return false;
+    }
+
+    if (typeof value === "string") {
+      return value.trim().length > 0;
+    }
+
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+
+    return true;
+  }
+
+  function validateBeforeSubmit() {
+    if (selectedAttendeeIds.length === 0) {
+      return "Select at least one attendee before submitting registration.";
+    }
+
+    for (const field of dynamicFields) {
+      if (field.type === "FIELD_GROUP") {
+        continue;
+      }
+
+      const value = globalResponses[field.id];
+
+      if (field.isRequired && !hasResponseValue(value)) {
+        return `Required question is missing: "${field.label}".`;
+      }
+    }
+
+    return null;
+  }
+
   function renderRosterSelect(field: DynamicField, multi: boolean) {
     const currentValue = globalResponses[field.id];
 
@@ -197,8 +234,7 @@ export function RegistrationFormFulfiller({
 
     return (
       <div className="space-y-1">
-        <input
-          list={`roster-options-${field.id}`}
+        <select
           value={selectedId}
           onChange={(event) =>
             setGlobalResponses((current) => ({
@@ -206,17 +242,15 @@ export function RegistrationFormFulfiller({
               [field.id]: event.currentTarget.value,
             }))
           }
-          placeholder="Select roster member id"
           className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
-        />
-        <datalist id={`roster-options-${field.id}`}>
+        >
+          <option value="">Select a roster member</option>
           {attendees.map((attendee) => (
             <option key={`${field.id}-opt-${attendee.id}`} value={attendee.id}>
-              {attendeeName(attendee)}
+              {attendeeName(attendee)} ({attendee.memberRole})
             </option>
           ))}
-        </datalist>
-        <p className="text-xs text-slate-500">Type to search by roster member id and pick from suggestions.</p>
+        </select>
       </div>
     );
   }
@@ -443,6 +477,9 @@ export function RegistrationFormFulfiller({
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-1">
+          {clientValidationMessage ? (
+            <p className="text-xs font-medium text-rose-700">{clientValidationMessage}</p>
+          ) : null}
           <p className="text-xs text-slate-500">
             Current status: <span className="font-semibold text-slate-700">{registrationStatus ?? "Not started"}</span>
           </p>
@@ -470,6 +507,14 @@ export function RegistrationFormFulfiller({
           <button
             formAction={submitAction}
             type="submit"
+            onClick={(event) => {
+              const validationMessage = validateBeforeSubmit();
+              setClientValidationMessage(validationMessage);
+
+              if (validationMessage) {
+                event.preventDefault();
+              }
+            }}
             className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
           >
             Submit Registration
