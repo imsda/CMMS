@@ -7,6 +7,11 @@ import { auth } from "../../auth";
 import { sendRegistrationReceiptEmail } from "../../lib/email/resend";
 import { prisma } from "../../lib/prisma";
 
+export type RegistrationActionState = {
+  status: "idle" | "success" | "error";
+  message: string | null;
+};
+
 type RegistrationPayload = {
   attendeeIds: string[];
   responses: Array<{
@@ -288,10 +293,38 @@ async function persistRegistration(formData: FormData, nextStatus: RegistrationS
   }
 }
 
-export async function saveEventRegistrationDraft(formData: FormData) {
-  await persistRegistration(formData, RegistrationStatus.DRAFT);
+export async function saveEventRegistrationDraft(
+  _prevState: RegistrationActionState,
+  formData: FormData,
+): Promise<RegistrationActionState> {
+  try {
+    await persistRegistration(formData, RegistrationStatus.DRAFT);
+    return {
+      status: "success",
+      message: "Draft saved.",
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Unable to save draft.",
+    };
+  }
 }
 
-export async function submitEventRegistration(formData: FormData) {
-  await persistRegistration(formData, RegistrationStatus.SUBMITTED);
+export async function submitEventRegistration(
+  _prevState: RegistrationActionState,
+  formData: FormData,
+): Promise<RegistrationActionState> {
+  try {
+    await persistRegistration(formData, RegistrationStatus.SUBMITTED);
+    return {
+      status: "success",
+      message: "Registration submitted.",
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Unable to submit registration.",
+    };
+  }
 }

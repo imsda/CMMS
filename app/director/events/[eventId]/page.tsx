@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { auth } from "../../../../auth";
 import { prisma } from "../../../../lib/prisma";
@@ -28,7 +28,7 @@ export default async function DirectorEventRegistrationPage({
   const session = await auth();
 
   if (!session?.user || session.user.role !== "CLUB_DIRECTOR") {
-    throw new Error("Only club directors can register for events.");
+    redirect("/login");
   }
 
   const { eventId } = await params;

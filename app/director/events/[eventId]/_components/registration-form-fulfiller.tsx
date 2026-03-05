@@ -1,8 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useFormState } from "react-dom";
 
 import {
+  type RegistrationActionState,
   saveEventRegistrationDraft,
   submitEventRegistration,
 } from "../../../../actions/event-registration-actions";
@@ -61,6 +63,11 @@ function bootstrapResponses(existingResponses: ExistingResponse[]): GlobalRespon
   }, {} as GlobalResponseMap);
 }
 
+const INITIAL_ACTION_STATE: RegistrationActionState = {
+  status: "idle",
+  message: null,
+};
+
 export function RegistrationFormFulfiller({
   eventId,
   attendees,
@@ -73,6 +80,8 @@ export function RegistrationFormFulfiller({
   const [globalResponses, setGlobalResponses] = useState<GlobalResponseMap>(() =>
     bootstrapResponses(initialResponses),
   );
+  const [draftState, draftAction] = useFormState(saveEventRegistrationDraft, INITIAL_ACTION_STATE);
+  const [submitState, submitAction] = useFormState(submitEventRegistration, INITIAL_ACTION_STATE);
 
   const selectedAttendeeSet = useMemo(() => new Set(selectedAttendeeIds), [selectedAttendeeIds]);
 
@@ -368,19 +377,33 @@ export function RegistrationFormFulfiller({
       ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-xs text-slate-500">
-          Current status: <span className="font-semibold text-slate-700">{registrationStatus ?? "Not started"}</span>
-        </p>
+        <div className="space-y-1">
+          <p className="text-xs text-slate-500">
+            Current status: <span className="font-semibold text-slate-700">{registrationStatus ?? "Not started"}</span>
+          </p>
+          {draftState.status === "error" && draftState.message ? (
+            <p className="text-xs font-medium text-rose-700">{draftState.message}</p>
+          ) : null}
+          {submitState.status === "error" && submitState.message ? (
+            <p className="text-xs font-medium text-rose-700">{submitState.message}</p>
+          ) : null}
+          {draftState.status === "success" && draftState.message ? (
+            <p className="text-xs font-medium text-emerald-700">{draftState.message}</p>
+          ) : null}
+          {submitState.status === "success" && submitState.message ? (
+            <p className="text-xs font-medium text-emerald-700">{submitState.message}</p>
+          ) : null}
+        </div>
         <div className="flex items-center gap-2">
           <button
-            formAction={saveEventRegistrationDraft}
+            formAction={draftAction}
             type="submit"
             className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100"
           >
             Save Draft
           </button>
           <button
-            formAction={submitEventRegistration}
+            formAction={submitAction}
             type="submit"
             className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
           >
