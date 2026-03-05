@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { auth } from "../../../auth";
 import { prisma } from "../../../lib/prisma";
@@ -7,7 +8,7 @@ export default async function DirectorTltDashboardPage() {
   const session = await auth();
 
   if (!session?.user || session.user.role !== "CLUB_DIRECTOR") {
-    throw new Error("Only club directors can view TLT applications.");
+    redirect("/login");
   }
 
   const membership = await prisma.clubMembership.findFirst({

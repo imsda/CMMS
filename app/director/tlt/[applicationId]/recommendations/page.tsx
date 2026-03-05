@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { auth } from "../../../../../auth";
 import { prisma } from "../../../../../lib/prisma";
@@ -35,7 +36,7 @@ export default async function RecommendationManagerPage({
   const session = await auth();
 
   if (!session?.user || session.user.role !== "CLUB_DIRECTOR") {
-    throw new Error("Only club directors can manage TLT recommendations.");
+    redirect("/login");
   }
 
   const membership = await prisma.clubMembership.findFirst({
@@ -56,7 +57,12 @@ export default async function RecommendationManagerPage({
   });
 
   if (!membership) {
-    throw new Error("No club membership found for current user.");
+    return (
+      <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
+        <h1 className="text-xl font-semibold">No club membership found</h1>
+        <p className="mt-2 text-sm">You need an active club membership before managing recommendations.</p>
+      </section>
+    );
   }
 
   const application = await prisma.tltApplication.findFirst({

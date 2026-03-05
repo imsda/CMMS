@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { TltApplicationStatus } from "@prisma/client";
+import { redirect } from "next/navigation";
 
 import { auth } from "../../../../../auth";
 import { saveTltApplication } from "../../../../actions/tlt-actions";
@@ -17,7 +18,7 @@ export default async function TltApplicationPage({
   const session = await auth();
 
   if (!session?.user || session.user.role !== "CLUB_DIRECTOR") {
-    throw new Error("Only club directors can submit TLT applications.");
+    redirect("/login");
   }
 
   const membership = await prisma.clubMembership.findFirst({
@@ -38,7 +39,12 @@ export default async function TltApplicationPage({
   });
 
   if (!membership) {
-    throw new Error("No club membership found for current user.");
+    return (
+      <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
+        <h1 className="text-xl font-semibold">No club membership found</h1>
+        <p className="mt-2 text-sm">You need an active club membership before submitting TLT applications.</p>
+      </section>
+    );
   }
 
   const member = await prisma.rosterMember.findFirst({

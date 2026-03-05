@@ -2,14 +2,15 @@ import { auth } from "../../../auth";
 import { executeYearlyRollover } from "../../actions/roster-actions";
 import { prisma } from "../../../lib/prisma";
 import { RosterTable } from "./_components/roster-table";
+import { redirect } from "next/navigation";
 
 const CURRENT_YEAR_LABEL = String(new Date().getFullYear());
 
 export default async function DirectorRosterPage() {
   const session = await auth();
 
-  if (!session?.user) {
-    throw new Error("You must be signed in to manage rosters.");
+  if (!session?.user || session.user.role !== "CLUB_DIRECTOR") {
+    redirect("/login");
   }
 
   const membership = await prisma.clubMembership.findFirst({
