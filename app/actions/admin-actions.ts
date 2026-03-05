@@ -614,11 +614,19 @@ export async function removeEventClassOfferingAction(formData: FormData) {
   const offeringId = requireTrimmedString(formData.get("offeringId"), "Offering");
 
   try {
-    await prisma.classEnrollment.deleteMany({
+    const enrollmentCount = await prisma.classEnrollment.count({
       where: {
         eventClassOfferingId: offeringId,
       },
     });
+
+    if (enrollmentCount > 0) {
+      redirectEventClassOfferingAction(
+        eventId,
+        "error",
+        "Cannot remove class offering with active enrollments. Unenroll attendees first.",
+      );
+    }
 
     await prisma.eventClassOffering.delete({
       where: {

@@ -282,10 +282,14 @@ export default async function AdminEventClassesPage({
                         <input type="hidden" name="offeringId" value={offering.id} readOnly />
                         <button
                           type="submit"
-                          className="rounded-md border border-rose-300 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50"
+                          disabled={offering._count.enrollments > 0}
+                          className="rounded-md border border-rose-300 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Remove
                         </button>
+                        {offering._count.enrollments > 0 ? (
+                          <p className="mt-1 text-[11px] text-slate-500">Clear enrollments first</p>
+                        ) : null}
                       </form>
                     </td>
                   </tr>
