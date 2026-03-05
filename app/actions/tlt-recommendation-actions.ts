@@ -98,6 +98,14 @@ async function sendRecommendationInviteEmail(input: { to: string; applicantName:
   }
 }
 
+function toInviteEmailErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message.slice(0, 500);
+  }
+
+  return "Unknown email delivery failure.";
+}
+
 function isRedirectError(error: unknown) {
   return (
     typeof error === "object" &&
@@ -183,7 +191,7 @@ export async function generateTltRecommendationLinks(
     if (shouldEmail) {
       const applicantName = `${application.rosterMember.firstName} ${application.rosterMember.lastName}`;
       const baseUrl = getRecommendationInviteBaseUrl();
-      const failedRecipients: string[] = [];
+      let failedCount = 0;
 
       for (const recommendation of createdRecommendations) {
         const recommendationUrl = `${baseUrl}/recommendation/${recommendation.secureToken}`;
@@ -193,16 +201,37 @@ export async function generateTltRecommendationLinks(
             applicantName,
             recommendationUrl,
           });
-        } catch {
-          failedRecipients.push(recommendation.recommenderEmail);
+
+          await prisma.tltRecommendation.update({
+            where: {
+              id: recommendation.id,
+            },
+            data: {
+              inviteEmailStatus: "SENT",
+              inviteEmailSentAt: new Date(),
+              inviteEmailError: null,
+            },
+          });
+        } catch (error) {
+          failedCount += 1;
+
+          await prisma.tltRecommendation.update({
+            where: {
+              id: recommendation.id,
+            },
+            data: {
+              inviteEmailStatus: "FAILED",
+              inviteEmailError: toInviteEmailErrorMessage(error),
+            },
+          });
         }
       }
 
       revalidatePath(`/director/tlt/${tltApplicationId}/recommendations`);
 
-      if (failedRecipients.length > 0) {
+      if (failedCount > 0) {
         redirect(
-          `/director/tlt/${tltApplicationId}/recommendations?generated=1&emails=partial&failed=${failedRecipients.length}`,
+          `/director/tlt/${tltApplicationId}/recommendations?generated=1&emails=partial&failed=${failedCount}`,
         );
       }
 
