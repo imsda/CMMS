@@ -70,8 +70,11 @@ export default function AdminCreateEventPage() {
       <form action={createEventWithDynamicFields} className="space-y-6">
         <input type="hidden" name="dynamicFieldsJson" value={serializedFields} readOnly />
 
-        {currentStep === 0 ? (
-          <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div
+          className={`space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm ${
+            currentStep === 0 ? "" : "hidden"
+          }`}
+        >
             <h2 className="text-xl font-semibold text-slate-900">Event Basics</h2>
             <div className="grid gap-4 md:grid-cols-2">
               <label className="space-y-1 text-sm text-slate-700 md:col-span-2">
@@ -106,10 +109,12 @@ export default function AdminCreateEventPage() {
               </label>
             </div>
           </div>
-        ) : null}
 
-        {currentStep === 1 ? (
-          <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div
+          className={`space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm ${
+            currentStep === 1 ? "" : "hidden"
+          }`}
+        >
             <h2 className="text-xl font-semibold text-slate-900">Registration & Location</h2>
             <div className="grid gap-4 md:grid-cols-2">
               <label className="space-y-1 text-sm text-slate-700">
@@ -189,7 +194,6 @@ export default function AdminCreateEventPage() {
               </label>
             </div>
           </div>
-        ) : null}
 
         {currentStep === 2 ? (
           <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
