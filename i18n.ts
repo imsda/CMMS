@@ -4,7 +4,7 @@ import {getRequestConfig} from 'next-intl/server';
 export const routing = defineRouting({
   locales: ['en', 'es'],
   defaultLocale: 'en',
-  localePrefix: 'always'
+  localePrefix: 'never'
 });
 
 export type AppLocale = (typeof routing.locales)[number];

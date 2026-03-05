@@ -65,7 +65,7 @@ export default async function RootLayout({
                       <form
                         action={async () => {
                           'use server';
-                          await signOut({redirectTo: `/${locale}/login`});
+                          await signOut({redirectTo: `/login`});
                         }}
                       >
                         <button
@@ -78,7 +78,7 @@ export default async function RootLayout({
                     </div>
                   ) : (
                     <Link
-                      href={`/${locale}/login`}
+                      href={`/login`}
                       className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-indigo-300 hover:text-indigo-700"
                     >
                       {tAuth('signIn')}

@@ -3,7 +3,7 @@
 import {useMemo, useState} from 'react';
 import {usePathname, useRouter, useSearchParams} from 'next/navigation';
 
-import {routing, type AppLocale} from '../i18n';
+import {type AppLocale} from '../i18n';
 
 type LanguageOption = {
   code: AppLocale;
@@ -14,21 +14,6 @@ const languageOptions: LanguageOption[] = [
   {code: 'en', label: '🇺🇸 EN'},
   {code: 'es', label: '🇪🇸 ES'}
 ];
-
-function withLocale(pathname: string, locale: AppLocale) {
-  const segments = pathname.split('/').filter(Boolean);
-
-  if (segments.length === 0) {
-    return `/${locale}`;
-  }
-
-  if (routing.locales.includes(segments[0] as AppLocale)) {
-    segments[0] = locale;
-    return `/${segments.join('/')}`;
-  }
-
-  return `/${locale}/${segments.join('/')}`;
-}
 
 export function LanguageSwitcher({currentLocale}: {currentLocale: AppLocale}) {
   const [open, setOpen] = useState(false);
@@ -44,7 +29,8 @@ export function LanguageSwitcher({currentLocale}: {currentLocale: AppLocale}) {
   const query = searchParams.toString();
 
   const onSelect = (locale: AppLocale) => {
-    const localizedPath = withLocale(pathname || '/', locale);
+    document.cookie = `NEXT_LOCALE=${locale}; Path=/; Max-Age=31536000; SameSite=Lax`;
+    const localizedPath = pathname || '/';
     const href = query ? `${localizedPath}?${query}` : localizedPath;
 
     router.push(href);
