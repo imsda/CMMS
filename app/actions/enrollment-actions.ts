@@ -1,6 +1,6 @@
 "use server";
 
-import { type MemberRole, type Prisma } from "@prisma/client";
+import { RegistrationStatus, type MemberRole, type Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "../../auth";
@@ -106,6 +106,7 @@ export async function enrollAttendeeInClass(input: EnrollAttendeeInput) {
         eventRegistration: {
           eventId: input.eventId,
           clubId,
+          status: RegistrationStatus.SUBMITTED,
         },
       },
       select: {
@@ -114,7 +115,7 @@ export async function enrollAttendeeInClass(input: EnrollAttendeeInput) {
     });
 
     if (!registrationAttendee) {
-      throw new Error("Attendee is not registered for this event under your club.");
+      throw new Error("Attendee must be part of a submitted event registration before class assignment.");
     }
 
     const offering = await tx.eventClassOffering.findFirst({
@@ -273,6 +274,7 @@ export async function removeAttendeeFromClass(input: EnrollAttendeeInput) {
         eventRegistration: {
           eventId: input.eventId,
           clubId,
+          status: RegistrationStatus.SUBMITTED,
         },
       },
       select: {
@@ -281,7 +283,7 @@ export async function removeAttendeeFromClass(input: EnrollAttendeeInput) {
     });
 
     if (!registrationAttendee) {
-      throw new Error("Attendee is not registered for this event under your club.");
+      throw new Error("Attendee must be part of a submitted event registration before class assignment.");
     }
 
     const offering = await tx.eventClassOffering.findFirst({

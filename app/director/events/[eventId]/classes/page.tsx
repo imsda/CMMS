@@ -1,4 +1,4 @@
-import { type MemberRole, type Prisma, type RequirementType } from "@prisma/client";
+import { RegistrationStatus, type MemberRole, type Prisma, type RequirementType } from "@prisma/client";
 import { notFound, redirect } from "next/navigation";
 
 import { auth } from "../../../../../auth";
@@ -107,6 +107,7 @@ export default async function DirectorClassSelectionPage({
       clubId: membership.clubId,
     },
     select: {
+      status: true,
       event: {
         select: {
           id: true,
@@ -250,10 +251,16 @@ export default async function DirectorClassSelectionPage({
         <p className="mt-2 text-sm text-slate-600">
           Assign each registered attendee to classes and honors. Capacity updates live as enrollments are made.
         </p>
+        {registration.status !== RegistrationStatus.SUBMITTED ? (
+          <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+            Class assignment is locked until the event registration is submitted.
+          </p>
+        ) : null}
       </header>
 
       <ClassAssignmentBoard
         eventId={registration.event.id}
+        assignmentLocked={registration.status !== RegistrationStatus.SUBMITTED}
         attendees={registration.attendees.map((attendee) => ({
           id: attendee.rosterMember.id,
           firstName: attendee.rosterMember.firstName,

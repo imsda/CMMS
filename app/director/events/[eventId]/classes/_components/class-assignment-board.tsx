@@ -59,6 +59,7 @@ type OptimisticAction =
 
 type ClassAssignmentBoardProps = {
   eventId: string;
+  assignmentLocked: boolean;
   attendees: Attendee[];
   slotGroups: SlotGroup[];
 };
@@ -80,7 +81,12 @@ function formatDayLabel(dayIndex: number) {
   return `Day ${dayIndex + 1}`;
 }
 
-export function ClassAssignmentBoard({ eventId, attendees, slotGroups }: ClassAssignmentBoardProps) {
+export function ClassAssignmentBoard({
+  eventId,
+  assignmentLocked,
+  attendees,
+  slotGroups,
+}: ClassAssignmentBoardProps) {
   const [selectedAttendeeId, setSelectedAttendeeId] = useState<string>(attendees[0]?.id ?? "");
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -223,6 +229,8 @@ export function ClassAssignmentBoard({ eventId, attendees, slotGroups }: ClassAs
 
                 const blockedReason = !eligibility.eligible
                   ? eligibility.blockers[0]
+                  : assignmentLocked
+                    ? "Registration not submitted"
                   : alreadyEnrolled
                     ? "Already enrolled"
                     : hasOtherEnrollment
@@ -270,6 +278,7 @@ export function ClassAssignmentBoard({ eventId, attendees, slotGroups }: ClassAs
                         disabled={
                           isPending ||
                           !selectedAttendee ||
+                          assignmentLocked ||
                           !eligibility.eligible ||
                           alreadyEnrolled ||
                           hasOtherEnrollment ||
@@ -308,7 +317,7 @@ export function ClassAssignmentBoard({ eventId, attendees, slotGroups }: ClassAs
                       {alreadyEnrolled ? (
                         <button
                           type="button"
-                          disabled={isPending || !selectedAttendee}
+                          disabled={isPending || !selectedAttendee || assignmentLocked}
                           onClick={() => {
                             if (!selectedAttendee) {
                               return;
