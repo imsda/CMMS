@@ -317,6 +317,10 @@ async function persistRegistration(formData: FormData, nextStatus: RegistrationS
   }
 
   if (nextStatus === RegistrationStatus.SUBMITTED) {
+    if (attendeeIds.length === 0) {
+      throw new Error("Select at least one attendee before submitting registration.");
+    }
+
     for (const field of dynamicFieldRules) {
       const responseValue = responseByFieldId.get(field.id);
 
