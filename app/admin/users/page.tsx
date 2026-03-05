@@ -1,4 +1,5 @@
 import { prisma } from "../../../lib/prisma";
+import { MembershipOpsForm } from "./_components/membership-ops-form";
 import { ResetPasswordForm } from "./_components/reset-password-form";
 import { UpdateUserProfileForm } from "./_components/update-user-profile-form";
 import { UserMembershipForm } from "./_components/user-membership-form";
@@ -15,6 +16,7 @@ export default async function AdminUsersPage() {
       role: true,
       memberships: {
         select: {
+          id: true,
           title: true,
           isPrimary: true,
           club: {
@@ -42,6 +44,16 @@ export default async function AdminUsersPage() {
     },
   });
 
+  const membershipOptions = users.flatMap((user) =>
+    user.memberships.map((membership) => ({
+      id: membership.id,
+      userName: user.name,
+      clubName: membership.club.name,
+      clubCode: membership.club.code,
+      isPrimary: membership.isPrimary,
+    })),
+  );
+
   return (
     <section className="space-y-6">
       <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -65,6 +77,7 @@ export default async function AdminUsersPage() {
         users={users.map((user) => ({ id: user.id, name: user.name, email: user.email }))}
         clubs={clubs}
       />
+      <MembershipOpsForm memberships={membershipOptions} />
       <ResetPasswordForm users={users.map((user) => ({ id: user.id, name: user.name, email: user.email }))} />
 
       <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">

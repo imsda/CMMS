@@ -1,6 +1,6 @@
 "use server";
 
-import { ClubType, UserRole } from "@prisma/client";
+import { ClubType, Prisma, UserRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 
@@ -11,6 +11,16 @@ export type AdminCreateFormState = {
   status: "idle" | "success" | "error";
   message: string | null;
 };
+
+function toActionErrorMessage(error: unknown, fallback: string) {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === "P2002") {
+      return "That value already exists. Please use a unique code/email.";
+    }
+  }
+
+  return error instanceof Error ? error.message : fallback;
+}
 
 function parseRequiredString(value: FormDataEntryValue | null, label: string) {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -95,7 +105,7 @@ export async function createClubAction(
   } catch (error) {
     return {
       status: "error",
-      message: error instanceof Error ? error.message : "Unable to create club.",
+      message: toActionErrorMessage(error, "Unable to create club."),
     };
   }
 }
@@ -137,7 +147,7 @@ export async function updateClubAction(
   } catch (error) {
     return {
       status: "error",
-      message: error instanceof Error ? error.message : "Unable to update club.",
+      message: toActionErrorMessage(error, "Unable to update club."),
     };
   }
 }
@@ -201,7 +211,7 @@ export async function createUserAction(
   } catch (error) {
     return {
       status: "error",
-      message: error instanceof Error ? error.message : "Unable to create user.",
+      message: toActionErrorMessage(error, "Unable to create user."),
     };
   }
 }
@@ -237,7 +247,7 @@ export async function updateUserProfileAction(
   } catch (error) {
     return {
       status: "error",
-      message: error instanceof Error ? error.message : "Unable to update user profile.",
+      message: toActionErrorMessage(error, "Unable to update user profile."),
     };
   }
 }
@@ -314,7 +324,142 @@ export async function assignUserMembershipAction(
   } catch (error) {
     return {
       status: "error",
-      message: error instanceof Error ? error.message : "Unable to save membership.",
+      message: toActionErrorMessage(error, "Unable to save membership."),
+    };
+  }
+}
+
+export async function setPrimaryMembershipAction(
+  _prevState: AdminCreateFormState,
+  formData: FormData,
+): Promise<AdminCreateFormState> {
+  try {
+    const session = await auth();
+    ensureSuperAdmin(session?.user?.role);
+
+    const membershipId = parseRequiredString(formData.get("membershipId"), "Membership");
+
+    await prisma.$transaction(async (tx) => {
+      const membership = await tx.clubMembership.findUnique({
+        where: {
+          id: membershipId,
+        },
+        select: {
+          id: true,
+          userId: true,
+          clubId: true,
+        },
+      });
+
+      if (!membership) {
+        throw new Error("Membership not found.");
+      }
+
+      await tx.clubMembership.updateMany({
+        where: {
+          userId: membership.userId,
+          isPrimary: true,
+          id: {
+            not: membership.id,
+          },
+        },
+        data: {
+          isPrimary: false,
+        },
+      });
+
+      await tx.clubMembership.update({
+        where: {
+          id: membership.id,
+        },
+        data: {
+          isPrimary: true,
+        },
+      });
+    });
+
+    revalidatePath("/admin/users");
+
+    return {
+      status: "success",
+      message: "Primary membership updated.",
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: toActionErrorMessage(error, "Unable to set primary membership."),
+    };
+  }
+}
+
+export async function removeUserMembershipAction(
+  _prevState: AdminCreateFormState,
+  formData: FormData,
+): Promise<AdminCreateFormState> {
+  try {
+    const session = await auth();
+    ensureSuperAdmin(session?.user?.role);
+
+    const membershipId = parseRequiredString(formData.get("membershipId"), "Membership");
+
+    await prisma.$transaction(async (tx) => {
+      const membership = await tx.clubMembership.findUnique({
+        where: {
+          id: membershipId,
+        },
+        select: {
+          id: true,
+          userId: true,
+          isPrimary: true,
+        },
+      });
+
+      if (!membership) {
+        throw new Error("Membership not found.");
+      }
+
+      await tx.clubMembership.delete({
+        where: {
+          id: membership.id,
+        },
+      });
+
+      if (membership.isPrimary) {
+        const fallback = await tx.clubMembership.findFirst({
+          where: {
+            userId: membership.userId,
+          },
+          orderBy: {
+            createdAt: "asc",
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        if (fallback) {
+          await tx.clubMembership.update({
+            where: {
+              id: fallback.id,
+            },
+            data: {
+              isPrimary: true,
+            },
+          });
+        }
+      }
+    });
+
+    revalidatePath("/admin/users");
+
+    return {
+      status: "success",
+      message: "Membership removed.",
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: toActionErrorMessage(error, "Unable to remove membership."),
     };
   }
 }
@@ -354,7 +499,7 @@ export async function resetUserPasswordAction(
   } catch (error) {
     return {
       status: "error",
-      message: error instanceof Error ? error.message : "Unable to reset password.",
+      message: toActionErrorMessage(error, "Unable to reset password."),
     };
   }
 }
