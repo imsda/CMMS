@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { ClubType } from "@prisma/client";
 
 import { prisma } from "../../../lib/prisma";
 import { ClubCreateForm } from "./_components/club-create-form";
+import { ClubUpdateForm } from "./_components/club-update-form";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +39,16 @@ export default async function AdminClubsPage() {
       </header>
 
       <ClubCreateForm />
+      <ClubUpdateForm
+        clubs={clubs.map((club) => ({
+          id: club.id,
+          name: club.name,
+          code: club.code,
+          type: club.type as ClubType,
+          city: club.city,
+          state: club.state,
+        }))}
+      />
 
       <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {clubs.length === 0 ? (

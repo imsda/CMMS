@@ -100,6 +100,48 @@ export async function createClubAction(
   }
 }
 
+export async function updateClubAction(
+  _prevState: AdminCreateFormState,
+  formData: FormData,
+): Promise<AdminCreateFormState> {
+  try {
+    const session = await auth();
+    ensureSuperAdmin(session?.user?.role);
+
+    const clubId = parseRequiredString(formData.get("clubId"), "Club");
+    const name = parseRequiredString(formData.get("name"), "Club name");
+    const code = parseRequiredString(formData.get("code"), "Club code").toUpperCase();
+    const type = parseClubType(formData.get("type"));
+    const city = parseOptionalString(formData.get("city"));
+    const state = parseOptionalString(formData.get("state"));
+
+    await prisma.club.update({
+      where: {
+        id: clubId,
+      },
+      data: {
+        name,
+        code,
+        type,
+        city,
+        state,
+      },
+    });
+
+    revalidatePath("/admin/clubs");
+
+    return {
+      status: "success",
+      message: `Club "${name}" updated.`,
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Unable to update club.",
+    };
+  }
+}
+
 export async function createUserAction(
   _prevState: AdminCreateFormState,
   formData: FormData,
@@ -160,6 +202,42 @@ export async function createUserAction(
     return {
       status: "error",
       message: error instanceof Error ? error.message : "Unable to create user.",
+    };
+  }
+}
+
+export async function updateUserProfileAction(
+  _prevState: AdminCreateFormState,
+  formData: FormData,
+): Promise<AdminCreateFormState> {
+  try {
+    const session = await auth();
+    ensureSuperAdmin(session?.user?.role);
+
+    const userId = parseRequiredString(formData.get("userId"), "User");
+    const name = parseRequiredString(formData.get("name"), "Name");
+    const role = parseUserRole(formData.get("role"));
+
+    await prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        name,
+        role,
+      },
+    });
+
+    revalidatePath("/admin/users");
+
+    return {
+      status: "success",
+      message: "User profile updated.",
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Unable to update user profile.",
     };
   }
 }

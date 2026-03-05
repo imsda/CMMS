@@ -1,5 +1,6 @@
 import { prisma } from "../../../lib/prisma";
 import { ResetPasswordForm } from "./_components/reset-password-form";
+import { UpdateUserProfileForm } from "./_components/update-user-profile-form";
 import { UserMembershipForm } from "./_components/user-membership-form";
 import { UserCreateForm } from "./_components/user-create-form";
 
@@ -52,6 +53,14 @@ export default async function AdminUsersPage() {
       </header>
 
       <UserCreateForm clubs={clubs} />
+      <UpdateUserProfileForm
+        users={users.map((user) => ({
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        }))}
+      />
       <UserMembershipForm
         users={users.map((user) => ({ id: user.id, name: user.name, email: user.email }))}
         clubs={clubs}
