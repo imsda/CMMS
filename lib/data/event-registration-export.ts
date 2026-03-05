@@ -19,19 +19,19 @@ export async function getEventRegistrationExportData(eventId: string, clubId: st
             include: {
               classEnrollments: {
                 where: {
-                  eventClassOffering: {
+                  offering: {
                     eventId,
                   },
                 },
                 include: {
-                  eventClassOffering: {
+                  offering: {
                     include: {
                       classCatalog: true,
                     },
                   },
                 },
                 orderBy: {
-                  enrolledAt: "asc",
+                  assignedAt: "asc",
                 },
               },
             },
@@ -43,11 +43,11 @@ export async function getEventRegistrationExportData(eventId: string, clubId: st
       },
       formResponses: {
         include: {
-          eventFormField: true,
+          field: true,
         },
         orderBy: [
           {
-            eventFormField: {
+            field: {
               sortOrder: "asc",
             },
           },

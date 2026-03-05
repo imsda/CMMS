@@ -1,3 +1,4 @@
+import { type MemberRole, type Prisma, type RequirementType } from "@prisma/client";
 import { notFound } from "next/navigation";
 
 import { auth } from "../../../../../auth";
@@ -5,13 +6,65 @@ import { prisma } from "../../../../../lib/prisma";
 import { type RequirementInput } from "../../../../../lib/class-prerequisite-utils";
 import { ClassAssignmentBoard } from "./_components/class-assignment-board";
 
-function formatSlotLabel(dayIndex: number, startsAt: Date) {
+type RequirementConfig = {
+  minAge?: number;
+  maxAge?: number;
+  requiredMemberRole?: MemberRole;
+  requiredHonorCode?: string;
+  requiredMasterGuide?: boolean;
+};
+
+function parseRequirementConfig(config: Prisma.JsonValue): RequirementConfig {
+  if (!config || typeof config !== "object" || Array.isArray(config)) {
+    return {};
+  }
+
+  const raw = config as Record<string, unknown>;
+
+  return {
+    minAge: typeof raw.minAge === "number" ? raw.minAge : undefined,
+    maxAge: typeof raw.maxAge === "number" ? raw.maxAge : undefined,
+    requiredMemberRole: typeof raw.requiredMemberRole === "string" ? (raw.requiredMemberRole as MemberRole) : undefined,
+    requiredHonorCode: typeof raw.requiredHonorCode === "string" ? raw.requiredHonorCode : undefined,
+    requiredMasterGuide: typeof raw.requiredMasterGuide === "boolean" ? raw.requiredMasterGuide : undefined,
+  };
+}
+
+function mapRequirementsToEvaluatorInput(
+  requirements: Array<{ requirementType: RequirementType; config: Prisma.JsonValue }>,
+): RequirementInput[] {
+  return requirements.map((requirement) => {
+    const config = parseRequirementConfig(requirement.config);
+
+    return {
+      requirementType: requirement.requirementType,
+      minAge: config.minAge ?? null,
+      maxAge: config.maxAge ?? null,
+      requiredMemberRole: config.requiredMemberRole ?? null,
+      requiredHonorCode: config.requiredHonorCode ?? null,
+      requiredMasterGuide: config.requiredMasterGuide ?? null,
+    };
+  });
+}
+
+function readHonorCodeFromMetadata(metadata: Prisma.JsonValue): string | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null;
+  }
+
+  const value = (metadata as Record<string, unknown>).honorCode;
+  return typeof value === "string" && value.trim().length > 0 ? value.trim().toUpperCase() : null;
+}
+
+function formatSlotLabel(startsAt: Date) {
   const formatter = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
     hour: "numeric",
     minute: "2-digit",
   });
 
-  return `Day ${dayIndex + 1} • ${formatter.format(startsAt)}`;
+  return formatter.format(startsAt);
 }
 
 export default async function DirectorClassSelectionPage({
@@ -58,6 +111,9 @@ export default async function DirectorClassSelectionPage({
         select: {
           id: true,
           name: true,
+          startsAt: true,
+          endsAt: true,
+          locationName: true,
         },
       },
       attendees: {
@@ -71,13 +127,16 @@ export default async function DirectorClassSelectionPage({
               memberRole: true,
               masterGuide: true,
               completedRequirements: {
+                where: {
+                  requirementType: "COMPLETED_HONOR",
+                },
                 select: {
-                  honorCode: true,
+                  metadata: true,
                 },
               },
               classEnrollments: {
                 where: {
-                  eventClassOffering: {
+                  offering: {
                     eventId,
                   },
                 },
@@ -107,11 +166,7 @@ export default async function DirectorClassSelectionPage({
     },
     select: {
       id: true,
-      dayIndex: true,
-      startsAt: true,
-      endsAt: true,
       capacity: true,
-      location: true,
       classCatalog: {
         select: {
           title: true,
@@ -119,13 +174,16 @@ export default async function DirectorClassSelectionPage({
           requirements: {
             select: {
               requirementType: true,
-              minAge: true,
-              maxAge: true,
-              requiredMemberRole: true,
-              requiredHonorCode: true,
-              requiredMasterGuide: true,
+              config: true,
             },
           },
+        },
+      },
+      event: {
+        select: {
+          startsAt: true,
+          endsAt: true,
+          locationName: true,
         },
       },
       _count: {
@@ -134,7 +192,7 @@ export default async function DirectorClassSelectionPage({
         },
       },
     },
-    orderBy: [{ dayIndex: "asc" }, { startsAt: "asc" }, { classCatalog: { title: "asc" } }],
+    orderBy: [{ classCatalog: { title: "asc" } }],
   });
 
   const slotMap = new Map<
@@ -150,7 +208,7 @@ export default async function DirectorClassSelectionPage({
         dayIndex: number;
         startsAt: string;
         endsAt: string;
-        capacity: number;
+        capacity: number | null;
         enrolledCount: number;
         requirements: RequirementInput[];
       }>;
@@ -158,12 +216,12 @@ export default async function DirectorClassSelectionPage({
   >();
 
   for (const offering of offerings) {
-    const slotKey = `${offering.dayIndex}-${offering.startsAt.toISOString()}`;
+    const slotKey = offering.event.startsAt.toISOString();
 
     if (!slotMap.has(slotKey)) {
       slotMap.set(slotKey, {
         slotKey,
-        label: formatSlotLabel(offering.dayIndex, offering.startsAt),
+        label: formatSlotLabel(offering.event.startsAt),
         offerings: [],
       });
     }
@@ -172,13 +230,13 @@ export default async function DirectorClassSelectionPage({
       id: offering.id,
       title: offering.classCatalog.title,
       code: offering.classCatalog.code,
-      location: offering.location,
-      dayIndex: offering.dayIndex,
-      startsAt: offering.startsAt.toISOString(),
-      endsAt: offering.endsAt.toISOString(),
+      location: offering.event.locationName,
+      dayIndex: 0,
+      startsAt: offering.event.startsAt.toISOString(),
+      endsAt: offering.event.endsAt.toISOString(),
       capacity: offering.capacity,
       enrolledCount: offering._count.enrollments,
-      requirements: offering.classCatalog.requirements as RequirementInput[],
+      requirements: mapRequirementsToEvaluatorInput(offering.classCatalog.requirements),
     });
   }
 
@@ -203,7 +261,9 @@ export default async function DirectorClassSelectionPage({
           ageAtStart: attendee.rosterMember.ageAtStart,
           memberRole: attendee.rosterMember.memberRole,
           masterGuide: attendee.rosterMember.masterGuide,
-          completedHonorCodes: attendee.rosterMember.completedRequirements.map((item) => item.honorCode),
+          completedHonorCodes: attendee.rosterMember.completedRequirements
+            .map((item) => readHonorCodeFromMetadata(item.metadata))
+            .filter((item): item is string => Boolean(item)),
           enrolledOfferingIds: attendee.rosterMember.classEnrollments.map((enrollment) => enrollment.eventClassOfferingId),
         }))}
         slotGroups={slotGroups}

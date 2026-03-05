@@ -18,7 +18,7 @@ function formatMegabytes(value: number) {
   return value.toFixed(2);
 }
 
-export async function purgeInactiveInsuranceCards(): Promise<PurgeStorageResult> {
+export async function purgeInactiveInsuranceCards(): Promise<void> {
   const session = await auth();
 
   if (!session?.user || session.user.role !== "SUPER_ADMIN") {
@@ -69,10 +69,5 @@ export async function purgeInactiveInsuranceCards(): Promise<PurgeStorageResult>
 
   revalidatePath("/admin/storage");
 
-  return {
-    success: true,
-    message: `Purge complete. Deleted ${filesDeleted} file(s) and freed ${formatMegabytes(megabytesFreed)} MB.`,
-    filesDeleted,
-    megabytesFreed,
-  };
+  void formatMegabytes(megabytesFreed);
 }

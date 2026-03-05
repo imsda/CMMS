@@ -2,11 +2,25 @@
 
 import { ClassType, MemberRole, RequirementType, type Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { type Session } from "next-auth";
 
 import { auth } from "../../auth";
 import { prisma } from "../../lib/prisma";
 
+type RequirementConfig = {
+  minAge?: number;
+  maxAge?: number;
+  requiredMemberRole?: MemberRole;
+  requiredHonorCode?: string;
+  requiredMasterGuide?: boolean;
+};
+
 type ParsedRequirementInput = {
+  requirementType: RequirementType;
+  config: RequirementConfig;
+};
+
+type RequirementDisplay = {
   requirementType: RequirementType;
   minAge: number | null;
   maxAge: number | null;
@@ -15,7 +29,7 @@ type ParsedRequirementInput = {
   requiredMasterGuide: boolean | null;
 };
 
-function ensureSuperAdmin(session: Awaited<ReturnType<typeof auth>>) {
+function ensureSuperAdmin(session: Session | null) {
   if (!session?.user || session.user.role !== "SUPER_ADMIN") {
     throw new Error("Only super admins can perform this action.");
   }
@@ -112,13 +126,70 @@ function parseRequirementFromFormData(formData: FormData): ParsedRequirementInpu
     return null;
   }
 
+  const minAge = parseOptionalInt(formData.get("minAge"), "Minimum age");
+  const maxAge = parseOptionalInt(formData.get("maxAge"), "Maximum age");
+  const requiredMemberRole = parseOptionalMemberRole(formData.get("requiredMemberRole"));
+  const requiredHonorCode = optionalTrimmedString(formData.get("requiredHonorCode"));
+  const requiredMasterGuide = parseOptionalBoolean(formData.get("requiredMasterGuide"));
+
+  const config: RequirementConfig = {};
+
+  if (requirementType === RequirementType.MIN_AGE && minAge !== null) {
+    config.minAge = minAge;
+  }
+
+  if (requirementType === RequirementType.MAX_AGE && maxAge !== null) {
+    config.maxAge = maxAge;
+  }
+
+  if (requirementType === RequirementType.MEMBER_ROLE && requiredMemberRole) {
+    config.requiredMemberRole = requiredMemberRole;
+  }
+
+  if (requirementType === RequirementType.COMPLETED_HONOR && requiredHonorCode) {
+    config.requiredHonorCode = requiredHonorCode;
+  }
+
+  if (requirementType === RequirementType.MASTER_GUIDE && requiredMasterGuide !== null) {
+    config.requiredMasterGuide = requiredMasterGuide;
+  }
+
   return {
     requirementType,
-    minAge: parseOptionalInt(formData.get("minAge"), "Minimum age"),
-    maxAge: parseOptionalInt(formData.get("maxAge"), "Maximum age"),
-    requiredMemberRole: parseOptionalMemberRole(formData.get("requiredMemberRole")),
-    requiredHonorCode: optionalTrimmedString(formData.get("requiredHonorCode")),
-    requiredMasterGuide: parseOptionalBoolean(formData.get("requiredMasterGuide")),
+    config,
+  };
+}
+
+function parseRequirementConfig(config: Prisma.JsonValue): RequirementConfig {
+  if (!config || typeof config !== "object" || Array.isArray(config)) {
+    return {};
+  }
+
+  const raw = config as Record<string, unknown>;
+
+  return {
+    minAge: typeof raw.minAge === "number" ? raw.minAge : undefined,
+    maxAge: typeof raw.maxAge === "number" ? raw.maxAge : undefined,
+    requiredMemberRole:
+      typeof raw.requiredMemberRole === "string" &&
+      Object.values(MemberRole).includes(raw.requiredMemberRole as MemberRole)
+        ? (raw.requiredMemberRole as MemberRole)
+        : undefined,
+    requiredHonorCode: typeof raw.requiredHonorCode === "string" ? raw.requiredHonorCode : undefined,
+    requiredMasterGuide: typeof raw.requiredMasterGuide === "boolean" ? raw.requiredMasterGuide : undefined,
+  };
+}
+
+function toRequirementDisplay(requirementType: RequirementType, config: Prisma.JsonValue): RequirementDisplay {
+  const parsed = parseRequirementConfig(config);
+
+  return {
+    requirementType,
+    minAge: parsed.minAge ?? null,
+    maxAge: parsed.maxAge ?? null,
+    requiredMemberRole: parsed.requiredMemberRole ?? null,
+    requiredHonorCode: parsed.requiredHonorCode ?? null,
+    requiredMasterGuide: parsed.requiredMasterGuide ?? null,
   };
 }
 
@@ -185,7 +256,13 @@ export async function getMasterCatalogData() {
     },
   });
 
-  return catalog;
+  return catalog.map((item) => ({
+    ...item,
+    requirements: item.requirements.map((requirement) => ({
+      ...requirement,
+      ...toRequirementDisplay(requirement.requirementType, requirement.config),
+    })),
+  }));
 }
 
 export async function createMasterCatalogItem(formData: FormData) {
@@ -207,7 +284,10 @@ export async function createMasterCatalogItem(formData: FormData) {
     active,
     requirements: requirement
       ? {
-          create: requirement,
+          create: {
+            requirementType: requirement.requirementType,
+            config: requirement.config,
+          },
         }
       : undefined,
   };
@@ -256,7 +336,8 @@ export async function updateMasterCatalogItem(formData: FormData) {
       await tx.classRequirement.create({
         data: {
           classCatalogId,
-          ...requirement,
+          requirementType: requirement.requirementType,
+          config: requirement.config,
         },
       });
     }
@@ -375,6 +456,15 @@ type PatchOrderRow = {
   totalCountNeeded: number;
 };
 
+function readHonorCodeFromMetadata(metadata: Prisma.JsonValue): string | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null;
+  }
+
+  const value = (metadata as Record<string, unknown>).honorCode;
+  return typeof value === "string" && value.trim().length > 0 ? value.trim().toUpperCase() : null;
+}
+
 export async function getEventPatchOrderReport(eventId: string) {
   const session = await auth();
   ensureSuperAdmin(session);
@@ -396,23 +486,32 @@ export async function getEventPatchOrderReport(eventId: string) {
     return null;
   }
 
-  const groupedCompletions = await prisma.memberRequirement.groupBy({
-    by: ["honorCode"],
+  const completions = await prisma.memberRequirement.findMany({
     where: {
+      requirementType: RequirementType.COMPLETED_HONOR,
       completedAt: {
         gte: event.startsAt,
         lte: event.endsAt,
       },
     },
-    _count: {
-      honorCode: true,
-    },
-    orderBy: {
-      honorCode: "asc",
+    select: {
+      metadata: true,
     },
   });
 
-  const honorCodes = groupedCompletions.map((completion) => completion.honorCode);
+  const completionCountsByHonorCode = new Map<string, number>();
+
+  for (const completion of completions) {
+    const honorCode = readHonorCodeFromMetadata(completion.metadata);
+
+    if (!honorCode) {
+      continue;
+    }
+
+    completionCountsByHonorCode.set(honorCode, (completionCountsByHonorCode.get(honorCode) ?? 0) + 1);
+  }
+
+  const honorCodes = Array.from(completionCountsByHonorCode.keys());
 
   const honors = await prisma.classCatalog.findMany({
     where: {
@@ -429,11 +528,13 @@ export async function getEventPatchOrderReport(eventId: string) {
 
   const honorTitleByCode = new Map(honors.map((honor) => [honor.code, honor.title]));
 
-  const rows: PatchOrderRow[] = groupedCompletions.map((completion) => ({
-    honorName: honorTitleByCode.get(completion.honorCode) ?? "Unknown Honor",
-    honorCode: completion.honorCode,
-    totalCountNeeded: completion._count.honorCode,
-  }));
+  const rows: PatchOrderRow[] = honorCodes
+    .sort((a, b) => a.localeCompare(b))
+    .map((honorCode) => ({
+      honorName: honorTitleByCode.get(honorCode) ?? "Unknown Honor",
+      honorCode,
+      totalCountNeeded: completionCountsByHonorCode.get(honorCode) ?? 0,
+    }));
 
   return {
     event,

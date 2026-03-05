@@ -29,7 +29,7 @@ type Offering = {
   dayIndex: number;
   startsAt: string;
   endsAt: string;
-  capacity: number;
+  capacity: number | null;
   enrolledCount: number;
   requirements: RequirementInput[];
 };
@@ -161,8 +161,8 @@ export function ClassAssignmentBoard({ eventId, attendees, slotGroups }: ClassAs
             <div className="mt-3 grid gap-3 xl:grid-cols-2">
               {slotGroup.offerings.map((offering) => {
                 const enrolledCount = optimisticState.enrolledCountsByOfferingId[offering.id] ?? offering.enrolledCount;
-                const seatsLeft = Math.max(offering.capacity - enrolledCount, 0);
-                const isFull = seatsLeft <= 0;
+                const seatsLeft = offering.capacity === null ? null : Math.max(offering.capacity - enrolledCount, 0);
+                const isFull = seatsLeft !== null && seatsLeft <= 0;
                 const alreadyEnrolled =
                   selectedAttendee !== null &&
                   (optimisticState.attendeeEnrollmentsById[selectedAttendee.id] ?? []).includes(offering.id);
@@ -199,7 +199,7 @@ export function ClassAssignmentBoard({ eventId, attendees, slotGroups }: ClassAs
                         <p className="text-xs text-slate-500">{offering.location ?? "Location TBD"}</p>
                       </div>
                       <span className="rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white">
-                        {seatsLeft}/{offering.capacity} seats left
+                        {seatsLeft === null ? "Open capacity" : `${seatsLeft}/${offering.capacity} seats left`}
                       </span>
                     </div>
 

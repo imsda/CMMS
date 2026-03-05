@@ -34,14 +34,10 @@ export default async function TeacherClassRosterPage({
   const offering = await prisma.eventClassOffering.findFirst({
     where: {
       id: offeringId,
-      instructorUserId: session.user.id,
+      teacherUserId: session.user.id,
     },
     select: {
       id: true,
-      dayIndex: true,
-      startsAt: true,
-      endsAt: true,
-      location: true,
       capacity: true,
       eventId: true,
       classCatalog: {
@@ -53,6 +49,9 @@ export default async function TeacherClassRosterPage({
       event: {
         select: {
           name: true,
+          startsAt: true,
+          endsAt: true,
+          locationName: true,
         },
       },
       _count: {
@@ -91,7 +90,11 @@ export default async function TeacherClassRosterPage({
           },
           completedRequirements: {
             where: {
-              honorCode: offering.classCatalog.code,
+              requirementType: "COMPLETED_HONOR",
+              metadata: {
+                path: ["honorCode"],
+                equals: offering.classCatalog.code,
+              },
             },
             select: {
               id: true,
@@ -118,14 +121,14 @@ export default async function TeacherClassRosterPage({
         </h1>
         <p className="mt-2 text-sm text-slate-600">{offering.event.name}</p>
         <p className="text-sm text-slate-600">
-          Day {offering.dayIndex + 1} • {formatDateRange(offering.startsAt, offering.endsAt)}
+          {formatDateRange(offering.event.startsAt, offering.event.endsAt)}
         </p>
-        <p className="text-sm text-slate-500">{offering.location ?? "Location TBD"}</p>
+        <p className="text-sm text-slate-500">{offering.event.locationName ?? "Location TBD"}</p>
       </header>
 
       <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
         <p className="text-sm font-medium text-slate-700">
-          Enrollment: {offering._count.enrollments}/{offering.capacity}
+          Enrollment: {offering._count.enrollments}/{offering.capacity ?? "Open"}
         </p>
       </article>
 

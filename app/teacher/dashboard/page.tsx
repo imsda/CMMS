@@ -26,17 +26,15 @@ export default async function TeacherDashboardPage() {
 
   const offerings = await prisma.eventClassOffering.findMany({
     where: {
-      instructorUserId: session.user.id,
-      startsAt: {
-        gte: new Date(),
+      teacherUserId: session.user.id,
+      event: {
+        endsAt: {
+          gte: new Date(),
+        },
       },
     },
     select: {
       id: true,
-      dayIndex: true,
-      startsAt: true,
-      endsAt: true,
-      location: true,
       capacity: true,
       _count: {
         select: {
@@ -47,6 +45,9 @@ export default async function TeacherDashboardPage() {
         select: {
           id: true,
           name: true,
+          startsAt: true,
+          endsAt: true,
+          locationName: true,
         },
       },
       classCatalog: {
@@ -56,7 +57,7 @@ export default async function TeacherDashboardPage() {
         },
       },
     },
-    orderBy: [{ startsAt: "asc" }, { classCatalog: { title: "asc" } }],
+    orderBy: [{ event: { startsAt: "asc" } }, { classCatalog: { title: "asc" } }],
   });
 
   return (
@@ -92,14 +93,14 @@ export default async function TeacherDashboardPage() {
                       </span>
                     </h2>
                     <p className="mt-1 text-sm text-slate-600">
-                      Day {offering.dayIndex + 1} • {formatDateRange(offering.startsAt, offering.endsAt)}
+                      {formatDateRange(offering.event.startsAt, offering.event.endsAt)}
                     </p>
-                    <p className="text-sm text-slate-500">{offering.location ?? "Location TBD"}</p>
+                    <p className="text-sm text-slate-500">{offering.event.locationName ?? "Location TBD"}</p>
                   </div>
 
                   <div className="text-right">
                     <p className="text-sm font-semibold text-slate-700">
-                      {enrolledCount}/{offering.capacity} enrolled
+                      {enrolledCount}/{offering.capacity ?? "Open"} enrolled
                     </p>
                     <Link
                       href={`/teacher/class/${offering.id}`}

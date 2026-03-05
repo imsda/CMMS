@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "../../../../../../lib/prisma";
 
 function formatDateRange(startsAt: Date, endsAt: Date) {
   return `${startsAt.toLocaleDateString()} - ${endsAt.toLocaleDateString()}`;

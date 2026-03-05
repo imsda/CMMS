@@ -18,6 +18,18 @@ const DEFAULT_SUPER_ADMIN_NAME =
 
 const DEFAULT_CLUB_CODE = "CONF-TEST-CLUB";
 
+type SeedRequirement = {
+  requirementType: RequirementType;
+  config: Record<string, unknown>;
+};
+
+type SeedHonor = {
+  code: string;
+  title: string;
+  description: string;
+  requirements: SeedRequirement[];
+};
+
 const DEFAULT_HONORS = [
   {
     code: "HONOR-KNTS-001",
@@ -33,7 +45,9 @@ const DEFAULT_HONORS = [
     requirements: [
       {
         requirementType: RequirementType.MIN_AGE,
-        minAge: 10,
+        config: {
+          minAge: 10,
+        },
       },
     ],
   },
@@ -45,7 +59,9 @@ const DEFAULT_HONORS = [
     requirements: [
       {
         requirementType: RequirementType.MIN_AGE,
-        minAge: 12,
+        config: {
+          minAge: 12,
+        },
       },
     ],
   },
@@ -57,11 +73,15 @@ const DEFAULT_HONORS = [
     requirements: [
       {
         requirementType: RequirementType.MIN_AGE,
-        minAge: 15,
+        config: {
+          minAge: 15,
+        },
       },
       {
         requirementType: RequirementType.COMPLETED_HONOR,
-        requiredHonorCode: "HONOR-KNTS-001",
+        config: {
+          requiredHonorCode: "HONOR-KNTS-001",
+        },
       },
     ],
   },
@@ -73,15 +93,19 @@ const DEFAULT_HONORS = [
     requirements: [
       {
         requirementType: RequirementType.MIN_AGE,
-        minAge: 15,
+        config: {
+          minAge: 15,
+        },
       },
       {
         requirementType: RequirementType.MEMBER_ROLE,
-        requiredMemberRole: MemberRole.PATHFINDER,
+        config: {
+          requiredMemberRole: MemberRole.PATHFINDER,
+        },
       },
     ],
   },
-] as const;
+] satisfies SeedHonor[];
 
 async function seedSuperAdmin() {
   const passwordHash = await bcrypt.hash(DEFAULT_SUPER_ADMIN_PASSWORD, 12);

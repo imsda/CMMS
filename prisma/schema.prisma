@@ -108,16 +108,17 @@ enum TltRecommendationStatus {
 }
 
 model User {
-  id               String               @id @default(cuid())
-  email            String               @unique
-  name             String
-  role             UserRole
-  passwordHash     String?
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
+  id                    String               @id @default(cuid())
+  email                 String               @unique
+  name                  String
+  role                  UserRole
+  passwordHash          String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
 
-  memberships      ClubMembership[]
-  taughtOfferings  EventClassOffering[] @relation("OfferingTeacher")
+  memberships           ClubMembership[]
+  taughtOfferings       EventClassOffering[] @relation("OfferingTeacher")
+  completedRequirements MemberRequirement[]
 }
 
 model Club {
@@ -207,6 +208,7 @@ model RosterMember {
   registrations          RegistrationAttendee[]
   classEnrollments       ClassEnrollment[]
   completedRequirements  MemberRequirement[]
+  eventFormResponses     EventFormResponse[]
   nominations            Nomination[]
   tltApplication         TltApplication?
 
@@ -376,14 +378,10 @@ model ClassCatalog {
 }
 
 model ClassRequirement {
-  id                  String      @id @default(cuid())
-  classCatalogId      String
-  requirementType     RequirementType
-  minAge              Int?
-  maxAge              Int?
-  requiredMemberRole  MemberRole?
-  requiredHonorCode   String?
-  requiredMasterGuide Boolean     @default(false)
+  id              String          @id @default(cuid())
+  classCatalogId  String
+  requirementType RequirementType
+  config          Json
 
   classCatalog ClassCatalog @relation(fields: [classCatalogId], references: [id], onDelete: Cascade)
 
@@ -396,9 +394,6 @@ model EventClassOffering {
   classCatalogId String
   teacherUserId  String?
   capacity       Int?
-  startsAt       DateTime?
-  endsAt         DateTime?
-  location       String?
   createdAt      DateTime @default(now())
 
   event        Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -414,7 +409,6 @@ model ClassEnrollment {
   id                   String   @id @default(cuid())
   eventClassOfferingId String
   rosterMemberId       String
-  isWaitlisted         Boolean  @default(false)
   assignedAt           DateTime @default(now())
 
   offering     EventClassOffering @relation(fields: [eventClassOfferingId], references: [id], onDelete: Cascade)
@@ -426,15 +420,17 @@ model ClassEnrollment {
 
 model MemberRequirement {
   id              String          @id @default(cuid())
-  rosterMemberId  String
-  honorCode       String
+  userId          String
+  rosterMemberId  String?
   requirementType RequirementType
   metadata        Json?
   completedAt     DateTime
   createdAt       DateTime        @default(now())
 
-  rosterMember RosterMember @relation(fields: [rosterMemberId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rosterMember RosterMember? @relation(fields: [rosterMemberId], references: [id], onDelete: SetNull)
 
+  @@index([userId, requirementType])
   @@index([rosterMemberId, requirementType])
 }
 
@@ -479,19 +475,19 @@ model MonthlyReport {
 }
 
 model YearEndReport {
-  id                    String       @id @default(cuid())
-  clubId                String
-  reportYear            Int
-  friendCompletions     Int          @default(0)
-  companionCompletions  Int          @default(0)
-  explorerCompletions   Int          @default(0)
-  rangerCompletions     Int          @default(0)
-  voyagerCompletions    Int          @default(0)
-  guideCompletions      Int          @default(0)
-  status                ReportStatus @default(DRAFT)
-  submittedAt           DateTime?
-  createdAt             DateTime     @default(now())
-  updatedAt             DateTime     @updatedAt
+  id                 String       @id @default(cuid())
+  clubId             String
+  reportYear         Int
+  friendCompletions  Int          @default(0)
+  companionCompletions Int        @default(0)
+  explorerCompletions Int         @default(0)
+  rangerCompletions  Int          @default(0)
+  voyagerCompletions Int          @default(0)
+  guideCompletions   Int          @default(0)
+  status             ReportStatus @default(DRAFT)
+  submittedAt        DateTime?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
   club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
 

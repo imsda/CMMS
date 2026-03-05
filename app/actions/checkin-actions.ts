@@ -2,11 +2,42 @@
 
 import { RegistrationStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { type Session } from "next-auth";
 
 import { auth } from "../../auth";
 import { prisma } from "../../lib/prisma";
 
-function ensureSuperAdmin(session: Awaited<ReturnType<typeof auth>>) {
+type EventFieldOptionsMetadata = {
+  attendeeSpecific?: boolean;
+  scope?: "ATTENDEE" | "GLOBAL";
+};
+
+function isOptionsMetadata(value: unknown): value is EventFieldOptionsMetadata {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return false;
+  }
+
+  const record = value as Record<string, unknown>;
+
+  if (
+    typeof record.attendeeSpecific !== "undefined" &&
+    typeof record.attendeeSpecific !== "boolean"
+  ) {
+    return false;
+  }
+
+  if (
+    typeof record.scope !== "undefined" &&
+    record.scope !== "ATTENDEE" &&
+    record.scope !== "GLOBAL"
+  ) {
+    return false;
+  }
+
+  return true;
+}
+
+function ensureSuperAdmin(session: Session | null) {
   if (!session?.user || session.user.role !== "SUPER_ADMIN") {
     throw new Error("Only super admins can perform this action.");
   }
@@ -40,8 +71,11 @@ function isAttendeeSpecificField(field: {
   }
 
   if (field.options && typeof field.options === "object" && !Array.isArray(field.options)) {
-    const metadata = field.options as Record<string, unknown>;
-    return metadata.attendeeSpecific === true || metadata.scope === "ATTENDEE";
+    if (!isOptionsMetadata(field.options)) {
+      return false;
+    }
+
+    return field.options.attendeeSpecific === true || field.options.scope === "ATTENDEE";
   }
 
   if (Array.isArray(field.options)) {

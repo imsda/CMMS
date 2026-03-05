@@ -1,6 +1,6 @@
 "use server";
 
-import { RequirementType } from "@prisma/client";
+import { type MemberRole, type Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "../../auth";
@@ -15,6 +15,56 @@ type EnrollAttendeeInput = {
   rosterMemberId: string;
   eventClassOfferingId: string;
 };
+
+type RequirementConfig = {
+  minAge?: number;
+  maxAge?: number;
+  requiredMemberRole?: MemberRole;
+  requiredHonorCode?: string;
+  requiredMasterGuide?: boolean;
+};
+
+function parseRequirementConfig(config: Prisma.JsonValue): RequirementConfig {
+  if (!config || typeof config !== "object" || Array.isArray(config)) {
+    return {};
+  }
+
+  const raw = config as Record<string, unknown>;
+
+  return {
+    minAge: typeof raw.minAge === "number" ? raw.minAge : undefined,
+    maxAge: typeof raw.maxAge === "number" ? raw.maxAge : undefined,
+    requiredMemberRole: typeof raw.requiredMemberRole === "string" ? (raw.requiredMemberRole as MemberRole) : undefined,
+    requiredHonorCode: typeof raw.requiredHonorCode === "string" ? raw.requiredHonorCode : undefined,
+    requiredMasterGuide: typeof raw.requiredMasterGuide === "boolean" ? raw.requiredMasterGuide : undefined,
+  };
+}
+
+function mapRequirementsToEvaluatorInput(
+  requirements: Array<{ requirementType: RequirementInput["requirementType"]; config: Prisma.JsonValue }>,
+): RequirementInput[] {
+  return requirements.map((requirement) => {
+    const config = parseRequirementConfig(requirement.config);
+
+    return {
+      requirementType: requirement.requirementType,
+      minAge: config.minAge ?? null,
+      maxAge: config.maxAge ?? null,
+      requiredMemberRole: config.requiredMemberRole ?? null,
+      requiredHonorCode: config.requiredHonorCode ?? null,
+      requiredMasterGuide: config.requiredMasterGuide ?? null,
+    };
+  });
+}
+
+function readHonorCodeFromMetadata(metadata: Prisma.JsonValue): string | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null;
+  }
+
+  const value = (metadata as Record<string, unknown>).honorCode;
+  return typeof value === "string" && value.trim().length > 0 ? value.trim().toUpperCase() : null;
+}
 
 async function getDirectorClubIdForEnrollment() {
   const session = await auth();
@@ -80,11 +130,7 @@ export async function enrollAttendeeInClass(input: EnrollAttendeeInput) {
             requirements: {
               select: {
                 requirementType: true,
-                minAge: true,
-                maxAge: true,
-                requiredMemberRole: true,
-                requiredHonorCode: true,
-                requiredMasterGuide: true,
+                config: true,
               },
             },
           },
@@ -114,10 +160,10 @@ export async function enrollAttendeeInClass(input: EnrollAttendeeInput) {
         masterGuide: true,
         completedRequirements: {
           where: {
-            requirementType: RequirementType.COMPLETED_HONOR,
+            requirementType: "COMPLETED_HONOR",
           },
           select: {
-            honorCode: true,
+            metadata: true,
           },
         },
       },
@@ -127,14 +173,18 @@ export async function enrollAttendeeInClass(input: EnrollAttendeeInput) {
       throw new Error("Attendee not found for your club registration.");
     }
 
+    const completedHonorCodes = attendee.completedRequirements
+      .map((item) => readHonorCodeFromMetadata(item.metadata))
+      .filter((item): item is string => Boolean(item));
+
     const eligibility = evaluateClassRequirements(
       {
         ageAtStart: attendee.ageAtStart,
         memberRole: attendee.memberRole,
         masterGuide: attendee.masterGuide,
-        completedHonorCodes: attendee.completedRequirements.map((item) => item.honorCode),
+        completedHonorCodes,
       },
-      offering.classCatalog.requirements as RequirementInput[],
+      mapRequirementsToEvaluatorInput(offering.classCatalog.requirements),
     );
 
     if (!eligibility.eligible) {
@@ -163,7 +213,7 @@ export async function enrollAttendeeInClass(input: EnrollAttendeeInput) {
       },
     });
 
-    if (offering.capacity !== null && enrollmentCount >= offering.capacity) {
+    if (typeof offering.capacity === "number" && enrollmentCount >= offering.capacity) {
       throw new Error("This class is full. Please choose another class.");
     }
 
