@@ -72,7 +72,7 @@ function parseRequiredFloat(value: FormDataEntryValue | null, fieldLabel: string
   return parsed;
 }
 
-function parseMultiSelectOptions(raw: string, fieldKey: string) {
+function parseSelectOptions(raw: string, fieldKey: string) {
   try {
     const parsed = JSON.parse(raw);
 
@@ -99,7 +99,7 @@ function parseMultiSelectOptions(raw: string, fieldKey: string) {
   }
 }
 
-function parseMultiSelectOptionsArray(options: unknown, fieldKey: string) {
+function parseSelectOptionsArray(options: unknown, fieldKey: string) {
   if (!Array.isArray(options)) {
     throw new Error(`Dynamic field "${fieldKey}" must include at least one option.`);
   }
@@ -179,6 +179,9 @@ function parseDynamicFields(value: FormDataEntryValue | null) {
 
   const supportedTypes: FormFieldType[] = [
     FormFieldType.SHORT_TEXT,
+    FormFieldType.LONG_TEXT,
+    FormFieldType.DATE,
+    FormFieldType.SINGLE_SELECT,
     FormFieldType.MULTI_SELECT,
     FormFieldType.BOOLEAN,
     FormFieldType.NUMBER,
@@ -206,18 +209,18 @@ function parseDynamicFields(value: FormDataEntryValue | null) {
 
     if (typeof type !== "string" || !supportedTypes.includes(type as FormFieldType)) {
       throw new Error(
-        `Dynamic field ${index + 1} has an unsupported type. Use SHORT_TEXT, NUMBER, MULTI_SELECT, BOOLEAN, ROSTER_SELECT, ROSTER_MULTI_SELECT, or FIELD_GROUP.`,
+        `Dynamic field ${index + 1} has an unsupported type. Use SHORT_TEXT, LONG_TEXT, DATE, SINGLE_SELECT, MULTI_SELECT, NUMBER, BOOLEAN, ROSTER_SELECT, ROSTER_MULTI_SELECT, or FIELD_GROUP.`,
       );
     }
 
     let options: Prisma.InputJsonValue | undefined;
 
-    if (type === FormFieldType.MULTI_SELECT) {
+    if (type === FormFieldType.SINGLE_SELECT || type === FormFieldType.MULTI_SELECT) {
       if (Array.isArray(candidate.options)) {
-        options = parseMultiSelectOptionsArray(candidate.options, key);
+        options = parseSelectOptionsArray(candidate.options, key);
       } else {
         const optionsRaw = typeof candidate.optionsJson === "string" ? candidate.optionsJson : "";
-        options = parseMultiSelectOptions(optionsRaw, key);
+        options = parseSelectOptions(optionsRaw, key);
       }
     }
 
