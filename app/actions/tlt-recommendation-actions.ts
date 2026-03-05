@@ -8,6 +8,11 @@ import { redirect } from "next/navigation";
 import { auth } from "../../auth";
 import { prisma } from "../../lib/prisma";
 
+export type RecommendationInviteActionState = {
+  status: "idle" | "error";
+  message: string | null;
+};
+
 function parseRequiredString(value: FormDataEntryValue | null, fieldName: string) {
   if (typeof value !== "string" || value.trim().length === 0) {
     throw new Error(`${fieldName} is required.`);
@@ -93,35 +98,49 @@ async function sendRecommendationInviteEmail(input: { to: string; applicantName:
   }
 }
 
-export async function generateTltRecommendationLinks(formData: FormData) {
-  const clubId = await getDirectorClubId();
-  const tltApplicationId = parseRequiredString(formData.get("tltApplicationId"), "TLT application");
-  const shouldEmail = formData.get("sendEmails") === "on";
+function isRedirectError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "digest" in error &&
+    typeof (error as { digest?: unknown }).digest === "string" &&
+    (error as { digest: string }).digest.startsWith("NEXT_REDIRECT")
+  );
+}
 
-  const emailEntries = formData
-    .getAll("recommenderEmails")
-    .filter((entry): entry is string => typeof entry === "string")
-    .map((entry) => entry.trim().toLowerCase())
-    .filter((entry) => entry.length > 0);
+export async function generateTltRecommendationLinks(
+  _prevState: RecommendationInviteActionState,
+  formData: FormData,
+): Promise<RecommendationInviteActionState> {
+  try {
+    const clubId = await getDirectorClubId();
+    const tltApplicationId = parseRequiredString(formData.get("tltApplicationId"), "TLT application");
+    const shouldEmail = formData.get("sendEmails") === "on";
 
-  if (emailEntries.length !== 3) {
-    throw new Error("Exactly 3 recommendation email addresses are required.");
-  }
+    const emailEntries = formData
+      .getAll("recommenderEmails")
+      .filter((entry): entry is string => typeof entry === "string")
+      .map((entry) => entry.trim().toLowerCase())
+      .filter((entry) => entry.length > 0);
 
-  const uniqueEmails = new Set(emailEntries);
-  if (uniqueEmails.size !== emailEntries.length) {
-    throw new Error("Recommendation email addresses must be unique.");
-  }
+    if (emailEntries.length !== 3) {
+      throw new Error("Exactly 3 recommendation email addresses are required.");
+    }
 
-  if (!emailEntries.every(isValidEmailAddress)) {
-    throw new Error("Each recommendation email must be a valid email address.");
-  }
+    const uniqueEmails = new Set(emailEntries);
+    if (uniqueEmails.size !== emailEntries.length) {
+      throw new Error("Recommendation email addresses must be unique.");
+    }
 
-  if (shouldEmail && (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL)) {
-    redirect(`/director/tlt/${tltApplicationId}/recommendations?error=email_not_configured`);
-  }
+    if (!emailEntries.every(isValidEmailAddress)) {
+      throw new Error("Each recommendation email must be a valid email address.");
+    }
 
-  const application = await prisma.tltApplication.findFirst({
+    if (shouldEmail && (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL)) {
+      redirect(`/director/tlt/${tltApplicationId}/recommendations?error=email_not_configured`);
+    }
+
+    const application = await prisma.tltApplication.findFirst({
     where: {
       id: tltApplicationId,
       clubId,
@@ -136,11 +155,11 @@ export async function generateTltRecommendationLinks(formData: FormData) {
     },
   });
 
-  if (!application) {
-    throw new Error("TLT application not found for your club.");
-  }
+    if (!application) {
+      throw new Error("TLT application not found for your club.");
+    }
 
-  const createdRecommendations = await prisma.$transaction(async (tx) => {
+    const createdRecommendations = await prisma.$transaction(async (tx) => {
     await tx.tltRecommendation.deleteMany({
       where: {
         tltApplicationId,
@@ -159,39 +178,49 @@ export async function generateTltRecommendationLinks(formData: FormData) {
     );
 
     return Promise.all(recommendationCreates);
-  });
+    });
 
-  if (shouldEmail) {
-    const applicantName = `${application.rosterMember.firstName} ${application.rosterMember.lastName}`;
-    const baseUrl = getRecommendationInviteBaseUrl();
-    const failedRecipients: string[] = [];
+    if (shouldEmail) {
+      const applicantName = `${application.rosterMember.firstName} ${application.rosterMember.lastName}`;
+      const baseUrl = getRecommendationInviteBaseUrl();
+      const failedRecipients: string[] = [];
 
-    for (const recommendation of createdRecommendations) {
-      const recommendationUrl = `${baseUrl}/recommendation/${recommendation.secureToken}`;
-      try {
-        await sendRecommendationInviteEmail({
-          to: recommendation.recommenderEmail,
-          applicantName,
-          recommendationUrl,
-        });
-      } catch {
-        failedRecipients.push(recommendation.recommenderEmail);
+      for (const recommendation of createdRecommendations) {
+        const recommendationUrl = `${baseUrl}/recommendation/${recommendation.secureToken}`;
+        try {
+          await sendRecommendationInviteEmail({
+            to: recommendation.recommenderEmail,
+            applicantName,
+            recommendationUrl,
+          });
+        } catch {
+          failedRecipients.push(recommendation.recommenderEmail);
+        }
       }
+
+      revalidatePath(`/director/tlt/${tltApplicationId}/recommendations`);
+
+      if (failedRecipients.length > 0) {
+        redirect(
+          `/director/tlt/${tltApplicationId}/recommendations?generated=1&emails=partial&failed=${failedRecipients.length}`,
+        );
+      }
+
+      redirect(`/director/tlt/${tltApplicationId}/recommendations?generated=1&emails=sent`);
     }
 
     revalidatePath(`/director/tlt/${tltApplicationId}/recommendations`);
-
-    if (failedRecipients.length > 0) {
-      redirect(
-        `/director/tlt/${tltApplicationId}/recommendations?generated=1&emails=partial&failed=${failedRecipients.length}`,
-      );
+    redirect(`/director/tlt/${tltApplicationId}/recommendations?generated=1`);
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
     }
 
-    redirect(`/director/tlt/${tltApplicationId}/recommendations?generated=1&emails=sent`);
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Unable to generate recommendation links.",
+    };
   }
-
-  revalidatePath(`/director/tlt/${tltApplicationId}/recommendations`);
-  redirect(`/director/tlt/${tltApplicationId}/recommendations?generated=1`);
 }
 
 export async function submitPublicTltRecommendation(formData: FormData) {
