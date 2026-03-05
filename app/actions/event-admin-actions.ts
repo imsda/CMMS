@@ -286,6 +286,90 @@ function parseDynamicFields(value: FormDataEntryValue | null) {
   return normalized;
 }
 
+function prepareUniqueDynamicFieldKeys(
+  dynamicFields: ReturnType<typeof parseDynamicFields>,
+) {
+  const uniqueKeys = new Set<string>();
+
+  for (const field of dynamicFields) {
+    let candidateKey = field.key;
+    let counter = 2;
+
+    while (uniqueKeys.has(candidateKey)) {
+      candidateKey = `${field.key}_${counter}`;
+      counter += 1;
+    }
+
+    field.key = candidateKey;
+    uniqueKeys.add(candidateKey);
+  }
+}
+
+async function replaceEventDynamicFields(
+  tx: Prisma.TransactionClient,
+  eventId: string,
+  dynamicFields: ReturnType<typeof parseDynamicFields>,
+) {
+  await tx.eventFormField.deleteMany({
+    where: {
+      eventId,
+    },
+  });
+
+  if (dynamicFields.length === 0) {
+    return;
+  }
+
+  const idMap = new Map<string, string>();
+
+  for (const field of dynamicFields.filter((entry) => entry.parentFieldId === null)) {
+    const created = await tx.eventFormField.create({
+      data: {
+        eventId,
+        key: field.key,
+        label: field.label,
+        description: field.description,
+        type: field.type,
+        options: field.options,
+        isRequired: field.isRequired,
+        sortOrder: field.sortOrder,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    idMap.set(field.id, created.id);
+  }
+
+  for (const field of dynamicFields.filter((entry) => entry.parentFieldId !== null)) {
+    const mappedParentId = idMap.get(field.parentFieldId as string);
+
+    if (!mappedParentId) {
+      throw new Error(`Could not resolve parent for field: ${field.key}`);
+    }
+
+    const created = await tx.eventFormField.create({
+      data: {
+        eventId,
+        parentFieldId: mappedParentId,
+        key: field.key,
+        label: field.label,
+        description: field.description,
+        type: field.type,
+        options: field.options,
+        isRequired: field.isRequired,
+        sortOrder: field.sortOrder,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    idMap.set(field.id, created.id);
+  }
+}
+
 async function buildUniqueSlug(name: string) {
   const base = slugifyName(name);
 
@@ -353,93 +437,32 @@ export async function createEventWithDynamicFields(
     const locationAddress = optionalTrimmedString(formData.get("locationAddress"));
     const dynamicFields = parseDynamicFields(formData.get("dynamicFieldsJson"));
 
-    const uniqueKeys = new Set<string>();
-    for (const field of dynamicFields) {
-      let candidateKey = field.key;
-      let counter = 2;
-
-      while (uniqueKeys.has(candidateKey)) {
-        candidateKey = `${field.key}_${counter}`;
-        counter += 1;
-      }
-
-      field.key = candidateKey;
-      uniqueKeys.add(candidateKey);
-    }
+    prepareUniqueDynamicFieldKeys(dynamicFields);
 
     const slug = await buildUniqueSlug(name);
 
     await prisma.$transaction(async (tx) => {
-    const event = await tx.event.create({
-      data: {
-        name,
-        slug,
-        startsAt,
-        endsAt,
-        registrationOpensAt,
-        registrationClosesAt,
-        basePrice,
-        lateFeePrice,
-        lateFeeStartsAt,
-        locationName,
-        locationAddress,
-        createdByUserId,
-      },
-      select: {
-        id: true,
-      },
-    });
+      const event = await tx.event.create({
+        data: {
+          name,
+          slug,
+          startsAt,
+          endsAt,
+          registrationOpensAt,
+          registrationClosesAt,
+          basePrice,
+          lateFeePrice,
+          lateFeeStartsAt,
+          locationName,
+          locationAddress,
+          createdByUserId,
+        },
+        select: {
+          id: true,
+        },
+      });
 
-    if (dynamicFields.length > 0) {
-      const idMap = new Map<string, string>();
-
-      for (const field of dynamicFields.filter((entry) => entry.parentFieldId === null)) {
-        const created = await tx.eventFormField.create({
-          data: {
-            eventId: event.id,
-            key: field.key,
-            label: field.label,
-            description: field.description,
-            type: field.type,
-            options: field.options,
-            isRequired: field.isRequired,
-            sortOrder: field.sortOrder,
-          },
-          select: {
-            id: true,
-          },
-        });
-
-        idMap.set(field.id, created.id);
-      }
-
-      for (const field of dynamicFields.filter((entry) => entry.parentFieldId !== null)) {
-        const mappedParentId = idMap.get(field.parentFieldId as string);
-
-        if (!mappedParentId) {
-          throw new Error(`Could not resolve parent for field: ${field.key}`);
-        }
-
-        const created = await tx.eventFormField.create({
-          data: {
-            eventId: event.id,
-            parentFieldId: mappedParentId,
-            key: field.key,
-            label: field.label,
-            description: field.description,
-            type: field.type,
-            options: field.options,
-            isRequired: field.isRequired,
-            sortOrder: field.sortOrder,
-          },
-          select: {
-            id: true,
-          },
-        });
-
-        idMap.set(field.id, created.id);
-      }
-    }
+      await replaceEventDynamicFields(tx, event.id, dynamicFields);
     });
 
     revalidatePath("/admin/events/new");
@@ -528,6 +551,64 @@ export async function updateEventCoreDetails(
     return {
       status: "error",
       message: error instanceof Error ? error.message : "Unable to update event.",
+    };
+  }
+}
+
+export async function updateEventDynamicFields(
+  _prevState: UpdateEventActionState,
+  formData: FormData,
+): Promise<UpdateEventActionState> {
+  try {
+    await requireSuperAdminUserId();
+
+    const eventId = requireTrimmedString(formData.get("eventId"), "Event");
+    const dynamicFields = parseDynamicFields(formData.get("dynamicFieldsJson"));
+    prepareUniqueDynamicFieldKeys(dynamicFields);
+
+    const existingEvent = await prisma.event.findUnique({
+      where: {
+        id: eventId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!existingEvent) {
+      throw new Error("Event not found.");
+    }
+
+    const responseCount = await prisma.eventFormResponse.count({
+      where: {
+        field: {
+          eventId,
+        },
+      },
+    });
+
+    if (responseCount > 0) {
+      throw new Error(
+        "Dynamic questions cannot be edited after clubs have submitted responses for this event.",
+      );
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await replaceEventDynamicFields(tx, eventId, dynamicFields);
+    });
+
+    revalidatePath(`/admin/events/${eventId}`);
+    revalidatePath(`/admin/events/${eventId}/edit`);
+    revalidatePath("/director/events");
+
+    return {
+      status: "success",
+      message: "Dynamic registration questions updated.",
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Unable to update dynamic questions.",
     };
   }
 }

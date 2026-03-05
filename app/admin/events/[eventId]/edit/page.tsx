@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { prisma } from "../../../../../lib/prisma";
+import { type DynamicFieldDraft } from "../../new/_components/dynamic-form-builder";
+import { EventDynamicFieldsEditor } from "./_components/event-dynamic-fields-editor";
 import { EventEditForm } from "./_components/event-edit-form";
 
 type EditEventPageProps = {
@@ -12,6 +14,14 @@ type EditEventPageProps = {
 
 function toDatetimeLocalValue(date: Date) {
   return date.toISOString().slice(0, 16);
+}
+
+function parseDraftOptions(input: unknown) {
+  if (!Array.isArray(input)) {
+    return [];
+  }
+
+  return input.filter((option): option is string => typeof option === "string");
 }
 
 export default async function EditEventPage({ params }: EditEventPageProps) {
@@ -34,12 +44,47 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
       lateFeeStartsAt: true,
       locationName: true,
       locationAddress: true,
+      dynamicFields: {
+        select: {
+          id: true,
+          parentFieldId: true,
+          key: true,
+          label: true,
+          description: true,
+          type: true,
+          isRequired: true,
+          options: true,
+          sortOrder: true,
+        },
+        orderBy: {
+          sortOrder: "asc",
+        },
+      },
     },
   });
 
   if (!event) {
     notFound();
   }
+
+  const initialDynamicFields: DynamicFieldDraft[] = event.dynamicFields.map((field) => ({
+    id: field.id,
+    parentFieldId: field.parentFieldId,
+    key: field.key,
+    label: field.label,
+    description: field.description ?? "",
+    type: field.type,
+    isRequired: field.isRequired,
+    options: parseDraftOptions(field.options),
+  }));
+
+  const hasResponses = await prisma.eventFormResponse.count({
+    where: {
+      field: {
+        eventId: event.id,
+      },
+    },
+  });
 
   return (
     <section className="space-y-6">
@@ -80,6 +125,12 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
           locationName: event.locationName ?? "",
           locationAddress: event.locationAddress ?? "",
         }}
+      />
+
+      <EventDynamicFieldsEditor
+        eventId={event.id}
+        initialFields={initialDynamicFields}
+        hasResponses={hasResponses > 0}
       />
     </section>
   );
