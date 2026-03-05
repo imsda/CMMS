@@ -580,6 +580,32 @@ export async function updateEventClassOfferingAction(formData: FormData) {
   const capacity = parseOptionalNonNegativeInt(formData.get("capacity"), "Capacity");
 
   try {
+    const offering = await prisma.eventClassOffering.findUnique({
+      where: {
+        id: offeringId,
+      },
+      select: {
+        id: true,
+        _count: {
+          select: {
+            enrollments: true,
+          },
+        },
+      },
+    });
+
+    if (!offering) {
+      redirectEventClassOfferingAction(eventId, "error", "Class offering not found.");
+    }
+
+    if (typeof capacity === "number" && capacity < offering._count.enrollments) {
+      redirectEventClassOfferingAction(
+        eventId,
+        "error",
+        `Capacity cannot be lower than current enrollment (${offering._count.enrollments}).`,
+      );
+    }
+
     await prisma.eventClassOffering.update({
       where: {
         id: offeringId,
