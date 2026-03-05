@@ -261,7 +261,7 @@ export default async function AdminEventClassesPage({
                         <input
                           name="capacity"
                           type="number"
-                          min={0}
+                          min={offering._count.enrollments}
                           step={1}
                           defaultValue={offering.capacity ?? ""}
                           placeholder="Open"
@@ -273,6 +273,9 @@ export default async function AdminEventClassesPage({
                         >
                           Save
                         </button>
+                        <span className="text-[11px] text-slate-500">
+                          Min {offering._count.enrollments}
+                        </span>
                       </form>
                     </td>
                     <td className="px-4 py-3 text-slate-700">{offering._count.enrollments}</td>
