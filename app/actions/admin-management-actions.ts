@@ -2,6 +2,7 @@
 
 import { ClubType, UserRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { revalidatePath } from "next/cache";
 
 import { auth } from "../../auth";
 import { prisma } from "../../lib/prisma";
@@ -85,6 +86,8 @@ export async function createClubAction(
       },
     });
 
+    revalidatePath("/admin/clubs");
+
     return {
       status: "success",
       message: `Club "${name}" created.`,
@@ -147,6 +150,8 @@ export async function createUserAction(
       }
     });
 
+    revalidatePath("/admin/users");
+
     return {
       status: "success",
       message: `User "${name}" created.`,
@@ -155,6 +160,123 @@ export async function createUserAction(
     return {
       status: "error",
       message: error instanceof Error ? error.message : "Unable to create user.",
+    };
+  }
+}
+
+export async function assignUserMembershipAction(
+  _prevState: AdminCreateFormState,
+  formData: FormData,
+): Promise<AdminCreateFormState> {
+  try {
+    const session = await auth();
+    ensureSuperAdmin(session?.user?.role);
+
+    const userId = parseRequiredString(formData.get("userId"), "User");
+    const clubId = parseRequiredString(formData.get("clubId"), "Club");
+    const title = parseOptionalString(formData.get("membershipTitle"));
+    const isPrimary = formData.get("isPrimary") === "on";
+
+    await prisma.$transaction(async (tx) => {
+      const existing = await tx.clubMembership.findUnique({
+        where: {
+          clubId_userId: {
+            clubId,
+            userId,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!existing) {
+        await tx.clubMembership.create({
+          data: {
+            userId,
+            clubId,
+            title,
+            isPrimary,
+          },
+        });
+      } else {
+        await tx.clubMembership.update({
+          where: {
+            id: existing.id,
+          },
+          data: {
+            title,
+            isPrimary,
+          },
+        });
+      }
+
+      if (isPrimary) {
+        await tx.clubMembership.updateMany({
+          where: {
+            userId,
+            clubId: {
+              not: clubId,
+            },
+            isPrimary: true,
+          },
+          data: {
+            isPrimary: false,
+          },
+        });
+      }
+    });
+
+    revalidatePath("/admin/users");
+
+    return {
+      status: "success",
+      message: "Membership saved.",
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Unable to save membership.",
+    };
+  }
+}
+
+export async function resetUserPasswordAction(
+  _prevState: AdminCreateFormState,
+  formData: FormData,
+): Promise<AdminCreateFormState> {
+  try {
+    const session = await auth();
+    ensureSuperAdmin(session?.user?.role);
+
+    const userId = parseRequiredString(formData.get("userId"), "User");
+    const newPassword = parseRequiredString(formData.get("newPassword"), "New password");
+
+    if (newPassword.length < 8) {
+      throw new Error("New password must be at least 8 characters.");
+    }
+
+    const passwordHash = await bcrypt.hash(newPassword, 12);
+
+    await prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        passwordHash,
+      },
+    });
+
+    revalidatePath("/admin/users");
+
+    return {
+      status: "success",
+      message: "Password updated.",
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Unable to reset password.",
     };
   }
 }

@@ -1,4 +1,6 @@
 import { prisma } from "../../../lib/prisma";
+import { ResetPasswordForm } from "./_components/reset-password-form";
+import { UserMembershipForm } from "./_components/user-membership-form";
 import { UserCreateForm } from "./_components/user-create-form";
 
 export const dynamic = "force-dynamic";
@@ -11,10 +13,9 @@ export default async function AdminUsersPage() {
       email: true,
       role: true,
       memberships: {
-        where: {
-          isPrimary: true,
-        },
         select: {
+          title: true,
+          isPrimary: true,
           club: {
             select: {
               name: true,
@@ -22,7 +23,6 @@ export default async function AdminUsersPage() {
             },
           },
         },
-        take: 1,
       },
     },
     orderBy: {
@@ -52,6 +52,11 @@ export default async function AdminUsersPage() {
       </header>
 
       <UserCreateForm clubs={clubs} />
+      <UserMembershipForm
+        users={users.map((user) => ({ id: user.id, name: user.name, email: user.email }))}
+        clubs={clubs}
+      />
+      <ResetPasswordForm users={users.map((user) => ({ id: user.id, name: user.name, email: user.email }))} />
 
       <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {users.length === 0 ? (
@@ -69,7 +74,8 @@ export default async function AdminUsersPage() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {users.map((user) => {
-                  const primaryClub = user.memberships[0]?.club;
+                  const primaryClub = user.memberships.find((membership) => membership.isPrimary)?.club;
+                  const membershipCount = user.memberships.length;
 
                   return (
                     <tr key={user.id}>
@@ -78,6 +84,7 @@ export default async function AdminUsersPage() {
                       <td className="px-4 py-3 text-slate-700">{user.role}</td>
                       <td className="px-4 py-3 text-slate-700">
                         {primaryClub ? `${primaryClub.name} (${primaryClub.code})` : "—"}
+                        <span className="ml-2 text-xs text-slate-500">({membershipCount} memberships)</span>
                       </td>
                     </tr>
                   );
