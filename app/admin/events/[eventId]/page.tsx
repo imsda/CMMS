@@ -54,6 +54,12 @@ export default async function EventOverseerPage({ params }: EventOverseerPagePro
         </dl>
 
         <div className="mt-5 flex flex-wrap gap-3">
+          <Link
+            href={`/admin/events/${eventId}/edit`}
+            className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
+          >
+            Edit Event Details
+          </Link>
           <a
             href={csvHref}
             download={csvData.fileName}

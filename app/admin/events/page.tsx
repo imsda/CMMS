@@ -81,12 +81,20 @@ export default async function AdminEventsPage() {
                     <td className="px-4 py-3 text-slate-700">{event.locationName ?? "TBD"}</td>
                     <td className="px-4 py-3 text-slate-700">{event._count.registrations}</td>
                     <td className="px-4 py-3">
-                      <Link
-                        href={`/admin/events/${event.id}`}
-                        className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
-                      >
-                        Open Overseer
-                      </Link>
+                      <div className="flex gap-2">
+                        <Link
+                          href={`/admin/events/${event.id}`}
+                          className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
+                        >
+                          Open Overseer
+                        </Link>
+                        <Link
+                          href={`/admin/events/${event.id}/edit`}
+                          className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
+                        >
+                          Edit
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}

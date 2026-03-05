@@ -24,6 +24,11 @@ export type CreateEventActionState = {
   message: string | null;
 };
 
+export type UpdateEventActionState = {
+  status: "idle" | "success" | "error";
+  message: string | null;
+};
+
 function requireTrimmedString(value: FormDataEntryValue | null, fieldLabel: string) {
   if (typeof value !== "string") {
     throw new Error(`${fieldLabel} is required.`);
@@ -158,6 +163,26 @@ async function requireSuperAdminUserId() {
   }
 
   return session.user.id;
+}
+
+function validateEventTimeline(input: {
+  startsAt: Date;
+  endsAt: Date;
+  registrationOpensAt: Date;
+  registrationClosesAt: Date;
+  lateFeeStartsAt: Date;
+}) {
+  if (input.endsAt <= input.startsAt) {
+    throw new Error("Event end date must be after start date.");
+  }
+
+  if (input.registrationClosesAt <= input.registrationOpensAt) {
+    throw new Error("Registration close date must be after registration open date.");
+  }
+
+  if (input.lateFeeStartsAt < input.registrationOpensAt) {
+    throw new Error("Late fee start date cannot be before registration opens.");
+  }
 }
 
 function parseDynamicFields(value: FormDataEntryValue | null) {
@@ -316,17 +341,13 @@ export async function createEventWithDynamicFields(
     const lateFeePrice = parseRequiredFloat(formData.get("lateFeePrice"), "Late fee price");
     const lateFeeStartsAt = parseRequiredDate(formData.get("lateFeeStartsAt"), "Late fee start date");
 
-    if (endsAt <= startsAt) {
-      throw new Error("Event end date must be after start date.");
-    }
-
-    if (registrationClosesAt <= registrationOpensAt) {
-      throw new Error("Registration close date must be after registration open date.");
-    }
-
-    if (lateFeeStartsAt < registrationOpensAt) {
-      throw new Error("Late fee start date cannot be before registration opens.");
-    }
+    validateEventTimeline({
+      startsAt,
+      endsAt,
+      registrationOpensAt,
+      registrationClosesAt,
+      lateFeeStartsAt,
+    });
 
     const locationName = optionalTrimmedString(formData.get("locationName"));
     const locationAddress = optionalTrimmedString(formData.get("locationAddress"));
@@ -431,6 +452,82 @@ export async function createEventWithDynamicFields(
     return {
       status: "error",
       message: error instanceof Error ? error.message : "Unable to create event.",
+    };
+  }
+}
+
+const UPDATE_EVENT_INITIAL_STATE: UpdateEventActionState = {
+  status: "idle",
+  message: null,
+};
+
+export const updateEventInitialState = UPDATE_EVENT_INITIAL_STATE;
+
+export async function updateEventCoreDetails(
+  _prevState: UpdateEventActionState,
+  formData: FormData,
+): Promise<UpdateEventActionState> {
+  try {
+    await requireSuperAdminUserId();
+
+    const eventId = requireTrimmedString(formData.get("eventId"), "Event");
+    const name = requireTrimmedString(formData.get("name"), "Event name");
+    const startsAt = parseRequiredDate(formData.get("startsAt"), "Event start date");
+    const endsAt = parseRequiredDate(formData.get("endsAt"), "Event end date");
+    const registrationOpensAt = parseRequiredDate(
+      formData.get("registrationOpensAt"),
+      "Registration open date",
+    );
+    const registrationClosesAt = parseRequiredDate(
+      formData.get("registrationClosesAt"),
+      "Registration close date",
+    );
+    const basePrice = parseRequiredFloat(formData.get("basePrice"), "Base price");
+    const lateFeePrice = parseRequiredFloat(formData.get("lateFeePrice"), "Late fee price");
+    const lateFeeStartsAt = parseRequiredDate(formData.get("lateFeeStartsAt"), "Late fee start date");
+    const locationName = optionalTrimmedString(formData.get("locationName"));
+    const locationAddress = optionalTrimmedString(formData.get("locationAddress"));
+    const description = optionalTrimmedString(formData.get("description"));
+
+    validateEventTimeline({
+      startsAt,
+      endsAt,
+      registrationOpensAt,
+      registrationClosesAt,
+      lateFeeStartsAt,
+    });
+
+    await prisma.event.update({
+      where: {
+        id: eventId,
+      },
+      data: {
+        name,
+        startsAt,
+        endsAt,
+        registrationOpensAt,
+        registrationClosesAt,
+        basePrice,
+        lateFeePrice,
+        lateFeeStartsAt,
+        locationName,
+        locationAddress,
+        description,
+      },
+    });
+
+    revalidatePath("/admin/events");
+    revalidatePath(`/admin/events/${eventId}`);
+    revalidatePath(`/admin/events/${eventId}/edit`);
+
+    return {
+      status: "success",
+      message: "Event details updated.",
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Unable to update event.",
     };
   }
 }
