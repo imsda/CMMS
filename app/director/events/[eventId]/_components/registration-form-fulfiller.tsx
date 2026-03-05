@@ -56,6 +56,14 @@ function parseStringOptions(options: unknown) {
   return options.filter((option): option is string => typeof option === "string");
 }
 
+function parseDateInputValue(value: unknown) {
+  if (typeof value !== "string") {
+    return "";
+  }
+
+  return value;
+}
+
 function bootstrapResponses(existingResponses: ExistingResponse[]): GlobalResponseMap {
   return existingResponses.reduce((accumulator, response) => {
     accumulator[response.fieldId] = response.value;
@@ -266,6 +274,31 @@ export function RegistrationFormFulfiller({
       );
     }
 
+    if (field.type === "SINGLE_SELECT") {
+      const options = parseStringOptions(field.options);
+      const value = typeof globalResponses[field.id] === "string" ? String(globalResponses[field.id]) : "";
+
+      return (
+        <select
+          value={value}
+          onChange={(event) =>
+            setGlobalResponses((current) => ({
+              ...current,
+              [field.id]: event.currentTarget.value,
+            }))
+          }
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+        >
+          <option value="">Select an option</option>
+          {options.map((option) => (
+            <option key={option} value={option}>
+              {option}
+            </option>
+          ))}
+        </select>
+      );
+    }
+
     if (field.type === "ROSTER_SELECT") {
       return renderRosterSelect(field, false);
     }
@@ -285,6 +318,38 @@ export function RegistrationFormFulfiller({
               [field.id]: event.currentTarget.value === "" ? "" : Number(event.currentTarget.value),
             }))
           }
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+        />
+      );
+    }
+
+    if (field.type === "DATE") {
+      return (
+        <input
+          type="date"
+          value={parseDateInputValue(globalResponses[field.id])}
+          onChange={(event) =>
+            setGlobalResponses((current) => ({
+              ...current,
+              [field.id]: event.currentTarget.value,
+            }))
+          }
+          className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
+        />
+      );
+    }
+
+    if (field.type === "LONG_TEXT") {
+      return (
+        <textarea
+          value={typeof globalResponses[field.id] === "string" ? String(globalResponses[field.id]) : ""}
+          onChange={(event) =>
+            setGlobalResponses((current) => ({
+              ...current,
+              [field.id]: event.currentTarget.value,
+            }))
+          }
+          rows={4}
           className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm"
         />
       );

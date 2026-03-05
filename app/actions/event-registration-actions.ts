@@ -21,6 +21,15 @@ type RegistrationPayload = {
   }>;
 };
 
+type DynamicFieldRule = {
+  id: string;
+  key: string;
+  label: string;
+  type: string;
+  isRequired: boolean;
+  options: unknown;
+};
+
 function generateRegistrationCode() {
   return `REG-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
 }
@@ -60,6 +69,102 @@ function parsePayload(rawPayload: FormDataEntryValue | null): RegistrationPayloa
     attendeeIds: [...new Set(attendeeIds)],
     responses,
   };
+}
+
+function parseStringOptions(options: unknown) {
+  if (!Array.isArray(options)) {
+    return [];
+  }
+
+  return options.filter((option): option is string => typeof option === "string");
+}
+
+function hasResponseValue(value: unknown) {
+  if (value === null || typeof value === "undefined") {
+    return false;
+  }
+
+  if (typeof value === "string") {
+    return value.trim().length > 0;
+  }
+
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+
+  return true;
+}
+
+function validateResponseValue(
+  field: DynamicFieldRule,
+  value: unknown,
+  validAttendeeIds: Set<string>,
+) {
+  if (!hasResponseValue(value)) {
+    return;
+  }
+
+  if (field.type === "BOOLEAN" && typeof value !== "boolean") {
+    throw new Error(`"${field.label}" must be true or false.`);
+  }
+
+  if (field.type === "NUMBER" && (typeof value !== "number" || Number.isNaN(value))) {
+    throw new Error(`"${field.label}" must be a valid number.`);
+  }
+
+  if (field.type === "DATE") {
+    if (typeof value !== "string") {
+      throw new Error(`"${field.label}" must be a valid date.`);
+    }
+
+    const parsedDate = new Date(value);
+    if (Number.isNaN(parsedDate.getTime())) {
+      throw new Error(`"${field.label}" must be a valid date.`);
+    }
+  }
+
+  if (
+    field.type === "SHORT_TEXT" ||
+    field.type === "LONG_TEXT" ||
+    field.type === "SINGLE_SELECT" ||
+    field.type === "ROSTER_SELECT"
+  ) {
+    if (typeof value !== "string" || value.trim().length === 0) {
+      throw new Error(`"${field.label}" must be a non-empty value.`);
+    }
+  }
+
+  if (field.type === "MULTI_SELECT" || field.type === "ROSTER_MULTI_SELECT") {
+    if (!Array.isArray(value) || value.length === 0 || !value.every((entry) => typeof entry === "string")) {
+      throw new Error(`"${field.label}" must include at least one selection.`);
+    }
+  }
+
+  if (field.type === "SINGLE_SELECT") {
+    const options = new Set(parseStringOptions(field.options));
+    if (options.size > 0 && typeof value === "string" && !options.has(value)) {
+      throw new Error(`"${field.label}" has an invalid selection.`);
+    }
+  }
+
+  if (field.type === "MULTI_SELECT") {
+    const options = new Set(parseStringOptions(field.options));
+    if (options.size > 0 && Array.isArray(value) && value.some((entry) => !options.has(entry as string))) {
+      throw new Error(`"${field.label}" has one or more invalid selections.`);
+    }
+  }
+
+  if (field.type === "ROSTER_SELECT") {
+    if (typeof value === "string" && !validAttendeeIds.has(value)) {
+      throw new Error(`"${field.label}" must reference a valid roster member.`);
+    }
+  }
+
+  if (field.type === "ROSTER_MULTI_SELECT") {
+    if (Array.isArray(value) && value.some((entry) => typeof entry !== "string" || !validAttendeeIds.has(entry))) {
+      throw new Error(`"${field.label}" contains an invalid roster member.`);
+    }
+  }
 }
 
 async function requireDirectorClubForEvent(eventId: string) {
@@ -131,6 +236,11 @@ async function requireDirectorClubForEvent(eventId: string) {
       dynamicFields: {
         select: {
           id: true,
+          key: true,
+          label: true,
+          type: true,
+          isRequired: true,
+          options: true,
         },
       },
     },
@@ -144,6 +254,7 @@ async function requireDirectorClubForEvent(eventId: string) {
   const rosterMembers = activeRoster?.members ?? [];
   const validAttendeeIds = new Set(rosterMembers.map((member) => member.id));
   const validFieldIds = new Set(event.dynamicFields.map((field) => field.id));
+  const dynamicFieldRules = event.dynamicFields.filter((field) => field.type !== "FIELD_GROUP");
 
   return {
     event,
@@ -153,6 +264,7 @@ async function requireDirectorClubForEvent(eventId: string) {
     rosterMembers,
     validAttendeeIds,
     validFieldIds,
+    dynamicFieldRules,
   };
 }
 
@@ -173,6 +285,7 @@ async function persistRegistration(formData: FormData, nextStatus: RegistrationS
     rosterMembers,
     validAttendeeIds,
     validFieldIds,
+    dynamicFieldRules,
   } = await requireDirectorClubForEvent(eventId);
 
   const attendeeIds = payload.attendeeIds.filter((attendeeId) => validAttendeeIds.has(attendeeId));
@@ -195,6 +308,25 @@ async function persistRegistration(formData: FormData, nextStatus: RegistrationS
       attendeeId: response.attendeeId,
       value: response.value,
     }));
+
+  const responseByFieldId = new Map<string, unknown>();
+  for (const response of responses) {
+    if (!responseByFieldId.has(response.eventFormFieldId)) {
+      responseByFieldId.set(response.eventFormFieldId, response.value);
+    }
+  }
+
+  if (nextStatus === RegistrationStatus.SUBMITTED) {
+    for (const field of dynamicFieldRules) {
+      const responseValue = responseByFieldId.get(field.id);
+
+      if (field.isRequired && !hasResponseValue(responseValue)) {
+        throw new Error(`Required question is missing: "${field.label}".`);
+      }
+
+      validateResponseValue(field, responseValue, validAttendeeIds);
+    }
+  }
 
 
   if (nextStatus === RegistrationStatus.SUBMITTED) {

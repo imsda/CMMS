@@ -4,6 +4,9 @@ import { useMemo, useState } from "react";
 
 export type SupportedFormFieldType =
   | "SHORT_TEXT"
+  | "LONG_TEXT"
+  | "DATE"
+  | "SINGLE_SELECT"
   | "MULTI_SELECT"
   | "BOOLEAN"
   | "NUMBER"
@@ -46,7 +49,7 @@ function createEmptyField(
 }
 
 function typeAllowsOptions(type: SupportedFormFieldType) {
-  return type === "MULTI_SELECT";
+  return type === "SINGLE_SELECT" || type === "MULTI_SELECT";
 }
 
 function toSuggestedKey(label: string) {
@@ -254,6 +257,9 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
               disabled={field.parentFieldId !== null}
             >
               <option value="SHORT_TEXT">SHORT_TEXT</option>
+              <option value="LONG_TEXT">LONG_TEXT</option>
+              <option value="DATE">DATE</option>
+              <option value="SINGLE_SELECT">SINGLE_SELECT</option>
               <option value="NUMBER">NUMBER</option>
               <option value="MULTI_SELECT">MULTI_SELECT</option>
               <option value="BOOLEAN">BOOLEAN</option>

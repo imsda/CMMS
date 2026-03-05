@@ -49,7 +49,7 @@ export default function AdminCreateEventPage() {
         return `Dynamic field ${index + 1} is missing a label.`;
       }
 
-      if (field.type === "MULTI_SELECT" && field.options.length === 0) {
+      if ((field.type === "MULTI_SELECT" || field.type === "SINGLE_SELECT") && field.options.length === 0) {
         return `Dynamic field "${field.label || `#${index + 1}`}" must include at least one option.`;
       }
     }
