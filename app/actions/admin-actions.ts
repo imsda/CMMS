@@ -236,6 +236,45 @@ export async function getAdminDashboardOverview() {
   };
 }
 
+export async function getAdminEventsIndexData() {
+  const session = await auth();
+  ensureSuperAdmin(session);
+
+  const now = new Date();
+
+  return prisma.event.findMany({
+    orderBy: {
+      startsAt: "desc",
+    },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      startsAt: true,
+      endsAt: true,
+      registrationOpensAt: true,
+      registrationClosesAt: true,
+      locationName: true,
+      _count: {
+        select: {
+          registrations: true,
+        },
+      },
+    },
+  }).then((events) =>
+    events.map((event) => ({
+      ...event,
+      registrationWindowStatus:
+        now < event.registrationOpensAt
+          ? "UPCOMING"
+          : now > event.registrationClosesAt
+            ? "CLOSED"
+            : "OPEN",
+      eventStatus: now > event.endsAt ? "PAST" : "ACTIVE",
+    })),
+  );
+}
+
 export async function getMasterCatalogData() {
   const session = await auth();
   ensureSuperAdmin(session);

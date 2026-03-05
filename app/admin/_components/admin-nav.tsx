@@ -12,7 +12,7 @@ const navItems: AdminNavItem[] = [
   { href: "/admin/dashboard", label: "Dashboard" },
   { href: "/admin/clubs", label: "Clubs" },
   { href: "/admin/users", label: "Users" },
-  { href: "/admin/events/new", label: "Create Event" },
+  { href: "/admin/events", label: "Events" },
   { href: "/admin/catalog", label: "Class Catalog" },
   { href: "/admin/compliance", label: "Compliance" },
   { href: "/admin/nominations", label: "Nominations" },
