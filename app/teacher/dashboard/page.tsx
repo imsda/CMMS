@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { auth } from "../../../auth";
 import { prisma } from "../../../lib/prisma";
@@ -21,7 +22,7 @@ export default async function TeacherDashboardPage() {
   const session = await auth();
 
   if (!session?.user || session.user.role !== "STAFF_TEACHER") {
-    throw new Error("Only teachers can access this dashboard.");
+    redirect("/login");
   }
 
   const offerings = await prisma.eventClassOffering.findMany({

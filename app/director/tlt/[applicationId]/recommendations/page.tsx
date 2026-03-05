@@ -8,6 +8,12 @@ type RecommendationManagerPageProps = {
   params: {
     applicationId: string;
   };
+  searchParams?: {
+    generated?: string;
+    emails?: string;
+    failed?: string;
+    error?: string;
+  };
 };
 
 function getBaseUrl() {
@@ -15,8 +21,16 @@ function getBaseUrl() {
   return appUrl.replace(/\/$/, "");
 }
 
-export default async function RecommendationManagerPage({ params }: RecommendationManagerPageProps) {
+export default async function RecommendationManagerPage({
+  params,
+  searchParams,
+}: RecommendationManagerPageProps) {
   const { applicationId } = params;
+  const generated = searchParams?.generated === "1";
+  const emailStatus = searchParams?.emails;
+  const failedCount = Number(searchParams?.failed ?? "0");
+  const error = searchParams?.error;
+  const emailConfigured = Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
 
   const session = await auth();
 
@@ -93,6 +107,22 @@ export default async function RecommendationManagerPage({ params }: Recommendati
           Enter 3 recommender email addresses. Existing pending links will be replaced with newly generated one-time links.
         </p>
 
+        {generated ? (
+          <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+            {emailStatus === "sent"
+              ? "Recommendation links generated and invitation emails sent."
+              : emailStatus === "partial"
+                ? `Recommendation links generated. ${failedCount} email(s) failed to send.`
+                : "Recommendation links generated."}
+          </p>
+        ) : null}
+
+        {error === "email_not_configured" ? (
+          <p className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            Email delivery is not configured. Set RESEND_API_KEY and RESEND_FROM_EMAIL, then try again.
+          </p>
+        ) : null}
+
         <form action={generateTltRecommendationLinks} className="mt-4 space-y-4">
           <input type="hidden" name="tltApplicationId" value={application.id} />
 
@@ -113,7 +143,12 @@ export default async function RecommendationManagerPage({ params }: Recommendati
           ))}
 
           <label className="flex items-center gap-2 text-sm text-slate-700">
-            <input name="sendEmails" type="checkbox" className="h-4 w-4 rounded border-slate-300 text-indigo-600" />
+            <input
+              name="sendEmails"
+              type="checkbox"
+              disabled={!emailConfigured}
+              className="h-4 w-4 rounded border-slate-300 text-indigo-600 disabled:cursor-not-allowed disabled:opacity-60"
+            />
             Send invitation emails now (requires RESEND configuration)
           </label>
 

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { auth } from "../../auth";
+import { StudentNav } from "./_components/student-nav";
 
 export default async function StudentLayout({
   children,
@@ -13,5 +14,10 @@ export default async function StudentLayout({
     redirect("/login");
   }
 
-  return <>{children}</>;
+  return (
+    <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
+      <StudentNav />
+      <div>{children}</div>
+    </div>
+  );
 }
