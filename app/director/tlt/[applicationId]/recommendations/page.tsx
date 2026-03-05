@@ -2,6 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { auth } from "../../../../../auth";
+import {
+  retryFailedTltRecommendationInviteEmails,
+  retryTltRecommendationInviteEmail,
+} from "../../../../actions/tlt-recommendation-actions";
 import { prisma } from "../../../../../lib/prisma";
 import { RecommendationLinkGenerator } from "./_components/recommendation-link-generator";
 
@@ -14,6 +18,9 @@ type RecommendationManagerPageProps = {
     emails?: string;
     failed?: string;
     error?: string;
+    retry?: string;
+    reason?: string;
+    sent?: string;
   };
 };
 
@@ -47,6 +54,10 @@ export default async function RecommendationManagerPage({
   const emailStatus = searchParams?.emails;
   const failedCount = Number(searchParams?.failed ?? "0");
   const error = searchParams?.error;
+  const retryStatus = searchParams?.retry;
+  const retryReason = searchParams?.reason;
+  const retrySent = Number(searchParams?.sent ?? "0");
+  const retryFailed = Number(searchParams?.failed ?? "0");
   const emailConfigured = Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
 
   const session = await auth();
@@ -145,6 +156,30 @@ export default async function RecommendationManagerPage({
           </p>
         ) : null}
 
+        {retryStatus === "success" ? (
+          <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+            Recommendation invitation email resent successfully.
+          </p>
+        ) : null}
+
+        {retryStatus === "batch" ? (
+          <p className="mt-3 rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-800">
+            Retry complete. Sent: {retrySent}. Failed: {retryFailed}.
+          </p>
+        ) : null}
+
+        {retryStatus === "error" ? (
+          <p className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+            {retryReason === "email_not_configured"
+              ? "Email delivery is not configured. Set RESEND_API_KEY and RESEND_FROM_EMAIL."
+              : retryReason === "already_completed"
+                ? "This recommendation is already completed."
+                : retryReason === "nothing_to_retry"
+                  ? "No pending failed invites are available to retry."
+                  : "Unable to resend recommendation invite email."}
+          </p>
+        ) : null}
+
         <RecommendationLinkGenerator
           tltApplicationId={application.id}
           emailConfigured={emailConfigured}
@@ -152,8 +187,26 @@ export default async function RecommendationManagerPage({
       </article>
 
       <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <div className="border-b border-slate-200 px-6 py-4">
+        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
           <h2 className="text-lg font-semibold text-slate-900">Current recommendation requests</h2>
+          <form action={retryFailedTltRecommendationInviteEmails}>
+            <input type="hidden" name="tltApplicationId" value={application.id} />
+            <button
+              type="submit"
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={
+                !emailConfigured ||
+                application.recommendations.every(
+                  (recommendation) =>
+                    recommendation.status !== "PENDING" ||
+                    (recommendation.inviteEmailStatus !== "FAILED" &&
+                      recommendation.inviteEmailStatus !== "PENDING"),
+                )
+              }
+            >
+              Retry Failed Emails
+            </button>
+          </form>
         </div>
 
         {application.recommendations.length === 0 ? (
@@ -167,6 +220,7 @@ export default async function RecommendationManagerPage({
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">Status</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">Email delivery</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">Submitted</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Actions</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">Secure link</th>
                 </tr>
               </thead>
@@ -189,6 +243,23 @@ export default async function RecommendationManagerPage({
                       </td>
                       <td className="px-4 py-3 text-slate-700">
                         {recommendation.submittedAt ? recommendation.submittedAt.toLocaleString() : "—"}
+                      </td>
+                      <td className="px-4 py-3 text-slate-700">
+                        <form action={retryTltRecommendationInviteEmail}>
+                          <input type="hidden" name="tltApplicationId" value={application.id} />
+                          <input type="hidden" name="recommendationId" value={recommendation.id} />
+                          <button
+                            type="submit"
+                            className="rounded-md border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+                            disabled={
+                              !emailConfigured ||
+                              recommendation.status !== "PENDING" ||
+                              recommendation.inviteEmailStatus === "SENT"
+                            }
+                          >
+                            Retry Send
+                          </button>
+                        </form>
                       </td>
                       <td className="px-4 py-3 text-indigo-700">
                         <Link href={recommendationUrl} className="underline underline-offset-2">

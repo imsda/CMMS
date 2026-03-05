@@ -296,3 +296,175 @@ export async function submitPublicTltRecommendation(formData: FormData) {
   revalidatePath(`/recommendation/${secureToken}`);
   redirect(`/recommendation/${secureToken}`);
 }
+
+export async function retryTltRecommendationInviteEmail(formData: FormData) {
+  const clubId = await getDirectorClubId();
+  const tltApplicationId = parseRequiredString(formData.get("tltApplicationId"), "TLT application");
+  const recommendationId = parseRequiredString(formData.get("recommendationId"), "Recommendation");
+
+  if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
+    redirect(`/director/tlt/${tltApplicationId}/recommendations?retry=error&reason=email_not_configured`);
+  }
+
+  const recommendation = await prisma.tltRecommendation.findFirst({
+    where: {
+      id: recommendationId,
+      tltApplicationId,
+      tltApplication: {
+        clubId,
+      },
+    },
+    select: {
+      id: true,
+      recommenderEmail: true,
+      secureToken: true,
+      status: true,
+      tltApplication: {
+        select: {
+          rosterMember: {
+            select: {
+              firstName: true,
+              lastName: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!recommendation) {
+    redirect(`/director/tlt/${tltApplicationId}/recommendations?retry=error&reason=not_found`);
+  }
+
+  if (recommendation.status === "COMPLETED") {
+    redirect(`/director/tlt/${tltApplicationId}/recommendations?retry=error&reason=already_completed`);
+  }
+
+  const recommendationUrl = `${getRecommendationInviteBaseUrl()}/recommendation/${recommendation.secureToken}`;
+  const applicantName = `${recommendation.tltApplication.rosterMember.firstName} ${recommendation.tltApplication.rosterMember.lastName}`;
+
+  try {
+    await sendRecommendationInviteEmail({
+      to: recommendation.recommenderEmail,
+      applicantName,
+      recommendationUrl,
+    });
+
+    await prisma.tltRecommendation.update({
+      where: {
+        id: recommendation.id,
+      },
+      data: {
+        inviteEmailStatus: "SENT",
+        inviteEmailSentAt: new Date(),
+        inviteEmailError: null,
+      },
+    });
+
+    revalidatePath(`/director/tlt/${tltApplicationId}/recommendations`);
+    redirect(`/director/tlt/${tltApplicationId}/recommendations?retry=success`);
+  } catch (error) {
+    await prisma.tltRecommendation.update({
+      where: {
+        id: recommendation.id,
+      },
+      data: {
+        inviteEmailStatus: "FAILED",
+        inviteEmailError: toInviteEmailErrorMessage(error),
+      },
+    });
+
+    revalidatePath(`/director/tlt/${tltApplicationId}/recommendations`);
+    redirect(`/director/tlt/${tltApplicationId}/recommendations?retry=error&reason=send_failed`);
+  }
+}
+
+export async function retryFailedTltRecommendationInviteEmails(formData: FormData) {
+  const clubId = await getDirectorClubId();
+  const tltApplicationId = parseRequiredString(formData.get("tltApplicationId"), "TLT application");
+
+  if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
+    redirect(`/director/tlt/${tltApplicationId}/recommendations?retry=error&reason=email_not_configured`);
+  }
+
+  const application = await prisma.tltApplication.findFirst({
+    where: {
+      id: tltApplicationId,
+      clubId,
+    },
+    select: {
+      id: true,
+      rosterMember: {
+        select: {
+          firstName: true,
+          lastName: true,
+        },
+      },
+      recommendations: {
+        where: {
+          status: "PENDING",
+          inviteEmailStatus: {
+            in: ["FAILED", "PENDING"],
+          },
+        },
+        select: {
+          id: true,
+          recommenderEmail: true,
+          secureToken: true,
+        },
+      },
+    },
+  });
+
+  if (!application) {
+    redirect(`/director/tlt/${tltApplicationId}/recommendations?retry=error&reason=not_found`);
+  }
+
+  if (application.recommendations.length === 0) {
+    redirect(`/director/tlt/${tltApplicationId}/recommendations?retry=error&reason=nothing_to_retry`);
+  }
+
+  const applicantName = `${application.rosterMember.firstName} ${application.rosterMember.lastName}`;
+  const baseUrl = getRecommendationInviteBaseUrl();
+  let successCount = 0;
+  let failedCount = 0;
+
+  for (const recommendation of application.recommendations) {
+    const recommendationUrl = `${baseUrl}/recommendation/${recommendation.secureToken}`;
+    try {
+      await sendRecommendationInviteEmail({
+        to: recommendation.recommenderEmail,
+        applicantName,
+        recommendationUrl,
+      });
+
+      await prisma.tltRecommendation.update({
+        where: {
+          id: recommendation.id,
+        },
+        data: {
+          inviteEmailStatus: "SENT",
+          inviteEmailSentAt: new Date(),
+          inviteEmailError: null,
+        },
+      });
+      successCount += 1;
+    } catch (error) {
+      await prisma.tltRecommendation.update({
+        where: {
+          id: recommendation.id,
+        },
+        data: {
+          inviteEmailStatus: "FAILED",
+          inviteEmailError: toInviteEmailErrorMessage(error),
+        },
+      });
+      failedCount += 1;
+    }
+  }
+
+  revalidatePath(`/director/tlt/${tltApplicationId}/recommendations`);
+  redirect(
+    `/director/tlt/${tltApplicationId}/recommendations?retry=batch&sent=${successCount}&failed=${failedCount}`,
+  );
+}
