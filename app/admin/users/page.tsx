@@ -1,4 +1,5 @@
 import { prisma } from "../../../lib/prisma";
+import { UserCreateForm } from "./_components/user-create-form";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,17 @@ export default async function AdminUsersPage() {
     },
   });
 
+  const clubs = await prisma.club.findMany({
+    select: {
+      id: true,
+      name: true,
+      code: true,
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
+
   return (
     <section className="space-y-6">
       <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -38,6 +50,8 @@ export default async function AdminUsersPage() {
           Review account roles and primary club assignments.
         </p>
       </header>
+
+      <UserCreateForm clubs={clubs} />
 
       <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {users.length === 0 ? (

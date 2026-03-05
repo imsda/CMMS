@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { prisma } from "../../../lib/prisma";
+import { ClubCreateForm } from "./_components/club-create-form";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,8 @@ export default async function AdminClubsPage() {
           Review conference clubs and current participation counts.
         </p>
       </header>
+
+      <ClubCreateForm />
 
       <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
         {clubs.length === 0 ? (
