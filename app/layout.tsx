@@ -1,5 +1,4 @@
 import type {Metadata} from 'next';
-import {Inter} from 'next/font/google';
 import Link from 'next/link';
 import {cookies} from 'next/headers';
 import {NextIntlClientProvider} from 'next-intl';
@@ -10,8 +9,6 @@ import {auth, signOut} from '../auth';
 import {routing, type AppLocale} from '../i18n';
 
 import './globals.css';
-
-const inter = Inter({subsets: ['latin']});
 
 export const metadata: Metadata = {
   title: 'Iowa-Missouri Club Management',
@@ -42,7 +39,7 @@ export default async function RootLayout({
 
   return (
     <html lang={locale}>
-      <body className={inter.className}>
+      <body className="font-sans">
         <NextIntlClientProvider locale={locale} messages={messages}>
           <div className="min-h-screen bg-slate-50">
             <header className="border-b border-slate-200 bg-white/90 backdrop-blur">

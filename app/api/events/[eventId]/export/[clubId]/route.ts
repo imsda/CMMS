@@ -1,7 +1,6 @@
-import { renderToStream } from "@react-pdf/renderer";
-import { createElement } from "react";
+import { type DocumentProps, renderToBuffer } from "@react-pdf/renderer";
+import { createElement, type ReactElement } from "react";
 import { NextResponse } from "next/server";
-import { Readable } from "node:stream";
 
 import { auth } from "../../../../../../auth";
 import { getEventRegistrationExportData } from "../../../../../../lib/data/event-registration-export";
@@ -60,13 +59,16 @@ export async function GET(
     return NextResponse.json({ error: "Registration not found." }, { status: 404 });
   }
 
-  const stream = await renderToStream(
-    createElement(EventRegistrationPdfDocument, { data: registration }),
-  );
+  const documentElement = createElement(
+    EventRegistrationPdfDocument,
+    { data: registration },
+  ) as ReactElement<DocumentProps>;
+
+  const buffer = await renderToBuffer(documentElement);
 
   const filename = `${safeFilename(registration.event.name)}-${safeFilename(registration.club.name)}-registration.pdf`;
 
-  return new NextResponse(Readable.toWeb(stream) as ReadableStream, {
+  return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `attachment; filename="${filename}"`,

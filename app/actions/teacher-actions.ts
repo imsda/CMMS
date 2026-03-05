@@ -1,5 +1,6 @@
 "use server";
 
+import { RequirementType, type Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "../../auth";
@@ -17,6 +18,15 @@ type SignOffRequirementsInput = {
   notes?: string;
 };
 
+type CompletedHonorMetadata = {
+  rosterMemberId: string;
+  honorCode: string;
+  classTitle: string;
+  teacherUserId: string;
+  eventClassOfferingId: string;
+  notes?: string;
+};
+
 async function assertTeacherAccessToOffering(offeringId: string) {
   const session = await auth();
 
@@ -27,7 +37,7 @@ async function assertTeacherAccessToOffering(offeringId: string) {
   const offering = await prisma.eventClassOffering.findFirst({
     where: {
       id: offeringId,
-      instructorUserId: session.user.id,
+      teacherUserId: session.user.id,
     },
     select: {
       id: true,
@@ -49,6 +59,14 @@ async function assertTeacherAccessToOffering(offeringId: string) {
     teacherUserId: session.user.id,
     offering,
   };
+}
+
+function readCompletedHonorMetadata(metadata: Prisma.JsonValue): Partial<CompletedHonorMetadata> | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
+    return null;
+  }
+
+  return metadata as Partial<CompletedHonorMetadata>;
 }
 
 export async function updateClassAttendance(input: MarkAttendanceInput) {
@@ -136,33 +154,56 @@ export async function signOffRequirementsForStudents(input: SignOffRequirementsI
 
   const existingCompletions = await prisma.memberRequirement.findMany({
     where: {
-      honorCode: offering.classCatalog.code,
       rosterMemberId: {
         in: selectedIds,
       },
+      requirementType: RequirementType.COMPLETED_HONOR,
     },
     select: {
       rosterMemberId: true,
+      metadata: true,
     },
   });
 
-  const completedIdSet = new Set(
-    existingCompletions
-      .map((item) => item.rosterMemberId)
-      .filter((item): item is string => Boolean(item)),
-  );
+  const completedRosterMemberIdSet = new Set<string>();
 
-  const requirementsToCreate = selectedIds.filter((id) => !completedIdSet.has(id));
+  for (const completion of existingCompletions) {
+    const metadata = readCompletedHonorMetadata(completion.metadata);
+
+    if (!metadata) {
+      continue;
+    }
+
+    const rosterMemberId =
+      completion.rosterMemberId ??
+      (typeof metadata.rosterMemberId === "string" ? metadata.rosterMemberId : null);
+
+    if (!rosterMemberId) {
+      continue;
+    }
+
+    if (typeof metadata.honorCode === "string" && metadata.honorCode.toUpperCase() === offering.classCatalog.code.toUpperCase()) {
+      completedRosterMemberIdSet.add(rosterMemberId);
+    }
+  }
+
+  const requirementsToCreate = selectedIds.filter((id) => !completedRosterMemberIdSet.has(id));
 
   if (requirementsToCreate.length > 0) {
     await prisma.memberRequirement.createMany({
       data: requirementsToCreate.map((rosterMemberId) => ({
-        rosterMemberId,
         userId: teacherUserId,
-        honorCode: offering.classCatalog.code,
+        rosterMemberId,
+        requirementType: RequirementType.COMPLETED_HONOR,
         completedAt: new Date(),
-        verifiedBy: "STAFF_TEACHER",
-        notes: input.notes?.trim() || `Completed in class: ${offering.classCatalog.title}`,
+        metadata: {
+          rosterMemberId,
+          honorCode: offering.classCatalog.code,
+          classTitle: offering.classCatalog.title,
+          teacherUserId,
+          eventClassOfferingId: input.offeringId,
+          notes: input.notes?.trim() || `Completed in class: ${offering.classCatalog.title}`,
+        },
       })),
     });
   }

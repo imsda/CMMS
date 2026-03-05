@@ -342,8 +342,8 @@ export function EventRegistrationPdfDocument({ data }: { data: RegistrationData 
   const groupedResponses = data.formResponses.reduce(
     (accumulator, response) => {
       const category = categorizeField(
-        response.eventFormField.label,
-        response.eventFormField.key,
+        response.field.label,
+        response.field.key,
       );
       const list = accumulator.get(category) ?? [];
       list.push(response);
@@ -451,7 +451,7 @@ export function EventRegistrationPdfDocument({ data }: { data: RegistrationData 
               const medical = attendee.rosterMember.medicalFlags?.trim();
               const dietary = attendee.rosterMember.dietaryRestrictions?.trim();
               const classTitles = attendee.rosterMember.classEnrollments
-                .map((enrollment) => enrollment.eventClassOffering.classCatalog.title)
+                .map((enrollment) => enrollment.offering.classCatalog.title)
                 .join(", ");
 
               const tags = [
@@ -512,10 +512,10 @@ export function EventRegistrationPdfDocument({ data }: { data: RegistrationData 
                       key={response.id}
                       style={[styles.fieldBlock, isLast ? styles.fieldBlockLast : undefined]}
                     >
-                      <Text style={styles.fieldLabel}>{response.eventFormField.label}</Text>
-                      {response.eventFormField.description ? (
+                      <Text style={styles.fieldLabel}>{response.field.label}</Text>
+                      {response.field.description ? (
                         <Text style={styles.fieldDescription}>
-                          {response.eventFormField.description}
+                          {response.field.description}
                         </Text>
                       ) : null}
                       <Text style={styles.responseLine}>Response: {valueText}</Text>

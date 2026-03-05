@@ -10,7 +10,6 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { auth } from "../../auth";
-import { encrypt } from "../../lib/encryption";
 import { prisma } from "../../lib/prisma";
 
 function parseOptionalNumber(value: FormDataEntryValue | null) {
@@ -127,8 +126,8 @@ export async function saveRosterMember(formData: FormData) {
     ageAtStart: ageAtStartValue,
     dateOfBirth: dateOfBirthRaw ? new Date(`${dateOfBirthRaw}T00:00:00.000Z`) : null,
     gender: genderValue,
-    medicalFlags: encrypt(parseOptionalString(formData.get("medicalFlags"))),
-    dietaryRestrictions: encrypt(parseOptionalString(formData.get("dietaryRestrictions"))),
+    medicalFlags: parseOptionalString(formData.get("medicalFlags")),
+    dietaryRestrictions: parseOptionalString(formData.get("dietaryRestrictions")),
     isFirstTime: formData.get("isFirstTime") === "on",
     isMedicalPersonnel: formData.get("isMedicalPersonnel") === "on",
     masterGuide: formData.get("masterGuide") === "on",
@@ -136,8 +135,8 @@ export async function saveRosterMember(formData: FormData) {
     backgroundCheckCleared: Boolean(backgroundCheckDate),
     emergencyContactName: parseOptionalString(formData.get("emergencyContactName")),
     emergencyContactPhone: parseOptionalString(formData.get("emergencyContactPhone")),
-    insuranceCompany: encrypt(parseOptionalString(formData.get("insuranceCompany"))),
-    insurancePolicyNumber: encrypt(parseOptionalString(formData.get("insurancePolicyNumber"))),
+    insuranceCompany: parseOptionalString(formData.get("insuranceCompany")),
+    insurancePolicyNumber: parseOptionalString(formData.get("insurancePolicyNumber")),
     lastTetanusDate: lastTetanusDateRaw ? new Date(`${lastTetanusDateRaw}T00:00:00.000Z`) : null,
     photoReleaseConsent,
     medicalTreatmentConsent,

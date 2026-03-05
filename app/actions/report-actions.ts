@@ -1,6 +1,7 @@
 "use server";
 
 import { RegistrationStatus } from "@prisma/client";
+import { type Session } from "next-auth";
 
 import { auth } from "../../auth";
 import { prisma } from "../../lib/prisma";
@@ -41,7 +42,7 @@ const SPIRITUAL_KEYS = new Set(["baptism_names", "bible_names"]);
 const DUTY_KEYS = ["duty_first", "duty_second", "special_activity"] as const;
 const AV_DETAIL_KEYS = new Set(["av_equipment", "av_request", "av_needs"]);
 
-function ensureSuperAdmin(session: Awaited<ReturnType<typeof auth>>) {
+function ensureSuperAdmin(session: Session | null) {
   if (!session?.user || session.user.role !== "SUPER_ADMIN") {
     throw new Error("Only super admins can access operational reports.");
   }

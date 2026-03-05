@@ -2,6 +2,7 @@
 
 import { ReportStatus, UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { type Session } from "next-auth";
 
 import { auth } from "../../auth";
 import { prisma } from "../../lib/prisma";
@@ -40,7 +41,7 @@ function requireMonthStart(value: FormDataEntryValue | null) {
   return parsedDate;
 }
 
-function ensureRole(session: Awaited<ReturnType<typeof auth>>, role: UserRole, message: string) {
+function ensureRole(session: Session | null, role: UserRole, message: string) {
   if (!session?.user || session.user.role !== role) {
     throw new Error(message);
   }
