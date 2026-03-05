@@ -1,8 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useFormState } from "react-dom";
 
-import { createEventWithDynamicFields } from "../../../actions/event-admin-actions";
+import {
+  createEventWithDynamicFields,
+  type CreateEventActionState,
+} from "../../../actions/event-admin-actions";
 import {
   DynamicFormBuilder,
   type DynamicFieldDraft,
@@ -23,9 +28,17 @@ const STEPS = [
   },
 ] as const;
 
+const INITIAL_STATE: CreateEventActionState = {
+  status: "idle",
+  message: null,
+};
+
 export default function AdminCreateEventPage() {
   const [currentStep, setCurrentStep] = useState(0);
   const [dynamicFields, setDynamicFields] = useState<DynamicFieldDraft[]>([]);
+  const searchParams = useSearchParams();
+  const created = searchParams.get("created") === "1";
+  const [formState, formAction] = useFormState(createEventWithDynamicFields, INITIAL_STATE);
 
   const serializedFields = useMemo(() => JSON.stringify(dynamicFields), [dynamicFields]);
 
@@ -67,7 +80,19 @@ export default function AdminCreateEventPage() {
         </ol>
       </div>
 
-      <form action={createEventWithDynamicFields} className="space-y-6">
+      {created ? (
+        <p className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          Event created successfully.
+        </p>
+      ) : null}
+
+      {formState.status === "error" && formState.message ? (
+        <p className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {formState.message}
+        </p>
+      ) : null}
+
+      <form action={formAction} className="space-y-6">
         <input type="hidden" name="dynamicFieldsJson" value={serializedFields} readOnly />
 
         <div

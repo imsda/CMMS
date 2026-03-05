@@ -15,7 +15,13 @@ type IncomingDynamicField = {
   description?: string;
   type?: string;
   isRequired?: boolean;
+  options?: string[];
   optionsJson?: string;
+};
+
+export type CreateEventActionState = {
+  status: "idle" | "error";
+  message: string | null;
 };
 
 function requireTrimmedString(value: FormDataEntryValue | null, fieldLabel: string) {
@@ -91,6 +97,31 @@ function parseMultiSelectOptions(raw: string, fieldKey: string) {
       `Dynamic field "${fieldKey}" requires optionsJson to be a JSON array of non-empty strings.`,
     );
   }
+}
+
+function parseMultiSelectOptionsArray(options: unknown, fieldKey: string) {
+  if (!Array.isArray(options)) {
+    throw new Error(`Dynamic field "${fieldKey}" must include at least one option.`);
+  }
+
+  const normalized = options.map((option) => {
+    if (typeof option !== "string" || option.trim().length === 0) {
+      throw new Error(`Dynamic field "${fieldKey}" has an invalid option.`);
+    }
+
+    return option.trim();
+  });
+
+  if (normalized.length === 0) {
+    throw new Error(`Dynamic field "${fieldKey}" must include at least one option.`);
+  }
+
+  const uniqueNormalized = Array.from(new Set(normalized.map((option) => option.toLowerCase())));
+  if (uniqueNormalized.length !== normalized.length) {
+    throw new Error(`Dynamic field "${fieldKey}" options must be unique.`);
+  }
+
+  return normalized;
 }
 
 function slugifyName(name: string) {
@@ -169,8 +200,12 @@ function parseDynamicFields(value: FormDataEntryValue | null) {
     let options: Prisma.InputJsonValue | undefined;
 
     if (type === FormFieldType.MULTI_SELECT) {
-      const optionsRaw = typeof candidate.optionsJson === "string" ? candidate.optionsJson : "";
-      options = parseMultiSelectOptions(optionsRaw, key);
+      if (Array.isArray(candidate.options)) {
+        options = parseMultiSelectOptionsArray(candidate.options, key);
+      } else {
+        const optionsRaw = typeof candidate.optionsJson === "string" ? candidate.optionsJson : "";
+        options = parseMultiSelectOptions(optionsRaw, key);
+      }
     }
 
     return {
@@ -233,51 +268,65 @@ async function buildUniqueSlug(name: string) {
   return `${base}-${Date.now()}`;
 }
 
-export async function createEventWithDynamicFields(formData: FormData) {
-  const createdByUserId = await requireSuperAdminUserId();
-
-  const name = requireTrimmedString(formData.get("name"), "Event name");
-  const startsAt = parseRequiredDate(formData.get("startsAt"), "Event start date");
-  const endsAt = parseRequiredDate(formData.get("endsAt"), "Event end date");
-  const registrationOpensAt = parseRequiredDate(
-    formData.get("registrationOpensAt"),
-    "Registration open date",
+function isRedirectError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "digest" in error &&
+    typeof (error as { digest?: unknown }).digest === "string" &&
+    (error as { digest: string }).digest.startsWith("NEXT_REDIRECT")
   );
-  const registrationClosesAt = parseRequiredDate(
-    formData.get("registrationClosesAt"),
-    "Registration close date",
-  );
-  const basePrice = parseRequiredFloat(formData.get("basePrice"), "Base price");
-  const lateFeePrice = parseRequiredFloat(formData.get("lateFeePrice"), "Late fee price");
-  const lateFeeStartsAt = parseRequiredDate(formData.get("lateFeeStartsAt"), "Late fee start date");
+}
 
-  if (endsAt <= startsAt) {
-    throw new Error("Event end date must be after start date.");
-  }
+export async function createEventWithDynamicFields(
+  _prevState: CreateEventActionState,
+  formData: FormData,
+): Promise<CreateEventActionState> {
+  try {
+    const createdByUserId = await requireSuperAdminUserId();
 
-  if (registrationClosesAt <= registrationOpensAt) {
-    throw new Error("Registration close date must be after registration open date.");
-  }
+    const name = requireTrimmedString(formData.get("name"), "Event name");
+    const startsAt = parseRequiredDate(formData.get("startsAt"), "Event start date");
+    const endsAt = parseRequiredDate(formData.get("endsAt"), "Event end date");
+    const registrationOpensAt = parseRequiredDate(
+      formData.get("registrationOpensAt"),
+      "Registration open date",
+    );
+    const registrationClosesAt = parseRequiredDate(
+      formData.get("registrationClosesAt"),
+      "Registration close date",
+    );
+    const basePrice = parseRequiredFloat(formData.get("basePrice"), "Base price");
+    const lateFeePrice = parseRequiredFloat(formData.get("lateFeePrice"), "Late fee price");
+    const lateFeeStartsAt = parseRequiredDate(formData.get("lateFeeStartsAt"), "Late fee start date");
 
-  if (lateFeeStartsAt < registrationOpensAt) {
-    throw new Error("Late fee start date cannot be before registration opens.");
-  }
-
-  const locationName = optionalTrimmedString(formData.get("locationName"));
-  const locationAddress = optionalTrimmedString(formData.get("locationAddress"));
-  const dynamicFields = parseDynamicFields(formData.get("dynamicFieldsJson"));
-
-  const uniqueKeys = new Set<string>();
-  for (const field of dynamicFields) {
-    if (uniqueKeys.has(field.key)) {
-      throw new Error(`Dynamic field keys must be unique. Duplicate key: ${field.key}`);
+    if (endsAt <= startsAt) {
+      throw new Error("Event end date must be after start date.");
     }
-    uniqueKeys.add(field.key);
-  }
 
-  const slug = await buildUniqueSlug(name);
+    if (registrationClosesAt <= registrationOpensAt) {
+      throw new Error("Registration close date must be after registration open date.");
+    }
 
-  await prisma.$transaction(async (tx) => {
+    if (lateFeeStartsAt < registrationOpensAt) {
+      throw new Error("Late fee start date cannot be before registration opens.");
+    }
+
+    const locationName = optionalTrimmedString(formData.get("locationName"));
+    const locationAddress = optionalTrimmedString(formData.get("locationAddress"));
+    const dynamicFields = parseDynamicFields(formData.get("dynamicFieldsJson"));
+
+    const uniqueKeys = new Set<string>();
+    for (const field of dynamicFields) {
+      if (uniqueKeys.has(field.key)) {
+        throw new Error(`Dynamic field keys must be unique. Duplicate key: ${field.key}`);
+      }
+      uniqueKeys.add(field.key);
+    }
+
+    const slug = await buildUniqueSlug(name);
+
+    await prisma.$transaction(async (tx) => {
     const event = await tx.event.create({
       data: {
         name,
@@ -348,8 +397,18 @@ export async function createEventWithDynamicFields(formData: FormData) {
         idMap.set(field.id, created.id);
       }
     }
-  });
+    });
 
-  revalidatePath("/admin/events/new");
-  redirect("/admin/events/new?created=1");
+    revalidatePath("/admin/events/new");
+    redirect("/admin/events/new?created=1");
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Unable to create event.",
+    };
+  }
 }
