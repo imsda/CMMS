@@ -3,6 +3,12 @@ import bcrypt from "bcryptjs";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 
+import {
+  assertLoginRateLimit,
+  clearFailedLoginAttempts,
+  getRateLimitKey,
+  recordFailedLoginAttempt,
+} from "./lib/auth-rate-limit";
 import { prisma } from "./lib/prisma";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -26,13 +32,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           type: "password",
         },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         const email = typeof credentials?.email === "string" ? credentials.email.trim() : "";
         const password = typeof credentials?.password === "string" ? credentials.password : "";
 
         if (!email || !password) {
           return null;
         }
+
+        const key = getRateLimitKey(email, request?.headers?.get("x-forwarded-for"));
+        assertLoginRateLimit(key);
 
         const user = await prisma.user.findUnique({
           where: {
@@ -57,6 +66,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         });
 
         if (!user?.passwordHash) {
+          recordFailedLoginAttempt(key);
           return null;
         }
 
@@ -66,8 +76,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         );
 
         if (!passwordMatches) {
+          recordFailedLoginAttempt(key);
           return null;
         }
+
+        clearFailedLoginAttempts(key);
 
         return {
           id: user.id,

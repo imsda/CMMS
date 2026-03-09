@@ -5,8 +5,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "postinstall": "prisma generate"
+    "lint": "next lint --no-cache",
+    "postinstall": "prisma generate",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/**/*.test.ts",
+    "validate:prisma": "prisma validate && prisma generate"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

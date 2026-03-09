@@ -1,6 +1,6 @@
 "use server";
 
-import { ClassType, MemberRole, RequirementType, type Prisma } from "@prisma/client";
+import { ClassType, MemberRole, Prisma, RequirementType } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { type Session } from "next-auth";
@@ -684,14 +684,31 @@ export async function clearEventClassOfferingEnrollmentsAction(formData: FormDat
   const offeringId = requireTrimmedString(formData.get("offeringId"), "Offering");
 
   try {
-    const deleted = await prisma.classEnrollment.deleteMany({
-      where: {
-        eventClassOfferingId: offeringId,
-        offering: {
-          eventId,
+    const deleted = await prisma.$transaction(async (tx) => {
+      const removed = await tx.classEnrollment.deleteMany({
+        where: {
+          eventClassOfferingId: offeringId,
+          offering: {
+            eventId,
+          },
         },
-      },
-    });
+      });
+
+      if (removed.count > 0) {
+        await tx.eventClassOffering.update({
+          where: {
+            id: offeringId,
+          },
+          data: {
+            enrolledCount: {
+              decrement: removed.count,
+            },
+          },
+        });
+      }
+
+      return removed;
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
     revalidatePath(`/admin/events/${eventId}/classes`);
     revalidatePath(`/admin/events/${eventId}`);
