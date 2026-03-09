@@ -5,7 +5,9 @@ import { revalidatePath } from "next/cache";
 
 import { auth } from "../../auth";
 import { sendRegistrationReceiptEmail } from "../../lib/email/resend";
+import { normalizeResponsesForPersistence, type DynamicFieldRule } from "../../lib/event-form-response-utils";
 import { prisma } from "../../lib/prisma";
+import { assertRegistrationWindow } from "../../lib/registration-window";
 
 export type RegistrationActionState = {
   status: "idle" | "success" | "error";
@@ -19,15 +21,6 @@ type RegistrationPayload = {
     attendeeId: string | null;
     value: Prisma.InputJsonValue;
   }>;
-};
-
-type DynamicFieldRule = {
-  id: string;
-  key: string;
-  label: string;
-  type: string;
-  isRequired: boolean;
-  options: unknown;
 };
 
 function generateRegistrationCode() {
@@ -233,6 +226,8 @@ async function requireDirectorClubForEvent(eventId: string) {
       basePrice: true,
       lateFeePrice: true,
       lateFeeStartsAt: true,
+      registrationOpensAt: true,
+      registrationClosesAt: true,
       dynamicFields: {
         select: {
           id: true,
@@ -240,6 +235,7 @@ async function requireDirectorClubForEvent(eventId: string) {
           label: true,
           type: true,
           isRequired: true,
+          description: true,
           options: true,
         },
       },
@@ -268,7 +264,7 @@ async function requireDirectorClubForEvent(eventId: string) {
   };
 }
 
-async function persistRegistration(formData: FormData, nextStatus: RegistrationStatus) {
+async function persistRegistration(formData: FormData, nextStatus: RegistrationStatus): Promise<{ emailWarning: string | null }> {
   const eventIdEntry = formData.get("eventId");
   if (typeof eventIdEntry !== "string" || eventIdEntry.trim().length === 0) {
     throw new Error("Event id is required.");
@@ -291,23 +287,12 @@ async function persistRegistration(formData: FormData, nextStatus: RegistrationS
   const attendeeIds = payload.attendeeIds.filter((attendeeId) => validAttendeeIds.has(attendeeId));
   const attendeeIdSet = new Set(attendeeIds);
 
-  const responses = payload.responses
-    .filter((response) => {
-      if (!validFieldIds.has(response.fieldId)) {
-        return false;
-      }
-
-      if (response.attendeeId === null) {
-        return true;
-      }
-
-      return attendeeIdSet.has(response.attendeeId);
-    })
-    .map((response) => ({
-      eventFormFieldId: response.fieldId,
-      attendeeId: response.attendeeId,
-      value: response.value,
-    }));
+  const responses = normalizeResponsesForPersistence({
+    responses: payload.responses,
+    dynamicFieldRules,
+    validFieldIds,
+    attendeeIdSet,
+  });
 
   const responseByFieldId = new Map<string, unknown>();
   for (const response of responses) {
@@ -317,6 +302,8 @@ async function persistRegistration(formData: FormData, nextStatus: RegistrationS
   }
 
   if (nextStatus === RegistrationStatus.SUBMITTED) {
+    assertRegistrationWindow(new Date(), event.registrationOpensAt, event.registrationClosesAt);
+
     if (attendeeIds.length === 0) {
       throw new Error("Select at least one attendee before submitting registration.");
     }
@@ -410,7 +397,7 @@ async function persistRegistration(formData: FormData, nextStatus: RegistrationS
           eventRegistrationId: registration.id,
           eventFormFieldId: response.eventFormFieldId,
           attendeeId: response.attendeeId,
-          value: response.value,
+          value: response.value as Prisma.InputJsonValue,
         })),
       });
     }
@@ -419,14 +406,21 @@ async function persistRegistration(formData: FormData, nextStatus: RegistrationS
   revalidatePath(`/director/events/${eventId}`);
   revalidatePath("/director/dashboard");
 
+  let emailWarning: string | null = null;
   if (nextStatus === RegistrationStatus.SUBMITTED && directorEmail) {
-    await sendRegistrationReceiptEmail({
-      to: directorEmail,
-      clubName,
-      eventName: event.name,
-      attendeeCount: attendeeIds.length,
-    });
+    try {
+      await sendRegistrationReceiptEmail({
+        to: directorEmail,
+        clubName,
+        eventName: event.name,
+        attendeeCount: attendeeIds.length,
+      });
+    } catch {
+      emailWarning = "Registration submitted, but receipt email could not be sent.";
+    }
   }
+
+  return { emailWarning };
 }
 
 export async function saveEventRegistrationDraft(
@@ -452,10 +446,10 @@ export async function submitEventRegistration(
   formData: FormData,
 ): Promise<RegistrationActionState> {
   try {
-    await persistRegistration(formData, RegistrationStatus.SUBMITTED);
+    const result = await persistRegistration(formData, RegistrationStatus.SUBMITTED);
     return {
       status: "success",
-      message: "Registration submitted.",
+      message: result.emailWarning ?? "Registration submitted.",
     };
   } catch (error) {
     return {

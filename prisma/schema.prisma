@@ -404,6 +404,7 @@ model EventClassOffering {
   classCatalogId String
   teacherUserId  String?
   capacity       Int?
+  enrolledCount  Int      @default(0)
   createdAt      DateTime @default(now())
 
   event        Event            @relation(fields: [eventId], references: [id], onDelete: Cascade)

@@ -1,6 +1,6 @@
 "use server";
 
-import { type MemberRole, type Prisma } from "@prisma/client";
+import { Prisma, type MemberRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "../../auth";
@@ -207,54 +207,53 @@ export async function enrollAttendeeInClass(input: EnrollAttendeeInput) {
       return;
     }
 
-    const conflictingEnrollment = await tx.classEnrollment.findFirst({
+    const seatReservation = await tx.eventClassOffering.updateMany({
       where: {
-        rosterMemberId: input.rosterMemberId,
-        eventClassOfferingId: {
-          not: input.eventClassOfferingId,
-        },
-        offering: {
-          eventId: input.eventId,
-        },
-      },
-      select: {
-        offering: {
-          select: {
-            classCatalog: {
-              select: {
-                title: true,
-                code: true,
+        id: input.eventClassOfferingId,
+        ...(typeof offering.capacity === "number"
+          ? {
+              enrolledCount: {
+                lt: offering.capacity,
               },
-            },
-          },
+            }
+          : {}),
+      },
+      data: {
+        enrolledCount: {
+          increment: 1,
         },
       },
     });
 
-    if (conflictingEnrollment) {
-      const { title, code } = conflictingEnrollment.offering.classCatalog;
-      throw new Error(
-        `Attendee is already assigned to ${title} (${code}). Remove that enrollment before assigning another class.`,
-      );
-    }
-
-    const enrollmentCount = await tx.classEnrollment.count({
-      where: {
-        eventClassOfferingId: input.eventClassOfferingId,
-      },
-    });
-
-    if (typeof offering.capacity === "number" && enrollmentCount >= offering.capacity) {
+    if (seatReservation.count === 0) {
       throw new Error("This class is full. Please choose another class.");
     }
 
-    await tx.classEnrollment.create({
-      data: {
-        eventClassOfferingId: input.eventClassOfferingId,
-        rosterMemberId: input.rosterMemberId,
-      },
-    });
-  });
+    try {
+      await tx.classEnrollment.create({
+        data: {
+          eventClassOfferingId: input.eventClassOfferingId,
+          rosterMemberId: input.rosterMemberId,
+        },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+        await tx.eventClassOffering.update({
+          where: {
+            id: input.eventClassOfferingId,
+          },
+          data: {
+            enrolledCount: {
+              decrement: 1,
+            },
+          },
+        });
+        return;
+      }
+
+      throw error;
+    }
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
   revalidatePath(`/director/events/${input.eventId}/classes`);
 }
@@ -298,13 +297,26 @@ export async function removeAttendeeFromClass(input: EnrollAttendeeInput) {
       throw new Error("Class offering was not found for this event.");
     }
 
-    await tx.classEnrollment.deleteMany({
+    const deleted = await tx.classEnrollment.deleteMany({
       where: {
         eventClassOfferingId: input.eventClassOfferingId,
         rosterMemberId: input.rosterMemberId,
       },
     });
-  });
+
+    if (deleted.count > 0) {
+      await tx.eventClassOffering.update({
+        where: {
+          id: input.eventClassOfferingId,
+        },
+        data: {
+          enrolledCount: {
+            decrement: deleted.count,
+          },
+        },
+      });
+    }
+  }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
   revalidatePath(`/director/events/${input.eventId}/classes`);
 }
