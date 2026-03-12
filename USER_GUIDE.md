@@ -71,13 +71,14 @@ After registration, go to the event’s **Classes** section.
 2. Review available class offerings.
 3. Watch the **seats left** indicator in real time.
 4. Assign classes while seats are available.
-5. Repeat until each attendee has a complete schedule.
+5. Repeat until each attendee has one class assignment for the event.
 
 ### Capacity best practices
 
 - Assign high-demand classes first.
 - If a class is full, select the next preferred option.
 - Recheck final assignments before the registration deadline.
+- Each attendee can only be assigned to one class per event in the current system.
 
 ---
 
@@ -105,6 +106,7 @@ Before departure:
 
 ### “My submission is still draft”
 - Re-open the event form and complete missing required fields.
+- Check both registration-level and attendee-level required questions.
 - Save/submit again and refresh the page.
 
 ---
@@ -117,4 +119,3 @@ Contact support/admin when:
 - Your club assignment is incorrect.
 - Event window dates need override.
 - A roster or registration requires admin-level correction.
-

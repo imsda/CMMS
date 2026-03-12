@@ -4,8 +4,8 @@ CMMS is a conference-wide platform for managing club rosters, Camporee events, c
 
 - **Conference Super Admins** (create events, build forms, manage honors, pull reports)
 - **Club Directors** (maintain yearly roster, submit registrations, assign classes)
-- **Teachers/Staff** (view class rosters and check in attendees)
-- **Students/Parents** (reserved for future expansion)
+- **Teachers/Staff** (view class rosters and mark class attendance)
+- **Students/Parents** (view explicitly linked student summaries and assignments)
 
 ---
 
@@ -15,9 +15,13 @@ Conference event workflows are often split across spreadsheets, paper forms, and
 
 - Annual club roster rollover
 - Event registration with dynamic custom fields
+- Explicit global vs attendee-scoped event questions
 - Live class seat capacity management
 - Medical and operational reporting for event staff
 - Printable/exportable PDF registration packets
+- Explicit student/parent portal access links
+- Compliance sync preview/apply workflow with audit history
+- Production startup checks and auth throttling
 
 This provides a single source of truth from planning through event execution.
 
@@ -57,7 +61,7 @@ CMMS uses route groups and role-based route segments to keep each persona’s wo
   - event registration and dynamic form completion
   - class assignment board
 - `app/teacher/*` – staff/teacher class roster operations
-- `app/student/*` – student area scaffold
+- `app/student/*` – student/parent portal area using explicit user-to-student links
 
 ### Server actions and domain workflows
 
@@ -68,7 +72,7 @@ Server actions are organized under `app/actions/` and enforce role checks + busi
 - `event-registration-actions.ts` – director registration submission
 - `enrollment-actions.ts` – class assignment and seat checks
 - `report-actions.ts` / `medical-report-actions.ts` – report generation data
-- `checkin-actions.ts` / `teacher-actions.ts` – event/class check-in flows
+- `checkin-actions.ts` / `teacher-actions.ts` – event arrival approval and separate class attendance flows
 
 ### Data and integration layers
 
@@ -108,7 +112,7 @@ The Prisma schema (`prisma/schema.prisma`) models identity, club roster lifecycl
 - **`Event`**
   - Defines event timing, pricing, registration windows, and location.
 - **`EventFormField`**
-  - Dynamic form definition (including FIELD_GROUP parent/child hierarchy).
+  - Dynamic form definition with FIELD_GROUP hierarchy and explicit global vs attendee scope.
 - **`EventRegistration`**
   - Club registration instance for an event with status + payment tracking.
 - **`RegistrationAttendee`**
@@ -125,7 +129,7 @@ The Prisma schema (`prisma/schema.prisma`) models identity, club roster lifecycl
 - **`EventClassOffering`**
   - Event-specific offering of a class with assigned teacher and capacity.
 - **`ClassEnrollment`**
-  - Assignment of a registration attendee to a class offering.
+  - Assignment of a registration attendee to a class offering, with separate class attendance tracking.
 
 ### Key enums used throughout the system
 
@@ -160,7 +164,7 @@ Super Admins can define per-event questions with supported types:
 - `ROSTER_MULTI_SELECT`
 - `FIELD_GROUP` (for grouped question sections)
 
-Directors complete these at registration time; answers are persisted and available for operational reporting.
+Directors complete these at registration time; answers are stored either once per registration or once per attendee based on explicit field scope and remain available for check-in, reporting, and exports.
 
 **Result:** Conference can tailor data collection by event without code changes.
 
@@ -181,6 +185,7 @@ Class assignment is enforced server-side against current enrollment totals.
 - Enrollment attempts validate capacity before write
 - Directors see class boards with seat availability context
 - Prevents over-assignment and conflicting spreadsheet-side counts
+- Current supported rule: one class enrollment per attendee per event
 
 **Result:** More reliable class planning and reduced event-day corrections.
 
@@ -213,7 +218,8 @@ Seed values can be overridden using environment variables.
 ## Project documentation map
 
 - **Setup & local environment:** `SETUP.md`
+- **Deployment & maintenance:** `docs/deployment-and-maintenance.md`
+- **Launch checklist:** `docs/launch-operations-checklist.md`
 - **Conference Super Admin guide:** `HOW-TO-Admin.md`
 - **Club Director guide:** `HOW-TO-ClubDirector.md`
 - **Legacy user walkthrough:** `USER_GUIDE.md`
-

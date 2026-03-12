@@ -70,12 +70,7 @@ This information flows into event medical/dietary manifests.
 
 ### Background check tracking
 
-For adult staff/volunteers, maintain:
-
-- Background check date
-- Cleared status
-
-Keep these values current before major events.
+For adult staff/volunteers, roster edits can record background-check dates, but final clearance is controlled through the conference compliance workflow. If a clearance looks wrong or missing, contact Conference Admin instead of assuming a date entry alone is enough.
 
 ---
 
@@ -94,6 +89,7 @@ Go to **Director → Events → [Event]**.
 ### Tips for dynamic questions
 
 - Required fields must be completed before submit.
+- Some required questions are per-registration and some are per-attendee.
 - Some questions may ask for roster-linked selections.
 - Multi-select answers appear as selectable options configured by Conference Admin.
 
@@ -102,6 +98,7 @@ Go to **Director → Events → [Event]**.
 - Keep record of registration code (if shown).
 - Reopen the event page to confirm status changed from draft to submitted.
 - Coordinate payment according to conference process.
+- Submitted and approved registrations are locked from normal director edits.
 
 ---
 
@@ -112,6 +109,7 @@ Go to **Director → Events → [Event] → Classes**.
 ### How class assignment works
 
 - You can assign only attendees included in your event registration.
+- Each attendee can hold one class assignment per event in the current system.
 - Class seats are checked live by the system.
 - If a class is full, assignment will be blocked.
 
@@ -149,6 +147,7 @@ Go to **Director → Events → [Event] → Classes**.
 - Recheck attendee roster and class assignments
 - Notify families of schedule and requirements
 - Keep emergency data ready and accurate
+- Confirm adult attendees who need Sterling clearance are fully cleared before arrival
 
 ---
 
@@ -170,4 +169,3 @@ Contact Super Admin if you:
 - Need corrections for event setup or form questions
 - Need help with catalog/class offering availability
 - Discover report data that appears incorrect
-

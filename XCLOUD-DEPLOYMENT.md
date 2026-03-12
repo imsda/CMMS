@@ -43,7 +43,10 @@ In your xCloud app/service environment settings, set the following variables for
 
 - `DATABASE_URL`
 - `NEXTAUTH_SECRET`
+- `AUTH_SECRET`
 - `NEXTAUTH_URL`
+- `NEXT_PUBLIC_APP_URL`
+- `MEDICAL_ENCRYPTION_KEY`
 
 ### Recommended values
 
@@ -58,6 +61,10 @@ In your xCloud app/service environment settings, set the following variables for
 - `NEXTAUTH_URL`
   - Your public app URL, for example:
   - `https://cmms.yourdomain.com`
+- `NEXT_PUBLIC_APP_URL`
+  - Usually the same value as `NEXTAUTH_URL`
+- `MEDICAL_ENCRYPTION_KEY`
+  - Must be a 64-character hex string or a base64 string that decodes to 32 bytes
 
 > Keep `NEXTAUTH_SECRET` private and never commit it to Git.
 
@@ -95,6 +102,19 @@ If everything is healthy, visit:
 - `http://<SERVER_IP>:3000`
 - or your configured domain
 
+Before opening access broadly, run:
+
+```bash
+docker compose exec web npm run check:startup
+```
+
+If you are deploying against an existing database, also run:
+
+```bash
+docker compose exec web npm run backfill:medical-encryption
+docker compose exec web npm run check:startup
+```
+
 ## 7) Ongoing operations
 
 ### Update to latest code
@@ -108,6 +128,12 @@ docker compose up -d --build
 
 ```bash
 docker compose exec web npx prisma migrate deploy
+```
+
+### Run startup self-checks manually
+
+```bash
+docker compose exec web npm run check:startup
 ```
 
 ### Stop services
@@ -129,3 +155,4 @@ docker compose down -v
 - Use strong custom DB credentials (not defaults)
 - Back up `postgres_data` volume regularly
 - Set Docker restart policies (already set to `unless-stopped`)
+- Schedule `npm run schedule:auth-rate-limit-cleanup` every 15 minutes

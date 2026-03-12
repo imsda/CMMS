@@ -31,7 +31,7 @@ cd CMMS
 ## 3) Install dependencies
 
 ```bash
-npm install
+npm ci
 ```
 
 ---
@@ -56,6 +56,9 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/cmms?schema=public"
 
 # NextAuth session/token secret (required)
 NEXTAUTH_SECRET="replace-with-a-long-random-secret"
+
+# Required for medical-data encryption in production-style environments
+MEDICAL_ENCRYPTION_KEY="replace-with-a-valid-32-byte-key"
 ```
 
 ### Strongly recommended compatibility variable
@@ -71,6 +74,7 @@ AUTH_SECRET="replace-with-the-same-long-random-secret"
 ```env
 # Local app URL for auth callbacks and absolute URL generation
 NEXTAUTH_URL="http://localhost:3000"
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
 ### Optional email integration variables
@@ -151,6 +155,12 @@ Then open:
 
 - `http://localhost:3000`
 
+For a production-style readiness check against your configured environment:
+
+```bash
+npm run check:startup
+```
+
 ---
 
 ## 9) First login
@@ -190,6 +200,7 @@ After setup, verify:
 2. You can access `/admin/dashboard`.
 3. Seeded test club appears in relevant admin/director flows.
 4. Prisma Studio shows expected base records.
+5. `npm run lint`, `npm test`, and `npm run build` all succeed.
 
 ---
 
@@ -229,4 +240,3 @@ Before handing to conference testers:
 - Set `NEXTAUTH_URL` to the staging URL.
 - Seed or manually provision initial Super Admin account.
 - Confirm PDF export route and report pages render with sample registrations.
-

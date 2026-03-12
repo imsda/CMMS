@@ -1,6 +1,6 @@
 # HOW-TO: Conference Super Admin Guide
 
-This guide is for Conference Super Admins who configure events, forms, honors, and reports in CMMS.
+This guide is for Conference Super Admins who configure events, forms, honors, reports, compliance sync, and portal access in CMMS.
 
 ---
 
@@ -63,14 +63,18 @@ Go to **Admin → Events → [Event]** and use the dynamic form builder.
 
 1. Add high-level `FIELD_GROUP` sections (e.g., Transport, Meals, Staffing).
 2. Add child fields under each group.
-3. Mark required fields carefully.
-4. For `MULTI_SELECT`, provide valid JSON options (e.g., `["Breakfast", "Lunch"]`).
+3. Set the correct scope for each question:
+   - registration/global for one answer per club registration
+   - attendee-scoped for one answer per selected attendee
+4. Mark required fields carefully.
+5. For `MULTI_SELECT`, provide valid JSON options (e.g., `["Breakfast", "Lunch"]`).
 
 ### Validation notes
 
 - Every field needs a unique key per event.
 - `FIELD_GROUP` fields cannot be nested inside another group.
 - `MULTI_SELECT` options must be a JSON array of non-empty strings.
+- Required attendee-scoped fields must be answered for every selected attendee before submit/check-in approval.
 
 ---
 
@@ -167,20 +171,47 @@ Pre-event final:
 
 ---
 
-## 8) Common admin mistakes to avoid
+## 8) Compliance and portal management
+
+### Compliance sync
+
+Go to **Admin → Compliance**.
+
+1. Select the exact club roster year.
+2. Upload the Sterling CSV.
+3. Review the preview buckets:
+   - `Will Update`
+   - `Skipped`
+   - `Ambiguous`
+4. Apply only after review.
+
+Important:
+
+- Ambiguous rows are blocked and require manual resolution.
+- Matching is scoped to the selected roster year.
+- Stored run history includes row-level audit details.
+
+### Student/parent portal links
+
+Go to **Admin → Users**.
+
+- `STUDENT_PARENT` users only see students linked through explicit portal-link records.
+- After yearly rollover, review and relink portal access as needed.
+- Users without links will see an empty portal state.
+
+## 9) Common admin mistakes to avoid
 
 - Publishing event with missing registration window dates
 - Using duplicate or unclear dynamic field keys
+- Choosing the wrong scope for attendee questions
 - Invalid `MULTI_SELECT` JSON option formatting
 - Pulling reports before clubs submit registrations
 - Sharing medical exports outside authorized staff
+- Applying a compliance sync without reviewing ambiguous rows
 
----
-
-## 9) Handover tips for incoming admin staff
+## 10) Handover tips for incoming admin staff
 
 - Document naming conventions for event fields and catalog codes.
 - Keep one “template event” from prior year for cloning decisions.
 - Maintain a shared SOP calendar for report pull deadlines.
 - Store this guide with setup docs in your conference knowledge base.
-
