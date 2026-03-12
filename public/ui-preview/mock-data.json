@@ -10,6 +10,7 @@
     "totalActiveClubs": 14,
     "conferenceMembers": 382,
     "upcomingEvents": 3,
+    "navItems": 9,
     "warnings": [
       "One storage cleanup batch is queued for insurance-card files.",
       "Two clubs still have staff awaiting Sterling clearance."
@@ -17,9 +18,37 @@
   },
   "directorDashboard": {
     "clubName": "Cedar Rapids Pioneers",
+    "navItems": 6,
     "alerts": 3,
     "submittedRegistrations": 2,
     "draftRegistrations": 1
+  },
+  "roleMenus": {
+    "superAdmin": [
+      "Dashboard",
+      "Clubs",
+      "Users",
+      "Events",
+      "Class Catalog",
+      "Compliance",
+      "Nominations",
+      "Reports",
+      "Storage"
+    ],
+    "clubDirector": [
+      "Dashboard",
+      "Events",
+      "Roster",
+      "Nominations",
+      "TLT",
+      "Reports"
+    ],
+    "studentParent": [
+      "Dashboard"
+    ],
+    "teacher": [
+      "Dashboard"
+    ]
   },
   "registrationFlow": {
     "eventName": "Spring Camp 2026",

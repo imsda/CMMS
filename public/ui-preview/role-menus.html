@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UI Preview - Role Menus</title>
+    <link rel="stylesheet" href="./preview.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="shell-header">
+        <div class="shell-header-inner">
+          <div>
+            <p class="hero-kicker">Conference Platform</p>
+            <h1 class="section-title">Role Menu Comparison</h1>
+          </div>
+          <div class="top-row">
+            <span class="status-chip-success">Navigation Focus</span>
+            <a class="btn-secondary" href="./index.html">All Screens</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="shell-content page-stack">
+        <section class="glass-panel">
+          <p class="hero-kicker">Important Review</p>
+          <h2 class="hero-title">Admin vs Club Director menus</h2>
+          <p class="hero-copy">
+            This page isolates the sidebar experience so you can compare the two most important role shells directly. The same styling and navigation vocabulary used in the screen previews is shown here without the rest of each workflow competing for attention.
+          </p>
+        </section>
+
+        <section class="two-col">
+          <article class="glass-panel stack">
+            <div class="between">
+              <div>
+                <p class="hero-kicker">Super Admin</p>
+                <h3 class="section-title">Conference-wide control menu</h3>
+              </div>
+              <span class="status-chip-neutral">9 items</span>
+            </div>
+
+            <aside class="glass-sidebar">
+              <div class="glass-card-soft">
+                <p class="hero-kicker">Operations</p>
+                <h2 class="section-title" style="margin-top: 0.5rem;">Super Admin</h2>
+                <p class="section-copy">Conference controls, compliance, and reporting.</p>
+              </div>
+              <nav class="nav-group">
+                <p class="nav-label">Super Admin</p>
+                <a class="nav-link nav-link-active" href="./admin-dashboard.html">Dashboard</a>
+                <a class="nav-link nav-link-idle" href="./role-menus.html">Clubs</a>
+                <a class="nav-link nav-link-idle" href="./role-menus.html">Users</a>
+                <a class="nav-link nav-link-idle" href="./registration-flow.html">Events</a>
+                <a class="nav-link nav-link-idle" href="./role-menus.html">Class Catalog</a>
+                <a class="nav-link nav-link-idle" href="./role-menus.html">Compliance</a>
+                <a class="nav-link nav-link-idle" href="./role-menus.html">Nominations</a>
+                <a class="nav-link nav-link-idle" href="./role-menus.html">Reports</a>
+                <a class="nav-link nav-link-idle" href="./role-menus.html">Storage</a>
+              </nav>
+            </aside>
+
+            <div class="three-col">
+              <div class="glass-card-soft">
+                <p class="metric-label">Who this serves</p>
+                <p class="section-copy">Conference administrators overseeing every club and system-level operation.</p>
+              </div>
+              <div class="glass-card-soft">
+                <p class="metric-label">Why it is longer</p>
+                <p class="section-copy">It includes user management, club management, compliance, catalog, reports, and storage.</p>
+              </div>
+              <div class="glass-card-soft">
+                <p class="metric-label">What stands out</p>
+                <p class="section-copy">Governance and maintenance links that should not appear in club-facing roles.</p>
+              </div>
+            </div>
+          </article>
+
+          <article class="glass-panel stack">
+            <div class="between">
+              <div>
+                <p class="hero-kicker">Club Director</p>
+                <h3 class="section-title">Single-club operations menu</h3>
+              </div>
+              <span class="status-chip-neutral">6 items</span>
+            </div>
+
+            <aside class="glass-sidebar">
+              <div class="glass-card-soft">
+                <p class="hero-kicker">Club Control</p>
+                <h2 class="section-title" style="margin-top: 0.5rem;">Club Director</h2>
+                <p class="section-copy">Roster readiness, event workflows, and class coordination.</p>
+              </div>
+              <nav class="nav-group">
+                <p class="nav-label">Club Director</p>
+                <a class="nav-link nav-link-active" href="./director-dashboard.html">Dashboard</a>
+                <a class="nav-link nav-link-idle" href="./registration-flow.html">Events</a>
+                <a class="nav-link nav-link-idle" href="./roster.html">Roster</a>
+                <a class="nav-link nav-link-idle" href="./role-menus.html">Nominations</a>
+                <a class="nav-link nav-link-idle" href="./role-menus.html">TLT</a>
+                <a class="nav-link nav-link-idle" href="./student-portal.html">Reports</a>
+              </nav>
+            </aside>
+
+            <div class="three-col">
+              <div class="glass-card-soft">
+                <p class="metric-label">Who this serves</p>
+                <p class="section-copy">A director working on one club's roster, registrations, and student preparation.</p>
+              </div>
+              <div class="glass-card-soft">
+                <p class="metric-label">Why it is shorter</p>
+                <p class="section-copy">It removes conference-wide governance areas and centers on practical club workflows.</p>
+              </div>
+              <div class="glass-card-soft">
+                <p class="metric-label">What stands out</p>
+                <p class="section-copy">Roster and events become primary, while admin-only areas like users and storage disappear.</p>
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section class="glass-panel stack">
+          <h3 class="section-title">Quick Differences</h3>
+          <div class="glass-table table-shell">
+            <table>
+              <thead>
+                <tr>
+                  <th>Area</th>
+                  <th>Super Admin</th>
+                  <th>Club Director</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Scope</strong></td>
+                  <td>Conference-wide</td>
+                  <td>Single club</td>
+                </tr>
+                <tr>
+                  <td><strong>Unique menu items</strong></td>
+                  <td>Clubs, Users, Class Catalog, Compliance, Storage</td>
+                  <td>Roster, TLT</td>
+                </tr>
+                <tr>
+                  <td><strong>Main workflow</strong></td>
+                  <td>Administration, oversight, system health</td>
+                  <td>Roster readiness, event registration, club operations</td>
+                </tr>
+                <tr>
+                  <td><strong>Navigation density</strong></td>
+                  <td>Broader and more operational</td>
+                  <td>Tighter and task-focused</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="two-col">
+          <article class="glass-panel stack">
+            <div class="between">
+              <div>
+                <p class="hero-kicker">Student / Parent</p>
+                <h3 class="section-title">Minimal portal menu</h3>
+              </div>
+              <span class="status-chip-neutral">1 item</span>
+            </div>
+            <aside class="glass-sidebar">
+              <div class="glass-card-soft">
+                <p class="hero-kicker">Portal</p>
+                <h2 class="section-title" style="margin-top: 0.5rem;">Student / Parent</h2>
+                <p class="section-copy">Linked students, honors, and event class summaries.</p>
+              </div>
+              <nav class="nav-group">
+                <p class="nav-label">Student / Parent</p>
+                <a class="nav-link nav-link-active" href="./student-portal.html">Dashboard</a>
+              </nav>
+            </aside>
+          </article>
+
+          <article class="glass-panel stack">
+            <div class="between">
+              <div>
+                <p class="hero-kicker">Teacher</p>
+                <h3 class="section-title">Minimal teaching menu</h3>
+              </div>
+              <span class="status-chip-neutral">1 item</span>
+            </div>
+            <aside class="glass-sidebar">
+              <div class="glass-card-soft">
+                <p class="hero-kicker">Teaching</p>
+                <h2 class="section-title" style="margin-top: 0.5rem;">Teacher</h2>
+                <p class="section-copy">Attendance, sign-offs, and event class rosters.</p>
+              </div>
+              <nav class="nav-group">
+                <p class="nav-label">Teacher</p>
+                <a class="nav-link nav-link-active" href="./teacher-dashboard.html">Dashboard</a>
+              </nav>
+            </aside>
+          </article>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
