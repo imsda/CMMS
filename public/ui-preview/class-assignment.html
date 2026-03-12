@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UI Preview - Class Assignment</title>
+    <link rel="stylesheet" href="./preview.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="shell-header">
+        <div class="shell-header-inner">
+          <div>
+            <p class="hero-kicker">Conference Platform</p>
+            <h1 class="section-title">Class Assignment Preview</h1>
+          </div>
+          <div class="top-row">
+            <a class="btn-secondary" href="./registration-flow.html">Registration Flow</a>
+            <a class="btn-secondary" href="./index.html">All Screens</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="shell-content">
+        <div class="assignment-layout">
+          <aside class="glass-sidebar stack">
+            <div>
+              <h2 class="section-title">Registered Attendees</h2>
+              <p class="tiny muted">Choose an attendee, then enroll them into available classes.</p>
+            </div>
+            <div class="selection-list scroll-list">
+              <div class="selectable active">
+                <p><strong>Ava Durant</strong></p>
+                <p class="tiny muted">TLT • Age 15 • 1 class assigned</p>
+              </div>
+              <div class="selectable">
+                <p><strong>Noah Benton</strong></p>
+                <p class="tiny muted">Pathfinder • Age 13 • No class assigned</p>
+              </div>
+              <div class="selectable">
+                <p><strong>Lily Jensen</strong></p>
+                <p class="tiny muted">Pathfinder • Age 11 • No class assigned</p>
+              </div>
+              <div class="selectable">
+                <p><strong>Mason Turner</strong></p>
+                <p class="tiny muted">Pathfinder • Age 10 • No class assigned</p>
+              </div>
+            </div>
+          </aside>
+
+          <section class="page-stack">
+            <header class="glass-panel stack">
+              <div>
+                <h2 class="section-title">Class Enrollment &amp; Live Capacity</h2>
+                <p class="section-copy">Assigning classes for Ava Durant.</p>
+                <p class="tiny muted">Each attendee may be assigned to one event class per event.</p>
+              </div>
+              <p class="alert-warning">One class is blocked because Ava is already assigned elsewhere.</p>
+            </header>
+
+            <article class="glass-panel">
+              <div class="cards-grid">
+                <div class="glass-card-soft stack">
+                  <div class="between">
+                    <div>
+                      <p><strong>Nature Study</strong> <span class="tiny muted">(NST-201)</span></p>
+                      <p class="tiny muted">Oak Lodge</p>
+                    </div>
+                    <span class="status-chip-dark">3/14 seats left</span>
+                  </div>
+                  <div class="badge-row">
+                    <span class="status-chip-warning">Age 10+</span>
+                    <span class="status-chip-warning">Pathfinder or TLT</span>
+                    <span class="status-chip-danger">Already enrolled</span>
+                  </div>
+                  <a class="btn-primary" href="./teacher-class.html">Enrolled</a>
+                </div>
+
+                <div class="glass-card-soft stack">
+                  <div class="between">
+                    <div>
+                      <p><strong>First Aid Basics</strong> <span class="tiny muted">(MED-110)</span></p>
+                      <p class="tiny muted">Health Center</p>
+                    </div>
+                    <span class="status-chip-dark">0/12 seats left</span>
+                  </div>
+                  <div class="badge-row">
+                    <span class="status-chip-warning">Age 12+</span>
+                    <span class="status-chip-danger">Class full</span>
+                  </div>
+                  <a class="btn-secondary" href="./class-assignment.html">Enroll</a>
+                </div>
+
+                <div class="glass-card-soft stack">
+                  <div class="between">
+                    <div>
+                      <p><strong>Advanced Drill</strong> <span class="tiny muted">(DRL-300)</span></p>
+                      <p class="tiny muted">Parade Field</p>
+                    </div>
+                    <span class="status-chip-dark">6/16 seats left</span>
+                  </div>
+                  <div class="badge-row">
+                    <span class="status-chip-warning">Master Guide required</span>
+                    <span class="status-chip-danger">Not eligible</span>
+                  </div>
+                  <a class="btn-secondary" href="./class-assignment.html">Enroll</a>
+                </div>
+
+                <div class="glass-card-soft stack">
+                  <div class="between">
+                    <div>
+                      <p><strong>Camp Cooking</strong> <span class="tiny muted">(CKG-140)</span></p>
+                      <p class="tiny muted">Pine Shelter</p>
+                    </div>
+                    <span class="status-chip-dark">8/10 seats left</span>
+                  </div>
+                  <div class="badge-row">
+                    <span class="status-chip-warning">Age 10+</span>
+                    <span class="status-chip-danger">Already assigned to another event class</span>
+                  </div>
+                  <a class="btn-secondary" href="./class-assignment.html">Enroll</a>
+                </div>
+              </div>
+            </article>
+
+            <article class="empty-state">
+              <p class="section-title">Empty state reference</p>
+              <p class="section-copy">Select an attendee to start assigning classes.</p>
+            </article>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

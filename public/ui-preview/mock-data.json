@@ -1,0 +1,53 @@
+{
+  "login": {
+    "featuredMetrics": [
+      "Roster Readiness: Encrypted",
+      "Registration State: Guarded",
+      "Class Flow: Aligned"
+    ]
+  },
+  "adminDashboard": {
+    "totalActiveClubs": 14,
+    "conferenceMembers": 382,
+    "upcomingEvents": 3,
+    "warnings": [
+      "One storage cleanup batch is queued for insurance-card files.",
+      "Two clubs still have staff awaiting Sterling clearance."
+    ]
+  },
+  "directorDashboard": {
+    "clubName": "Cedar Rapids Pioneers",
+    "alerts": 3,
+    "submittedRegistrations": 2,
+    "draftRegistrations": 1
+  },
+  "registrationFlow": {
+    "eventName": "Spring Camp 2026",
+    "attendeeCount": 5,
+    "submittedResponses": 8
+  },
+  "roster": {
+    "activeMembers": 12,
+    "clearanceIssues": 2,
+    "missingConsents": 1
+  },
+  "classAssignment": {
+    "eventName": "Spring Camp 2026",
+    "attendees": 6,
+    "offerings": 5
+  },
+  "studentPortal": {
+    "linkedStudents": 2,
+    "completedHonors": 4,
+    "upcomingAssignments": 3
+  },
+  "teacherDashboard": {
+    "assignments": 3,
+    "attendanceMarked": 19
+  },
+  "teacherClass": {
+    "offeringTitle": "Nature Study",
+    "enrolled": 11,
+    "alreadyCompleted": 3
+  }
+}

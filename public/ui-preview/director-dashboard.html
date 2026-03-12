@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UI Preview - Director Dashboard</title>
+    <link rel="stylesheet" href="./preview.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="shell-header">
+        <div class="shell-header-inner">
+          <div>
+            <p class="hero-kicker">Conference Platform</p>
+            <h1 class="section-title">Director Dashboard Preview</h1>
+          </div>
+          <div class="top-row">
+            <span class="status-chip-success">Preview User: Club Director</span>
+            <a class="btn-secondary" href="./index.html">All Screens</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="shell-content">
+        <div class="shell-grid">
+          <aside class="glass-sidebar">
+            <div class="glass-card-soft">
+              <p class="hero-kicker">Club Control</p>
+              <h2 class="section-title" style="margin-top: 0.5rem;">Club Director</h2>
+              <p class="section-copy">Roster readiness, event workflows, and class coordination.</p>
+            </div>
+            <nav class="nav-group">
+              <p class="nav-label">Club Director</p>
+              <a class="nav-link nav-link-active" href="./director-dashboard.html">Dashboard</a>
+              <a class="nav-link nav-link-idle" href="./registration-flow.html">Events</a>
+              <a class="nav-link nav-link-idle" href="./roster.html">Roster</a>
+              <a class="nav-link nav-link-idle" href="./class-assignment.html">Nominations</a>
+              <a class="nav-link nav-link-idle" href="./student-portal.html">Reports</a>
+            </nav>
+          </aside>
+
+          <section class="page-stack">
+            <header class="glass-panel">
+              <div class="between">
+                <div>
+                  <p class="hero-kicker">Club Director Dashboard</p>
+                  <h2 class="hero-title">Cedar Rapids Pioneers</h2>
+                  <p class="hero-copy">Manage roster readiness, event registrations, and class workflows from one place.</p>
+                </div>
+                <div class="button-row">
+                  <a class="btn-secondary" href="./roster.html">View roster</a>
+                  <a class="btn-primary" href="./registration-flow.html">Continue registration</a>
+                </div>
+              </div>
+            </header>
+
+            <div class="metric-grid">
+              <article class="metric-card">
+                <p class="metric-label">Active members</p>
+                <p class="metric-value">27</p>
+                <p class="metric-caption">Current active roster year.</p>
+              </article>
+              <article class="metric-card">
+                <p class="metric-label">Upcoming events</p>
+                <p class="metric-value">4</p>
+                <p class="metric-caption">Conference events open or upcoming.</p>
+              </article>
+              <article class="metric-card">
+                <p class="metric-label">Submitted registrations</p>
+                <p class="metric-value">2</p>
+                <p class="metric-caption">Finalized by your club.</p>
+              </article>
+              <article class="metric-card">
+                <p class="metric-label">Draft registrations</p>
+                <p class="metric-value">1</p>
+                <p class="metric-caption">In progress and editable.</p>
+              </article>
+            </div>
+
+            <div class="two-col">
+              <article class="glass-panel stack">
+                <div class="between">
+                  <div>
+                    <h3 class="section-title">Upcoming Events</h3>
+                    <p class="section-copy">Event statuses for this club.</p>
+                  </div>
+                  <a class="btn-secondary" href="./registration-flow.html">Open Event List</a>
+                </div>
+
+                <div class="list-stack">
+                  <div class="glass-card-soft between">
+                    <div>
+                      <p><strong>Spring Camp 2026</strong></p>
+                      <p class="tiny muted">Apr 17 - Apr 19</p>
+                    </div>
+                    <div class="right">
+                      <p class="small"><strong>SUBMITTED</strong></p>
+                      <p class="tiny muted">5 attendees</p>
+                    </div>
+                  </div>
+                  <div class="glass-card-soft between">
+                    <div>
+                      <p><strong>Pathfinder Fair</strong></p>
+                      <p class="tiny muted">May 08 - May 10</p>
+                    </div>
+                    <div class="right">
+                      <p class="small"><strong>DRAFT</strong></p>
+                      <p class="tiny muted">3 attendees</p>
+                    </div>
+                  </div>
+                  <div class="glass-card-soft between">
+                    <div>
+                      <p><strong>Teen Leadership Retreat</strong></p>
+                      <p class="tiny muted">Jun 12 - Jun 14</p>
+                    </div>
+                    <div class="right">
+                      <p class="small"><strong>NOT STARTED</strong></p>
+                      <p class="tiny muted">0 attendees</p>
+                    </div>
+                  </div>
+                </div>
+              </article>
+
+              <article class="glass-panel stack">
+                <h3 class="section-title">Action Alerts</h3>
+                <div class="list-stack">
+                  <div class="alert-warning">2 staff/director members are missing Sterling clearance and can block submissions.</div>
+                  <div class="alert-warning">One roster member still needs photo-release consent before final approval.</div>
+                  <div class="alert-info">Registration for Pathfinder Fair opens in 5 days.</div>
+                </div>
+                <div class="empty-state">
+                  <p class="section-title">Empty state reference</p>
+                  <p class="section-copy">If no alerts exist, this panel can collapse to a single success card.</p>
+                </div>
+              </article>
+            </div>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

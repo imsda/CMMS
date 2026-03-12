@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UI Preview - Roster</title>
+    <link rel="stylesheet" href="./preview.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="shell-header">
+        <div class="shell-header-inner">
+          <div>
+            <p class="hero-kicker">Conference Platform</p>
+            <h1 class="section-title">Roster Page Preview</h1>
+          </div>
+          <div class="top-row">
+            <a class="btn-secondary" href="./director-dashboard.html">Director Dashboard</a>
+            <a class="btn-secondary" href="./index.html">All Screens</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="shell-content">
+        <div class="shell-grid">
+          <aside class="glass-sidebar">
+            <div class="glass-card-soft">
+              <p class="hero-kicker">Club Control</p>
+              <h2 class="section-title" style="margin-top: 0.5rem;">Club Director</h2>
+              <p class="section-copy">Roster readiness, event workflows, and class coordination.</p>
+            </div>
+            <nav class="nav-group">
+              <p class="nav-label">Club Director</p>
+              <a class="nav-link nav-link-idle" href="./director-dashboard.html">Dashboard</a>
+              <a class="nav-link nav-link-idle" href="./registration-flow.html">Events</a>
+              <a class="nav-link nav-link-active" href="./roster.html">Roster</a>
+            </nav>
+          </aside>
+
+          <section class="page-stack">
+            <header class="glass-panel between">
+              <div>
+                <p class="hero-kicker">Active Roster Year</p>
+                <h2 class="hero-title">2025-2026 Members</h2>
+                <p class="hero-copy">Manage the active members for the current roster year.</p>
+              </div>
+              <a class="btn-primary" href="./roster.html">Add Member</a>
+            </header>
+
+            <section class="metric-grid">
+              <article class="metric-card">
+                <p class="metric-label">Active members</p>
+                <p class="metric-value">12</p>
+              </article>
+              <article class="metric-card">
+                <p class="metric-label">Clearance issues</p>
+                <p class="metric-value">2</p>
+              </article>
+              <article class="metric-card">
+                <p class="metric-label">Missing consents</p>
+                <p class="metric-value">1</p>
+              </article>
+            </section>
+
+            <section class="glass-table table-shell">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Tags</th>
+                    <th>Role</th>
+                    <th>Background Check</th>
+                    <th>Consents</th>
+                    <th>Age</th>
+                    <th>Gender</th>
+                    <th>Medical</th>
+                    <th>Dietary</th>
+                    <th>Master Guide</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><strong>Ava Durant</strong></td>
+                    <td><span class="status-chip-warning">1st Year</span></td>
+                    <td>TLT</td>
+                    <td><span class="status-chip-neutral">Not Required</span></td>
+                    <td><span class="status-chip-success">Complete</span></td>
+                    <td>15</td>
+                    <td>Female</td>
+                    <td><span class="status-chip-neutral">None</span></td>
+                    <td><span class="status-chip-neutral">None</span></td>
+                    <td><span class="status-chip-neutral">No</span></td>
+                    <td><a class="btn-secondary" href="./roster.html">Edit</a></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Emma Clarke</strong></td>
+                    <td><span class="status-chip-success">Medical</span></td>
+                    <td>Staff</td>
+                    <td><span class="status-chip-success">Cleared Mar 03, 2026</span></td>
+                    <td><span class="status-chip-success">Complete</span></td>
+                    <td>26</td>
+                    <td>Female</td>
+                    <td><span class="status-chip-warning">Flagged</span></td>
+                    <td><span class="status-chip-warning">Yes</span></td>
+                    <td><span class="status-chip-success">Certified</span></td>
+                    <td><a class="btn-secondary" href="./roster.html">Edit</a></td>
+                  </tr>
+                  <tr>
+                    <td><strong>Mateo Ruiz</strong></td>
+                    <td><span class="status-chip-neutral">-</span></td>
+                    <td>Director</td>
+                    <td><span class="status-chip-danger">Missing Clearance</span></td>
+                    <td><span class="status-chip-warning">Missing</span></td>
+                    <td>34</td>
+                    <td>Male</td>
+                    <td><span class="status-chip-neutral">None</span></td>
+                    <td><span class="status-chip-neutral">None</span></td>
+                    <td><span class="status-chip-success">Certified</span></td>
+                    <td><a class="btn-secondary" href="./roster.html">Edit</a></td>
+                  </tr>
+                </tbody>
+              </table>
+            </section>
+
+            <section class="two-col">
+              <article class="empty-state">
+                <p class="section-title">Empty state reference</p>
+                <p class="section-copy">No active members found in this roster year yet.</p>
+              </article>
+              <article class="glass-modal stack">
+                <div class="between">
+                  <h3 class="section-title">Edit roster member</h3>
+                  <span class="status-chip-neutral">Modal preview</span>
+                </div>
+                <div class="form-grid">
+                  <div>
+                    <label class="field-label">First name</label>
+                    <input class="input-glass" value="Mateo" />
+                  </div>
+                  <div>
+                    <label class="field-label">Last name</label>
+                    <input class="input-glass" value="Ruiz" />
+                  </div>
+                  <div>
+                    <label class="field-label">Role</label>
+                    <select class="select-glass"><option>Director</option></select>
+                  </div>
+                  <div>
+                    <label class="field-label">Background check date</label>
+                    <input class="input-glass" value="" placeholder="YYYY-MM-DD" />
+                  </div>
+                </div>
+              </article>
+            </section>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UI Preview - Teacher Class Page</title>
+    <link rel="stylesheet" href="./preview.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="shell-header">
+        <div class="shell-header-inner">
+          <div>
+            <p class="hero-kicker">Conference Platform</p>
+            <h1 class="section-title">Teacher Class Page Preview</h1>
+          </div>
+          <div class="top-row">
+            <a class="btn-secondary" href="./teacher-dashboard.html">Teacher Dashboard</a>
+            <a class="btn-secondary" href="./index.html">All Screens</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="shell-content page-stack">
+        <header class="glass-panel">
+          <p class="hero-kicker">Class Management</p>
+          <h2 class="hero-title">Nature Study <span class="tiny muted">(NST-201)</span></h2>
+          <p class="small muted" style="margin-top: 0.5rem;">Spring Camp 2026</p>
+          <p class="small muted">Apr 17, 2026 • 7:00 PM - 8:15 PM</p>
+          <p class="small muted">Oak Lodge</p>
+        </header>
+
+        <article class="glass-card">
+          <p class="small"><strong>Enrollment:</strong> 11/14</p>
+          <p class="tiny muted" style="margin-top: 0.35rem;">Attendance marked: 8/11</p>
+        </article>
+
+        <section class="glass-table table-shell">
+          <table>
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Role</th>
+                <th>Attendance</th>
+                <th>Requirement</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Ava Durant</strong></td>
+                <td>TLT</td>
+                <td><span class="attendance-pill present">Present</span></td>
+                <td><span class="status-chip-success">Completed</span></td>
+              </tr>
+              <tr>
+                <td><strong>Noah Benton</strong></td>
+                <td>Pathfinder</td>
+                <td><span class="attendance-pill present">Present</span></td>
+                <td><span class="status-chip-warning">Selected for NST-201 sign-off</span></td>
+              </tr>
+              <tr>
+                <td><strong>Lily Jensen</strong></td>
+                <td>Pathfinder</td>
+                <td><span class="attendance-pill absent">Absent</span></td>
+                <td><span class="status-chip-neutral">Not selected</span></td>
+              </tr>
+              <tr>
+                <td><strong>Mason Turner</strong></td>
+                <td>Pathfinder</td>
+                <td><span class="attendance-pill present">Present</span></td>
+                <td><span class="status-chip-warning">Selected for NST-201 sign-off</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+
+        <section class="sticky-action-bar between">
+          <div>
+            <p><strong>8 students still need this requirement completed.</strong></p>
+            <p class="tiny muted">Selection and confirmation state preview.</p>
+          </div>
+          <a class="btn-primary" href="./teacher-class.html">Sign Off Requirements (2)</a>
+        </section>
+
+        <section class="glass-modal stack">
+          <div class="between">
+            <h3 class="section-title">Confirm Requirement Sign-Off</h3>
+            <span class="status-chip-neutral">Modal preview</span>
+          </div>
+          <p class="section-copy">You are about to mark <strong>NST-201</strong> completed for 2 students.</p>
+          <div>
+            <label class="field-label">Optional notes</label>
+            <textarea class="textarea-glass">Completed field notebook review and habitat quiz during Friday session.</textarea>
+          </div>
+          <div class="button-row">
+            <a class="btn-secondary" href="./teacher-class.html">Cancel</a>
+            <a class="btn-primary" href="./teacher-class.html">Confirm Sign-Off</a>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

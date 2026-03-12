@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UI Preview - Admin Dashboard</title>
+    <link rel="stylesheet" href="./preview.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="shell-header">
+        <div class="shell-header-inner">
+          <div>
+            <p class="hero-kicker">Conference Platform</p>
+            <h1 class="section-title">Admin Dashboard Preview</h1>
+          </div>
+          <div class="top-row">
+            <span class="status-chip-success">Preview User: Super Admin</span>
+            <a class="btn-secondary" href="./index.html">All Screens</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="shell-content">
+        <div class="shell-grid">
+          <aside class="glass-sidebar">
+            <div class="glass-card-soft">
+              <p class="hero-kicker">Operations</p>
+              <h2 class="section-title" style="margin-top: 0.5rem;">Super Admin</h2>
+              <p class="section-copy">Conference controls, compliance, and reporting.</p>
+            </div>
+            <nav class="nav-group">
+              <p class="nav-label">Super Admin</p>
+              <a class="nav-link nav-link-active" href="./admin-dashboard.html">Dashboard</a>
+              <a class="nav-link nav-link-idle" href="./roster.html">Clubs</a>
+              <a class="nav-link nav-link-idle" href="./student-portal.html">Users</a>
+              <a class="nav-link nav-link-idle" href="./registration-flow.html">Events</a>
+              <a class="nav-link nav-link-idle" href="./class-assignment.html">Class Catalog</a>
+              <a class="nav-link nav-link-idle" href="./admin-dashboard.html">Compliance</a>
+              <a class="nav-link nav-link-idle" href="./admin-dashboard.html">Reports</a>
+            </nav>
+          </aside>
+
+          <section class="page-stack">
+            <header class="glass-panel">
+              <p class="hero-kicker">Super Admin Dashboard</p>
+              <h2 class="hero-title">Conference Overview</h2>
+              <p class="hero-copy">Monitor club participation, conference member totals, and active event windows.</p>
+            </header>
+
+            <div class="metric-grid">
+              <article class="metric-card">
+                <p class="metric-label">Total Active Clubs</p>
+                <p class="metric-value">14</p>
+              </article>
+              <article class="metric-card">
+                <p class="metric-label">Conference Members</p>
+                <p class="metric-value">382</p>
+                <p class="metric-caption">From active members in active roster years.</p>
+              </article>
+              <article class="metric-card">
+                <p class="metric-label">Upcoming Events</p>
+                <p class="metric-value">3</p>
+                <p class="metric-caption">Events ending today or later.</p>
+              </article>
+            </div>
+
+            <article class="glass-panel stack">
+              <div class="between">
+                <div>
+                  <h3 class="section-title">System Health</h3>
+                  <p class="section-copy">Launch-critical checks and maintenance warnings surfaced from the live system state.</p>
+                </div>
+                <span class="status-chip-warning">2 Warnings</span>
+              </div>
+              <div class="list-stack">
+                <div class="alert-warning">
+                  <strong class="code">STORAGE_REMEDIATION</strong><br />
+                  Insurance-card storage cleanup is queued for 18 stale files.
+                </div>
+                <div class="alert-danger">
+                  <strong class="code">CLEARANCE_GAP</strong><br />
+                  Two staff/director members remain uncleared and could block registration approval.
+                </div>
+              </div>
+            </article>
+
+            <article class="glass-panel stack">
+              <div class="between">
+                <div>
+                  <h3 class="section-title">Upcoming Event Timeline</h3>
+                  <p class="section-copy">Mock registrations, statuses, and locations.</p>
+                </div>
+                <a class="btn-primary" href="./registration-flow.html">Create Event</a>
+              </div>
+
+              <div class="glass-table table-shell">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Event</th>
+                      <th>Dates</th>
+                      <th>Location</th>
+                      <th>Registrations</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>Spring Camp 2026</strong></td>
+                      <td>Apr 17, 2026 - Apr 19, 2026</td>
+                      <td>Camp Heritage</td>
+                      <td>12</td>
+                      <td><span class="status-chip-success">Open</span></td>
+                      <td><a class="btn-secondary" href="./registration-flow.html">Open Overseer</a></td>
+                    </tr>
+                    <tr>
+                      <td><strong>Pathfinder Fair</strong></td>
+                      <td>May 08, 2026 - May 10, 2026</td>
+                      <td>Jefferson County Fairgrounds</td>
+                      <td>8</td>
+                      <td><span class="status-chip-warning">Upcoming</span></td>
+                      <td><a class="btn-secondary" href="./class-assignment.html">Open Overseer</a></td>
+                    </tr>
+                    <tr>
+                      <td><strong>Teen Leadership Retreat</strong></td>
+                      <td>Jun 12, 2026 - Jun 14, 2026</td>
+                      <td>TBD</td>
+                      <td>0</td>
+                      <td><span class="status-chip-neutral">Draft</span></td>
+                      <td><a class="btn-secondary" href="./teacher-dashboard.html">Open Overseer</a></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>
