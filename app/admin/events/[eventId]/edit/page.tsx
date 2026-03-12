@@ -52,6 +52,7 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
           label: true,
           description: true,
           type: true,
+          fieldScope: true,
           isRequired: true,
           options: true,
           sortOrder: true,
@@ -74,6 +75,7 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
     label: field.label,
     description: field.description ?? "",
     type: field.type,
+    fieldScope: field.fieldScope,
     isRequired: field.isRequired,
     options: parseDraftOptions(field.options),
   }));

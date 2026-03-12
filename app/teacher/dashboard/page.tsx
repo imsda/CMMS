@@ -42,6 +42,11 @@ export default async function TeacherDashboardPage() {
           enrollments: true,
         },
       },
+      enrollments: {
+        select: {
+          attendedAt: true,
+        },
+      },
       event: {
         select: {
           id: true,
@@ -63,26 +68,29 @@ export default async function TeacherDashboardPage() {
 
   return (
     <section className="space-y-6">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium text-slate-500">Teacher Portal</p>
-        <h1 className="text-3xl font-semibold text-slate-900">My Upcoming Class Sessions</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Manage attendance and sign-off requirements for classes you are assigned to teach.
+      <header className="glass-panel">
+        <p className="hero-kicker">Teacher Portal</p>
+        <h1 className="hero-title mt-3">My Event Class Assignments</h1>
+        <p className="hero-copy">
+          Manage attendance and sign-off requirements for the event classes assigned to you.
         </p>
       </header>
 
       {offerings.length === 0 ? (
-        <article className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">
-          You do not have any upcoming class sessions assigned right now.
+        <article className="empty-state text-sm text-slate-600">
+          You do not have any upcoming event class assignments right now.
         </article>
       ) : (
         <div className="grid gap-4">
           {offerings.map((offering) => {
             const enrolledCount = offering._count.enrollments;
+            const attendedCount = offering.enrollments.filter(
+              (enrollment) => enrollment.attendedAt !== null,
+            ).length;
             return (
               <article
                 key={offering.id}
-                className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                className="glass-card"
               >
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
@@ -93,7 +101,10 @@ export default async function TeacherDashboardPage() {
                         ({offering.classCatalog.code})
                       </span>
                     </h2>
-                    <p className="mt-1 text-sm text-slate-600">
+                    <p className="mt-1 text-sm font-medium text-slate-700">
+                      Event dates
+                    </p>
+                    <p className="text-sm text-slate-600">
                       {formatDateRange(offering.event.startsAt, offering.event.endsAt)}
                     </p>
                     <p className="text-sm text-slate-500">{offering.event.locationName ?? "Location TBD"}</p>
@@ -103,9 +114,12 @@ export default async function TeacherDashboardPage() {
                     <p className="text-sm font-semibold text-slate-700">
                       {enrolledCount}/{offering.capacity ?? "Open"} enrolled
                     </p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Class attendance marked: {attendedCount}/{enrolledCount}
+                    </p>
                     <Link
                       href={`/teacher/class/${offering.id}`}
-                      className="mt-2 inline-flex rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500"
+                      className="btn-primary mt-3"
                     >
                       Open Roster
                     </Link>

@@ -15,9 +15,9 @@ export default async function StudentLayout({
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
+    <div className="shell-grid">
       <StudentNav />
-      <div>{children}</div>
+      <div className="min-w-0">{children}</div>
     </div>
   );
 }

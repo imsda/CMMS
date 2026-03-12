@@ -29,6 +29,10 @@ function getEncryptionKey() {
   );
 }
 
+export function assertMedicalEncryptionConfigured() {
+  getEncryptionKey();
+}
+
 export function encrypt(plainText: string | null | undefined) {
   if (!plainText) {
     return null;

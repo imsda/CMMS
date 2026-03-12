@@ -1,11 +1,13 @@
 "use server";
 
-import { MemberRole, PaymentStatus, RegistrationStatus, type Prisma } from "@prisma/client";
+import { FormFieldScope, MemberRole, PaymentStatus, RegistrationStatus, type Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "../../auth";
 import { sendRegistrationReceiptEmail } from "../../lib/email/resend";
+import { getFieldScope } from "../../lib/event-form-scope";
 import { prisma } from "../../lib/prisma";
+import { assertRegistrationCanPersist } from "../../lib/registration-lifecycle";
 
 export type RegistrationActionState = {
   status: "idle" | "success" | "error";
@@ -26,6 +28,7 @@ type DynamicFieldRule = {
   key: string;
   label: string;
   type: string;
+  fieldScope: FormFieldScope;
   isRequired: boolean;
   options: unknown;
 };
@@ -167,6 +170,94 @@ function validateResponseValue(
   }
 }
 
+async function getClubRegistrationContext(input: {
+  eventId: string;
+  clubId: string;
+  directorEmail: string | null;
+}) {
+  const membershipClub = await prisma.club.findUnique({
+    where: {
+      id: input.clubId,
+    },
+    include: {
+      rosterYears: {
+        where: {
+          isActive: true,
+        },
+        select: {
+          members: {
+            where: {
+              isActive: true,
+            },
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              memberRole: true,
+              backgroundCheckCleared: true,
+            },
+          },
+        },
+        orderBy: {
+          startsOn: "desc",
+        },
+        take: 1,
+      },
+    },
+  });
+
+  if (!membershipClub) {
+    throw new Error("No club was found for this registration.");
+  }
+
+  const event = await prisma.event.findUnique({
+    where: {
+      id: input.eventId,
+    },
+    select: {
+      id: true,
+      name: true,
+      basePrice: true,
+      lateFeePrice: true,
+      lateFeeStartsAt: true,
+      registrationOpensAt: true,
+      registrationClosesAt: true,
+      dynamicFields: {
+        select: {
+          id: true,
+          key: true,
+          label: true,
+          type: true,
+          fieldScope: true,
+          isRequired: true,
+          options: true,
+        },
+      },
+    },
+  });
+
+  if (!event) {
+    throw new Error("Event not found.");
+  }
+
+  const activeRoster = membershipClub.rosterYears[0];
+  const rosterMembers = activeRoster?.members ?? [];
+  const validAttendeeIds = new Set(rosterMembers.map((member) => member.id));
+  const validFieldIds = new Set(event.dynamicFields.map((field) => field.id));
+  const dynamicFieldRules = event.dynamicFields.filter((field) => field.type !== "FIELD_GROUP");
+
+  return {
+    event,
+    clubId: membershipClub.id,
+    clubName: membershipClub.name,
+    directorEmail: input.directorEmail,
+    rosterMembers,
+    validAttendeeIds,
+    validFieldIds,
+    dynamicFieldRules,
+  };
+}
+
 async function requireDirectorClubForEvent(eventId: string) {
   const session = await auth();
 
@@ -188,29 +279,6 @@ async function requireDirectorClubForEvent(eventId: string) {
         select: {
           id: true,
           name: true,
-          rosterYears: {
-            where: {
-              isActive: true,
-            },
-            include: {
-              members: {
-                where: {
-                  isActive: true,
-                },
-                select: {
-                  id: true,
-                  firstName: true,
-                  lastName: true,
-                  memberRole: true,
-                  backgroundCheckCleared: true,
-                },
-              },
-            },
-            orderBy: {
-              startsOn: "desc",
-            },
-            take: 1,
-          },
         },
       },
     },
@@ -223,85 +291,53 @@ async function requireDirectorClubForEvent(eventId: string) {
     throw new Error("No club membership was found for this director.");
   }
 
-  const event = await prisma.event.findUnique({
-    where: {
-      id: eventId,
-    },
-    select: {
-      id: true,
-      name: true,
-      basePrice: true,
-      lateFeePrice: true,
-      lateFeeStartsAt: true,
-      dynamicFields: {
-        select: {
-          id: true,
-          key: true,
-          label: true,
-          type: true,
-          isRequired: true,
-          options: true,
-        },
-      },
-    },
-  });
-
-  if (!event) {
-    throw new Error("Event not found.");
-  }
-
-  const activeRoster = membership.club.rosterYears[0];
-  const rosterMembers = activeRoster?.members ?? [];
-  const validAttendeeIds = new Set(rosterMembers.map((member) => member.id));
-  const validFieldIds = new Set(event.dynamicFields.map((field) => field.id));
-  const dynamicFieldRules = event.dynamicFields.filter((field) => field.type !== "FIELD_GROUP");
-
-  return {
-    event,
+  return getClubRegistrationContext({
+    eventId,
     clubId: membership.club.id,
-    clubName: membership.club.name,
     directorEmail: membership.user.email ?? session.user.email ?? null,
-    rosterMembers,
-    validAttendeeIds,
-    validFieldIds,
-    dynamicFieldRules,
-  };
+  });
 }
 
-async function persistRegistration(formData: FormData, nextStatus: RegistrationStatus) {
-  const eventIdEntry = formData.get("eventId");
-  if (typeof eventIdEntry !== "string" || eventIdEntry.trim().length === 0) {
-    throw new Error("Event id is required.");
-  }
-
-  const eventId = eventIdEntry.trim();
-  const payload = parsePayload(formData.get("registrationPayload"));
-
+export async function persistRegistrationForClub(input: {
+  eventId: string;
+  clubId: string;
+  clubName: string;
+  directorEmail: string | null;
+  payload: RegistrationPayload;
+  nextStatus: RegistrationStatus;
+  now?: Date;
+  sendReceiptEmail?: typeof sendRegistrationReceiptEmail;
+}) {
   const {
-    clubId,
-    clubName,
-    directorEmail,
     event,
     rosterMembers,
     validAttendeeIds,
     validFieldIds,
     dynamicFieldRules,
-  } = await requireDirectorClubForEvent(eventId);
+  } = await getClubRegistrationContext({
+    eventId: input.eventId,
+    clubId: input.clubId,
+    directorEmail: input.directorEmail,
+  });
 
-  const attendeeIds = payload.attendeeIds.filter((attendeeId) => validAttendeeIds.has(attendeeId));
+  const attendeeIds = input.payload.attendeeIds.filter((attendeeId) => validAttendeeIds.has(attendeeId));
   const attendeeIdSet = new Set(attendeeIds);
 
-  const responses = payload.responses
+  const fieldById = new Map(dynamicFieldRules.map((field) => [field.id, field]));
+
+  const responses = input.payload.responses
     .filter((response) => {
-      if (!validFieldIds.has(response.fieldId)) {
+      const field = fieldById.get(response.fieldId);
+      if (!field || !validFieldIds.has(response.fieldId)) {
         return false;
       }
 
-      if (response.attendeeId === null) {
-        return true;
+      const fieldScope = getFieldScope(field);
+      if (fieldScope === FormFieldScope.GLOBAL) {
+        return response.attendeeId === null;
       }
 
-      return attendeeIdSet.has(response.attendeeId);
+      return response.attendeeId !== null && attendeeIdSet.has(response.attendeeId);
     })
     .map((response) => ({
       eventFormFieldId: response.fieldId,
@@ -309,20 +345,50 @@ async function persistRegistration(formData: FormData, nextStatus: RegistrationS
       value: response.value,
     }));
 
-  const responseByFieldId = new Map<string, unknown>();
+  const globalResponseByFieldId = new Map<string, unknown>();
+  const attendeeResponseByFieldId = new Map<string, Map<string, unknown>>();
+
   for (const response of responses) {
-    if (!responseByFieldId.has(response.eventFormFieldId)) {
-      responseByFieldId.set(response.eventFormFieldId, response.value);
+    const field = fieldById.get(response.eventFormFieldId);
+    if (!field) {
+      continue;
+    }
+
+    if (getFieldScope(field) === FormFieldScope.ATTENDEE && response.attendeeId) {
+      const byAttendee = attendeeResponseByFieldId.get(response.eventFormFieldId) ?? new Map<string, unknown>();
+      byAttendee.set(response.attendeeId, response.value);
+      attendeeResponseByFieldId.set(response.eventFormFieldId, byAttendee);
+      continue;
+    }
+
+    if (!globalResponseByFieldId.has(response.eventFormFieldId)) {
+      globalResponseByFieldId.set(response.eventFormFieldId, response.value);
     }
   }
 
-  if (nextStatus === RegistrationStatus.SUBMITTED) {
+  if (input.nextStatus === RegistrationStatus.SUBMITTED) {
     if (attendeeIds.length === 0) {
       throw new Error("Select at least one attendee before submitting registration.");
     }
 
     for (const field of dynamicFieldRules) {
-      const responseValue = responseByFieldId.get(field.id);
+      if (getFieldScope(field) === FormFieldScope.ATTENDEE) {
+        const responseValuesByAttendee = attendeeResponseByFieldId.get(field.id) ?? new Map<string, unknown>();
+
+        for (const attendeeId of attendeeIds) {
+          const responseValue = responseValuesByAttendee.get(attendeeId);
+
+          if (field.isRequired && !hasResponseValue(responseValue)) {
+            throw new Error(`Required attendee question is missing: "${field.label}".`);
+          }
+
+          validateResponseValue(field, responseValue, validAttendeeIds);
+        }
+
+        continue;
+      }
+
+      const responseValue = globalResponseByFieldId.get(field.id);
 
       if (field.isRequired && !hasResponseValue(responseValue)) {
         throw new Error(`Required question is missing: "${field.label}".`);
@@ -332,8 +398,7 @@ async function persistRegistration(formData: FormData, nextStatus: RegistrationS
     }
   }
 
-
-  if (nextStatus === RegistrationStatus.SUBMITTED) {
+  if (input.nextStatus === RegistrationStatus.SUBMITTED) {
     const attendeeLookup = new Map(rosterMembers.map((member) => [member.id, member]));
     const adultsMissingClearance = attendeeIds
       .map((attendeeId) => attendeeLookup.get(attendeeId))
@@ -351,37 +416,61 @@ async function persistRegistration(formData: FormData, nextStatus: RegistrationS
       );
     }
   }
-  const now = new Date();
+  const now = input.now ?? new Date();
   const pricePerAttendee = now >= event.lateFeeStartsAt ? event.lateFeePrice : event.basePrice;
   const totalDue = attendeeIds.length * pricePerAttendee;
+  let emailWarning: string | null = null;
 
   await prisma.$transaction(async (tx) => {
-    const registration = await tx.eventRegistration.upsert({
+    const existingRegistration = await tx.eventRegistration.findUnique({
       where: {
         eventId_clubId: {
-          eventId,
-          clubId,
+          eventId: input.eventId,
+          clubId: input.clubId,
         },
-      },
-      create: {
-        eventId,
-        clubId,
-        registrationCode: generateRegistrationCode(),
-        status: nextStatus,
-        submittedAt: nextStatus === RegistrationStatus.SUBMITTED ? new Date() : null,
-        totalDue,
-        paymentStatus: totalDue <= 0 ? PaymentStatus.PAID : PaymentStatus.PENDING,
-      },
-      update: {
-        status: nextStatus,
-        submittedAt: nextStatus === RegistrationStatus.SUBMITTED ? new Date() : null,
-        totalDue,
-        paymentStatus: totalDue <= 0 ? PaymentStatus.PAID : PaymentStatus.PENDING,
       },
       select: {
         id: true,
+        status: true,
       },
     });
+
+    assertRegistrationCanPersist({
+      registrationOpensAt: event.registrationOpensAt,
+      registrationClosesAt: event.registrationClosesAt,
+      registrationStatus: existingRegistration?.status ?? null,
+      now,
+    });
+
+    const registration = existingRegistration
+      ? await tx.eventRegistration.update({
+          where: {
+            id: existingRegistration.id,
+          },
+          data: {
+            status: input.nextStatus,
+            submittedAt: input.nextStatus === RegistrationStatus.SUBMITTED ? new Date() : null,
+            totalDue,
+            paymentStatus: totalDue <= 0 ? PaymentStatus.PAID : PaymentStatus.PENDING,
+          },
+          select: {
+            id: true,
+          },
+        })
+      : await tx.eventRegistration.create({
+          data: {
+            eventId: input.eventId,
+            clubId: input.clubId,
+            registrationCode: generateRegistrationCode(),
+            status: input.nextStatus,
+            submittedAt: input.nextStatus === RegistrationStatus.SUBMITTED ? new Date() : null,
+            totalDue,
+            paymentStatus: totalDue <= 0 ? PaymentStatus.PAID : PaymentStatus.PENDING,
+          },
+          select: {
+            id: true,
+          },
+        });
 
     await tx.registrationAttendee.deleteMany({
       where: {
@@ -416,17 +505,47 @@ async function persistRegistration(formData: FormData, nextStatus: RegistrationS
     }
   });
 
-  revalidatePath(`/director/events/${eventId}`);
+  revalidatePath(`/director/events/${input.eventId}`);
   revalidatePath("/director/dashboard");
 
-  if (nextStatus === RegistrationStatus.SUBMITTED && directorEmail) {
-    await sendRegistrationReceiptEmail({
-      to: directorEmail,
-      clubName,
-      eventName: event.name,
-      attendeeCount: attendeeIds.length,
-    });
+  if (input.nextStatus === RegistrationStatus.SUBMITTED && input.directorEmail) {
+    try {
+      await (input.sendReceiptEmail ?? sendRegistrationReceiptEmail)({
+        to: input.directorEmail,
+        clubName: input.clubName,
+        eventName: event.name,
+        attendeeCount: attendeeIds.length,
+      });
+    } catch (error) {
+      console.error("Registration was saved, but the receipt email failed to send.", error);
+      emailWarning = "Registration submitted, but the confirmation email could not be sent.";
+    }
   }
+
+  return {
+    emailWarning,
+  };
+}
+
+async function persistRegistration(formData: FormData, nextStatus: RegistrationStatus) {
+  const eventIdEntry = formData.get("eventId");
+  if (typeof eventIdEntry !== "string" || eventIdEntry.trim().length === 0) {
+    throw new Error("Event id is required.");
+  }
+
+  const eventId = eventIdEntry.trim();
+  const payload = parsePayload(formData.get("registrationPayload"));
+
+  const context = await requireDirectorClubForEvent(eventId);
+
+  return persistRegistrationForClub({
+    eventId,
+    clubId: context.clubId,
+    clubName: context.clubName,
+    directorEmail: context.directorEmail,
+    payload,
+    nextStatus,
+  });
 }
 
 export async function saveEventRegistrationDraft(
@@ -452,10 +571,10 @@ export async function submitEventRegistration(
   formData: FormData,
 ): Promise<RegistrationActionState> {
   try {
-    await persistRegistration(formData, RegistrationStatus.SUBMITTED);
+    const result = await persistRegistration(formData, RegistrationStatus.SUBMITTED);
     return {
       status: "success",
-      message: "Registration submitted.",
+      message: result.emailWarning ?? "Registration submitted.",
     };
   } catch (error) {
     return {

@@ -1,6 +1,6 @@
 "use server";
 
-import { RegistrationStatus } from "@prisma/client";
+import { FormFieldScope, RegistrationStatus } from "@prisma/client";
 import { type Session } from "next-auth";
 
 import { auth } from "../../auth";
@@ -144,7 +144,9 @@ export async function getOperationalReports(eventId: string): Promise<Operationa
           },
           formResponses: {
             where: {
-              attendeeId: null,
+              field: {
+                fieldScope: FormFieldScope.GLOBAL,
+              },
             },
             select: {
               value: true,

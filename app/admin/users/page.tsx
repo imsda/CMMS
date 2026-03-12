@@ -1,6 +1,7 @@
 import { prisma } from "../../../lib/prisma";
 import { MembershipOpsForm } from "./_components/membership-ops-form";
 import { ResetPasswordForm } from "./_components/reset-password-form";
+import { StudentPortalLinkForm } from "./_components/student-portal-link-form";
 import { UpdateUserProfileForm } from "./_components/update-user-profile-form";
 import { UserMembershipForm } from "./_components/user-membership-form";
 import { UserCreateForm } from "./_components/user-create-form";
@@ -25,6 +26,11 @@ export default async function AdminUsersPage() {
               code: true,
             },
           },
+        },
+      },
+      rosterMemberLinks: {
+        select: {
+          id: true,
         },
       },
     },
@@ -53,6 +59,91 @@ export default async function AdminUsersPage() {
       isPrimary: membership.isPrimary,
     })),
   );
+  const portalUsers = users.filter((user) => user.role === "STUDENT_PARENT");
+  const rosterMembers = await prisma.rosterMember.findMany({
+    where: {
+      memberRole: {
+        in: ["CHILD", "ADVENTURER", "PATHFINDER", "TLT"],
+      },
+    },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      memberRole: true,
+      clubRosterYear: {
+        select: {
+          yearLabel: true,
+          club: {
+            select: {
+              name: true,
+              code: true,
+            },
+          },
+        },
+      },
+    },
+    orderBy: [
+      {
+        lastName: "asc",
+      },
+      {
+        firstName: "asc",
+      },
+      {
+        clubRosterYear: {
+          yearLabel: "desc",
+        },
+      },
+    ],
+  });
+  const studentPortalLinks = await prisma.userRosterMemberLink.findMany({
+    select: {
+      id: true,
+      user: {
+        select: {
+          name: true,
+          email: true,
+          role: true,
+        },
+      },
+      rosterMember: {
+        select: {
+          firstName: true,
+          lastName: true,
+          memberRole: true,
+          clubRosterYear: {
+            select: {
+              yearLabel: true,
+              club: {
+                select: {
+                  name: true,
+                  code: true,
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    orderBy: [
+      {
+        user: {
+          name: "asc",
+        },
+      },
+      {
+        rosterMember: {
+          lastName: "asc",
+        },
+      },
+      {
+        rosterMember: {
+          firstName: "asc",
+        },
+      },
+    ],
+  });
 
   return (
     <section className="space-y-6">
@@ -78,6 +169,30 @@ export default async function AdminUsersPage() {
         clubs={clubs}
       />
       <MembershipOpsForm memberships={membershipOptions} />
+      <StudentPortalLinkForm
+        users={portalUsers.map((user) => ({ id: user.id, name: user.name, email: user.email }))}
+        rosterMembers={rosterMembers.map((member) => ({
+          id: member.id,
+          firstName: member.firstName,
+          lastName: member.lastName,
+          memberRole: member.memberRole,
+          clubName: member.clubRosterYear.club.name,
+          clubCode: member.clubRosterYear.club.code,
+          rosterYearLabel: member.clubRosterYear.yearLabel,
+        }))}
+        existingLinks={studentPortalLinks
+          .filter((link) => link.user.role === "STUDENT_PARENT")
+          .map((link) => ({
+            id: link.id,
+            userName: link.user.name,
+            userEmail: link.user.email,
+            rosterMemberName: `${link.rosterMember.firstName} ${link.rosterMember.lastName}`.trim(),
+            memberRole: link.rosterMember.memberRole,
+            clubName: link.rosterMember.clubRosterYear.club.name,
+            clubCode: link.rosterMember.clubRosterYear.club.code,
+            rosterYearLabel: link.rosterMember.clubRosterYear.yearLabel,
+          }))}
+      />
       <ResetPasswordForm users={users.map((user) => ({ id: user.id, name: user.name, email: user.email }))} />
 
       <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
@@ -92,12 +207,14 @@ export default async function AdminUsersPage() {
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">Email</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">Role</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">Primary Club</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Linked Students</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {users.map((user) => {
                   const primaryClub = user.memberships.find((membership) => membership.isPrimary)?.club;
                   const membershipCount = user.memberships.length;
+                  const linkedStudentCount = user.rosterMemberLinks.length;
 
                   return (
                     <tr key={user.id}>
@@ -107,6 +224,9 @@ export default async function AdminUsersPage() {
                       <td className="px-4 py-3 text-slate-700">
                         {primaryClub ? `${primaryClub.name} (${primaryClub.code})` : "—"}
                         <span className="ml-2 text-xs text-slate-500">({membershipCount} memberships)</span>
+                      </td>
+                      <td className="px-4 py-3 text-slate-700">
+                        {user.role === "STUDENT_PARENT" ? linkedStudentCount : "—"}
                       </td>
                     </tr>
                   );

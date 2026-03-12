@@ -8,6 +8,7 @@ import {
   removeEventClassOfferingAction,
   updateEventClassOfferingAction,
 } from "../../../../actions/admin-actions";
+import { CLASS_ASSIGNMENT_POLICY } from "../../../../../lib/class-model";
 import { prisma } from "../../../../../lib/prisma";
 
 type AdminEventClassesPageProps = {
@@ -39,6 +40,11 @@ export default async function AdminEventClassesPage({
         name: true,
         classOfferings: {
           include: {
+            enrollments: {
+              select: {
+                attendedAt: true,
+              },
+            },
             classCatalog: {
               select: {
                 id: true,
@@ -111,6 +117,7 @@ export default async function AdminEventClassesPage({
           Configure class offerings, assign teachers, and set capacity for{" "}
           <span className="font-semibold text-slate-900">{event.name}</span>.
         </p>
+        <p className="mt-1 text-xs font-medium text-slate-500">{CLASS_ASSIGNMENT_POLICY}</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Link
             href={`/admin/events/${event.id}`}
@@ -219,98 +226,108 @@ export default async function AdminEventClassesPage({
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">Teacher</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">Capacity</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">Enrolled</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Attendance</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {event.classOfferings.map((offering) => (
-                  <tr key={offering.id}>
-                    <td className="px-4 py-3 text-slate-900">
-                      <p className="font-semibold">{offering.classCatalog.title}</p>
-                      <p className="text-xs text-slate-500">
-                        {offering.classCatalog.code} • {offering.classCatalog.classType}
-                      </p>
-                    </td>
-                    <td className="px-4 py-3">
-                      <form action={updateEventClassOfferingAction} className="space-y-2">
-                        <input type="hidden" name="eventId" value={event.id} readOnly />
-                        <input type="hidden" name="offeringId" value={offering.id} readOnly />
-                        <select
-                          name="teacherUserId"
-                          defaultValue={offering.teacher?.id ?? ""}
-                          className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs"
-                        >
-                          <option value="">Unassigned</option>
-                          {teachers.map((teacher) => (
-                            <option key={teacher.id} value={teacher.id}>
-                              {teacher.name} ({teacher.email})
-                            </option>
-                          ))}
-                        </select>
-                        <button
-                          type="submit"
-                          className="rounded-md border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
-                        >
-                          Save Teacher
-                        </button>
-                      </form>
-                    </td>
-                    <td className="px-4 py-3">
-                      <form action={updateEventClassOfferingAction} className="flex items-center gap-2">
-                        <input type="hidden" name="eventId" value={event.id} readOnly />
-                        <input type="hidden" name="offeringId" value={offering.id} readOnly />
-                        <input
-                          name="capacity"
-                          type="number"
-                          min={offering._count.enrollments}
-                          step={1}
-                          defaultValue={offering.capacity ?? ""}
-                          placeholder="Open"
-                          className="w-24 rounded-lg border border-slate-300 px-2 py-1.5 text-xs"
-                        />
-                        <button
-                          type="submit"
-                          className="rounded-md border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
-                        >
-                          Save
-                        </button>
-                        <span className="text-[11px] text-slate-500">
-                          Min {offering._count.enrollments}
-                        </span>
-                      </form>
-                    </td>
-                    <td className="px-4 py-3 text-slate-700">{offering._count.enrollments}</td>
-                    <td className="px-4 py-3">
-                      <div className="space-y-2">
-                        <form action={removeEventClassOfferingAction}>
+                {event.classOfferings.map((offering) => {
+                  const attendedCount = offering.enrollments.filter(
+                    (enrollment) => enrollment.attendedAt !== null,
+                  ).length;
+
+                  return (
+                    <tr key={offering.id}>
+                      <td className="px-4 py-3 text-slate-900">
+                        <p className="font-semibold">{offering.classCatalog.title}</p>
+                        <p className="text-xs text-slate-500">
+                          {offering.classCatalog.code} • {offering.classCatalog.classType}
+                        </p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <form action={updateEventClassOfferingAction} className="space-y-2">
                           <input type="hidden" name="eventId" value={event.id} readOnly />
                           <input type="hidden" name="offeringId" value={offering.id} readOnly />
+                          <select
+                            name="teacherUserId"
+                            defaultValue={offering.teacher?.id ?? ""}
+                            className="w-full rounded-lg border border-slate-300 px-2 py-1.5 text-xs"
+                          >
+                            <option value="">Unassigned</option>
+                            {teachers.map((teacher) => (
+                              <option key={teacher.id} value={teacher.id}>
+                                {teacher.name} ({teacher.email})
+                              </option>
+                            ))}
+                          </select>
                           <button
                             type="submit"
-                            disabled={offering._count.enrollments > 0}
-                            className="rounded-md border border-rose-300 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-md border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
                           >
-                            Remove
+                            Save Teacher
                           </button>
                         </form>
-
-                        {offering._count.enrollments > 0 ? (
-                          <form action={clearEventClassOfferingEnrollmentsAction} className="space-y-1">
+                      </td>
+                      <td className="px-4 py-3">
+                        <form action={updateEventClassOfferingAction} className="flex items-center gap-2">
+                          <input type="hidden" name="eventId" value={event.id} readOnly />
+                          <input type="hidden" name="offeringId" value={offering.id} readOnly />
+                          <input
+                            name="capacity"
+                            type="number"
+                            min={offering._count.enrollments}
+                            step={1}
+                            defaultValue={offering.capacity ?? ""}
+                            placeholder="Open"
+                            className="w-24 rounded-lg border border-slate-300 px-2 py-1.5 text-xs"
+                          />
+                          <button
+                            type="submit"
+                            className="rounded-md border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
+                          >
+                            Save
+                          </button>
+                          <span className="text-[11px] text-slate-500">
+                            Min {offering._count.enrollments}
+                          </span>
+                        </form>
+                      </td>
+                      <td className="px-4 py-3 text-slate-700">{offering._count.enrollments}</td>
+                      <td className="px-4 py-3 text-slate-700">
+                        {attendedCount}/{offering._count.enrollments}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="space-y-2">
+                          <form action={removeEventClassOfferingAction}>
                             <input type="hidden" name="eventId" value={event.id} readOnly />
                             <input type="hidden" name="offeringId" value={offering.id} readOnly />
                             <button
                               type="submit"
-                              className="rounded-md border border-amber-300 px-2 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-50"
+                              disabled={offering._count.enrollments > 0}
+                              className="rounded-md border border-rose-300 px-2 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-50"
                             >
-                              Clear Enrollments
+                              Remove
                             </button>
-                            <p className="text-[11px] text-slate-500">Required before removal</p>
                           </form>
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+
+                          {offering._count.enrollments > 0 ? (
+                            <form action={clearEventClassOfferingEnrollmentsAction} className="space-y-1">
+                              <input type="hidden" name="eventId" value={event.id} readOnly />
+                              <input type="hidden" name="offeringId" value={offering.id} readOnly />
+                              <button
+                                type="submit"
+                                className="rounded-md border border-amber-300 px-2 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-50"
+                              >
+                                Clear Enrollments
+                              </button>
+                              <p className="text-[11px] text-slate-500">Required before removal</p>
+                            </form>
+                          ) : null}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

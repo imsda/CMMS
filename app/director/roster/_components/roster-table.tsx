@@ -48,15 +48,15 @@ const adultRoles = new Set<MemberRole>([MemberRole.STAFF, MemberRole.DIRECTOR, M
 function Badge({ label, tone }: { label: string; tone: "neutral" | "good" | "warn" | "danger" }) {
   const toneClass =
     tone === "good"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      ? "status-chip-success"
       : tone === "warn"
-        ? "border-amber-200 bg-amber-50 text-amber-700"
+        ? "status-chip-warning"
         : tone === "danger"
-          ? "border-red-200 bg-red-50 text-red-700"
-          : "border-slate-200 bg-slate-100 text-slate-700";
+          ? "status-chip-danger"
+          : "status-chip-neutral";
 
   return (
-    <span className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold ${toneClass}`}>
+    <span className={toneClass}>
       {label}
     </span>
   );
@@ -98,21 +98,21 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-xl font-semibold text-slate-900">Roster Members</h2>
-          <p className="text-sm text-slate-600">Manage the active members for the current roster year.</p>
+          <h2 className="section-title">Roster Members</h2>
+          <p className="section-copy">Manage the active members for the current roster year.</p>
         </div>
         <button
           type="button"
           onClick={() => setModalState({ mode: "create", member: null })}
-          className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
+          className="btn-primary"
         >
           Add Member
         </button>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-slate-200">
-          <thead className="bg-slate-50">
+      <div className="glass-table table-shell overflow-hidden">
+        <table>
+          <thead>
             <tr>
               {[
                 "Name",
@@ -136,7 +136,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody>
             {sortedMembers.length === 0 ? (
               <tr>
                 <td colSpan={11} className="px-4 py-10 text-center text-sm text-slate-500">
@@ -150,7 +150,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                 const missingConsent = hasMissingRequiredConsent(member);
 
                 return (
-                  <tr key={member.id} className="hover:bg-slate-50/80">
+                  <tr key={member.id}>
                     <td className="px-4 py-3 text-sm font-semibold text-slate-800">
                       {member.firstName} {member.lastName}
                     </td>
@@ -180,7 +180,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                     </td>
                     <td className="px-4 py-3">
                       {missingConsent ? (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700" title="Missing one or more required consents">
+                        <span className="status-chip-warning" title="Missing one or more required consents">
                           ⚠️ Missing
                         </span>
                       ) : (
@@ -204,7 +204,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                       <button
                         type="button"
                         onClick={() => setModalState({ mode: "edit", member })}
-                        className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-indigo-300 hover:text-indigo-700"
+                        className="btn-secondary px-3 py-1.5 text-xs"
                       >
                         Edit
                       </button>
@@ -219,15 +219,15 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
 
       {modalState ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-3xl rounded-2xl border border-slate-200 bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
+          <div className="glass-modal w-full max-w-3xl overflow-hidden">
+            <div className="flex items-center justify-between border-b border-white/50 px-6 py-4">
               <h3 className="text-lg font-semibold text-slate-900">
                 {modalState.mode === "create" ? "Add roster member" : "Edit roster member"}
               </h3>
               <button
                 type="button"
                 onClick={() => setModalState(null)}
-                className="rounded-lg px-2 py-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                className="btn-ghost rounded-xl px-2 py-1 text-slate-500"
               >
                 ✕
               </button>
@@ -244,7 +244,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                     name="firstName"
                     required
                     defaultValue={modalState.member?.firstName ?? ""}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none"
+                    className="input-glass"
                   />
                 </label>
 
@@ -254,7 +254,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                     name="lastName"
                     required
                     defaultValue={modalState.member?.lastName ?? ""}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none"
+                    className="input-glass"
                   />
                 </label>
 
@@ -264,7 +264,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                     name="memberRole"
                     required
                     defaultValue={modalState.member?.memberRole ?? MemberRole.PATHFINDER}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none"
+                    className="select-glass"
                   >
                     {roleOptions.map((role) => (
                       <option key={role} value={role}>
@@ -281,7 +281,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                     min={0}
                     name="ageAtStart"
                     defaultValue={modalState.member?.ageAtStart ?? ""}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none"
+                    className="input-glass"
                   />
                 </label>
 
@@ -290,7 +290,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                   <select
                     name="gender"
                     defaultValue={modalState.member?.gender ?? ""}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none"
+                    className="select-glass"
                   >
                     <option value="">Prefer not to say</option>
                     {genderOptions.map((gender) => (
@@ -307,7 +307,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                     type="date"
                     name="dateOfBirth"
                     defaultValue={toDateInputValue(modalState.member?.dateOfBirth ?? null)}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none"
+                    className="input-glass"
                   />
                 </label>
 
@@ -317,7 +317,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                     type="date"
                     name="backgroundCheckDate"
                     defaultValue={toDateInputValue(modalState.member?.backgroundCheckDate ?? null)}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none"
+                    className="input-glass"
                   />
                   <p className="text-xs font-normal text-slate-500">Required for staff, directors, and counselors.</p>
                 </label>
@@ -327,7 +327,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                   <input
                     name="medicalFlags"
                     defaultValue={modalState.member?.medicalFlags ?? ""}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none"
+                    className="input-glass"
                   />
                 </label>
 
@@ -336,7 +336,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                   <input
                     name="dietaryRestrictions"
                     defaultValue={modalState.member?.dietaryRestrictions ?? ""}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none"
+                    className="input-glass"
                   />
                 </label>
 
@@ -345,7 +345,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                   <input
                     name="emergencyContactName"
                     defaultValue={modalState.member?.emergencyContactName ?? ""}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none"
+                    className="input-glass"
                   />
                 </label>
 
@@ -354,7 +354,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                   <input
                     name="emergencyContactPhone"
                     defaultValue={modalState.member?.emergencyContactPhone ?? ""}
-                    className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none"
+                    className="input-glass"
                   />
                 </label>
 
@@ -399,7 +399,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                 </label>
               </div>
 
-              <section className="space-y-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <section className="glass-subsection space-y-4">
                 <div>
                   <h4 className="text-base font-semibold text-slate-900">Agreements &amp; Medical</h4>
                   <p className="text-sm text-slate-600">
@@ -413,7 +413,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                     <input
                       name="insuranceCompany"
                       defaultValue={modalState.member?.insuranceCompany ?? ""}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none"
+                      className="input-glass"
                     />
                   </label>
 
@@ -422,7 +422,7 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                     <input
                       name="insurancePolicyNumber"
                       defaultValue={modalState.member?.insurancePolicyNumber ?? ""}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none"
+                      className="input-glass"
                     />
                   </label>
 
@@ -432,12 +432,12 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                       type="date"
                       name="lastTetanusDate"
                       defaultValue={toDateInputValue(modalState.member?.lastTetanusDate ?? null)}
-                      className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none"
+                      className="input-glass"
                     />
                   </label>
                 </div>
 
-                <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                <div className="alert-warning space-y-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-amber-800">Required Consents</p>
 
                   <label className="flex items-start gap-3 text-sm text-slate-700">
@@ -484,17 +484,17 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                 </div>
               </section>
 
-              <div className="flex justify-end gap-2 border-t border-slate-200 pt-4">
+              <div className="flex justify-end gap-2 border-t border-white/50 pt-4">
                 <button
                   type="button"
                   onClick={() => setModalState(null)}
-                  className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400"
+                  className="btn-secondary"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500"
+                  className="btn-primary"
                 >
                   {modalState.mode === "create" ? "Create Member" : "Save Changes"}
                 </button>

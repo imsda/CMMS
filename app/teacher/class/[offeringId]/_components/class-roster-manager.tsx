@@ -11,7 +11,7 @@ type StudentRow = {
   rosterMemberId: string;
   name: string;
   memberRole: string;
-  checkedInAt: string | null;
+  attendedAt: string | null;
   alreadyCompleted: boolean;
 };
 
@@ -45,14 +45,14 @@ export function ClassRosterManager({ offeringId, honorCode, students }: ClassRos
   return (
     <>
       {errorMessage ? (
-        <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+        <p className="alert-danger">
           {errorMessage}
         </p>
       ) : null}
 
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-sm">
-        <table className="min-w-full divide-y divide-slate-200">
-          <thead className="bg-slate-50">
+      <div className="glass-table table-shell overflow-x-auto">
+        <table>
+          <thead>
             <tr>
               <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Student
@@ -68,7 +68,7 @@ export function ClassRosterManager({ offeringId, honorCode, students }: ClassRos
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody>
             {students.map((student) => (
               <tr key={student.rosterMemberId}>
                 <td className="px-4 py-3 text-sm font-medium text-slate-800">{student.name}</td>
@@ -84,7 +84,7 @@ export function ClassRosterManager({ offeringId, honorCode, students }: ClassRos
                           await updateClassAttendance({
                             offeringId,
                             rosterMemberId: student.rosterMemberId,
-                            attended: !student.checkedInAt,
+                            attended: !student.attendedAt,
                           });
                         } catch (error) {
                           setErrorMessage(
@@ -94,12 +94,12 @@ export function ClassRosterManager({ offeringId, honorCode, students }: ClassRos
                       });
                     }}
                     className={`rounded-lg px-3 py-1.5 text-xs font-semibold ${
-                      student.checkedInAt
+                      student.attendedAt
                         ? "bg-emerald-100 text-emerald-800"
                         : "bg-slate-200 text-slate-700"
                     } disabled:cursor-not-allowed disabled:opacity-60`}
                   >
-                    {student.checkedInAt ? "Present" : "Absent"}
+                    {student.attendedAt ? "Present" : "Absent"}
                   </button>
                 </td>
                 <td className="px-4 py-3">
@@ -125,7 +125,7 @@ export function ClassRosterManager({ offeringId, honorCode, students }: ClassRos
         </table>
       </div>
 
-      <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="glass-card flex items-center justify-between">
         <p className="text-sm text-slate-600">
           {signOffEligibleCount} student(s) still need this requirement completed.
         </p>
@@ -133,7 +133,7 @@ export function ClassRosterManager({ offeringId, honorCode, students }: ClassRos
           type="button"
           disabled={selectedCount === 0}
           onClick={() => setModalOpen(true)}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+          className="btn-primary"
         >
           Sign Off Requirements ({selectedCount})
         </button>
@@ -141,7 +141,7 @@ export function ClassRosterManager({ offeringId, honorCode, students }: ClassRos
 
       {modalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="w-full max-w-xl rounded-2xl border border-slate-200 bg-white p-5 shadow-xl">
+          <div className="glass-modal w-full max-w-xl p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900">Confirm Requirement Sign-Off</h3>
@@ -152,7 +152,7 @@ export function ClassRosterManager({ offeringId, honorCode, students }: ClassRos
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
-                className="rounded-lg px-2 py-1 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                className="btn-ghost rounded-xl px-2 py-1 text-slate-500"
               >
                 ✕
               </button>
@@ -164,7 +164,7 @@ export function ClassRosterManager({ offeringId, honorCode, students }: ClassRos
                 value={notes}
                 onChange={(event) => setNotes(event.target.value)}
                 rows={3}
-                className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-indigo-400 focus:outline-none"
+                className="textarea-glass"
                 placeholder="Add notes for the completion record"
               />
             </label>
@@ -173,7 +173,7 @@ export function ClassRosterManager({ offeringId, honorCode, students }: ClassRos
               <button
                 type="button"
                 onClick={() => setModalOpen(false)}
-                className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700"
+                className="btn-secondary"
               >
                 Cancel
               </button>
@@ -199,7 +199,7 @@ export function ClassRosterManager({ offeringId, honorCode, students }: ClassRos
                     }
                   });
                 }}
-                className="rounded-lg bg-indigo-600 px-3 py-2 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                className="btn-primary"
               >
                 Confirm Sign-Off
               </button>

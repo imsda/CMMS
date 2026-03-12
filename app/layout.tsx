@@ -39,26 +39,26 @@ export default async function RootLayout({
 
   return (
     <html lang={locale}>
-      <body className="font-sans">
+      <body>
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <div className="min-h-screen bg-slate-50">
-            <header className="border-b border-slate-200 bg-white/90 backdrop-blur">
-              <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-indigo-600">
+          <div className="app-shell">
+            <header className="shell-header">
+              <div className="flex items-center justify-between gap-6 px-5 py-4 sm:px-6">
+                <div className="min-w-0">
+                  <p className="hero-kicker">
                     {tCommon('conference')}
                   </p>
-                  <h1 className="text-lg font-semibold text-slate-900">{tCommon('platformTitle')}</h1>
+                  <h1 className="truncate text-xl font-semibold text-slate-950">{tCommon('platformTitle')}</h1>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex flex-wrap items-center justify-end gap-3">
                   <LanguageSwitcher currentLocale={locale} />
 
                   {isLoggedIn ? (
                     <div className="flex items-center gap-3">
                       <div className="text-right">
                         <p className="text-sm font-semibold text-slate-900">{session?.user.name}</p>
-                        <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        <p className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-slate-500">
                           {session?.user.role.replaceAll('_', ' ')}
                         </p>
                       </div>
@@ -70,7 +70,7 @@ export default async function RootLayout({
                       >
                         <button
                           type="submit"
-                          className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-indigo-300 hover:text-indigo-700"
+                          className="btn-secondary"
                         >
                           {tAuth('signOut')}
                         </button>
@@ -79,7 +79,7 @@ export default async function RootLayout({
                   ) : (
                     <Link
                       href={`/login`}
-                      className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:border-indigo-300 hover:text-indigo-700"
+                      className="btn-secondary"
                     >
                       {tAuth('signIn')}
                     </Link>
@@ -87,7 +87,7 @@ export default async function RootLayout({
                 </div>
               </div>
             </header>
-            <main className="mx-auto w-full max-w-7xl px-6 py-8">{children}</main>
+            <main className="shell-content">{children}</main>
           </div>
         </NextIntlClientProvider>
       </body>

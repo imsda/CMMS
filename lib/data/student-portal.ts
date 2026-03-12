@@ -1,8 +1,21 @@
 import { RequirementType, type Prisma } from "@prisma/client";
 
 import { prisma } from "../prisma";
+import {
+  getRosterMemberDisplayName,
+  isStudentPortalEligibleMemberRole,
+  STUDENT_PORTAL_MEMBER_ROLES,
+} from "../student-portal-links";
 
-type StudentPortalData = {
+export type StudentPortalData = {
+  linkedStudents: Array<{
+    rosterMemberId: string;
+    rosterMemberName: string;
+    memberRole: string;
+    clubName: string;
+    clubCode: string;
+    rosterYearLabel: string;
+  }>;
   completedHonors: Array<{
     id: string;
     honorCode: string;
@@ -10,26 +23,49 @@ type StudentPortalData = {
     completedAt: Date;
     rosterMemberName: string;
   }>;
-  schedule: Array<{
+  eventClassAssignments: Array<{
     enrollmentId: string;
     eventName: string;
     classTitle: string;
-    startsAt: Date;
-    endsAt: Date;
+    eventStartsAt: Date;
+    eventEndsAt: Date;
     location: string | null;
     rosterMemberName: string;
   }>;
 };
 
-type LinkedRosterMember = {
+export type LinkedRosterMember = {
   id: string;
   firstName: string;
   lastName: string;
+  memberRole: string;
+  clubName: string;
+  clubCode: string;
+  rosterYearLabel: string;
 };
 
-function getRosterMemberName(member: { firstName: string; lastName: string }) {
-  return `${member.firstName} ${member.lastName}`.trim();
-}
+type LinkedRequirement = {
+  id: string;
+  metadata: Prisma.JsonValue;
+  completedAt: Date;
+  rosterMemberId: string | null;
+};
+
+type LinkedEnrollment = {
+  id: string;
+  rosterMemberId: string;
+  offering: {
+    classCatalog: {
+      title: string;
+    };
+    event: {
+      name: string;
+      startsAt: Date;
+      endsAt: Date;
+      locationName: string | null;
+    };
+  };
+};
 
 function readHonorCodeFromMetadata(metadata: Prisma.JsonValue): string | null {
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) {
@@ -41,37 +77,152 @@ function readHonorCodeFromMetadata(metadata: Prisma.JsonValue): string | null {
 }
 
 async function getLinkedRosterMembers(userId: string): Promise<LinkedRosterMember[]> {
-  return prisma.rosterMember.findMany({
+  const links = await prisma.userRosterMemberLink.findMany({
     where: {
-      completedRequirements: {
-        some: {
-          userId,
+      userId,
+      rosterMember: {
+        memberRole: {
+          in: STUDENT_PORTAL_MEMBER_ROLES,
         },
       },
     },
     select: {
-      id: true,
-      firstName: true,
-      lastName: true,
+      rosterMember: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          memberRole: true,
+          clubRosterYear: {
+            select: {
+              yearLabel: true,
+              club: {
+                select: {
+                  name: true,
+                  code: true,
+                },
+              },
+            },
+          },
+        },
+      },
     },
-    orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
+    orderBy: [
+      {
+        rosterMember: {
+          lastName: "asc",
+        },
+      },
+      {
+        rosterMember: {
+          firstName: "asc",
+        },
+      },
+      {
+        rosterMember: {
+          clubRosterYear: {
+            yearLabel: "desc",
+          },
+        },
+      },
+    ],
   });
+
+  return links
+    .map((link) => link.rosterMember)
+    .filter((member) => isStudentPortalEligibleMemberRole(member.memberRole))
+    .map((member) => ({
+      id: member.id,
+      firstName: member.firstName,
+      lastName: member.lastName,
+      memberRole: member.memberRole,
+      clubName: member.clubRosterYear.club.name,
+      clubCode: member.clubRosterYear.club.code,
+      rosterYearLabel: member.clubRosterYear.yearLabel,
+    }));
+}
+
+export function buildStudentPortalData(input: {
+  linkedRosterMembers: LinkedRosterMember[];
+  completedRequirements: LinkedRequirement[];
+  upcomingEnrollments: LinkedEnrollment[];
+  honorCatalog: Array<{
+    code: string;
+    title: string;
+  }>;
+}): StudentPortalData {
+  if (input.linkedRosterMembers.length === 0) {
+    return {
+      linkedStudents: [],
+      completedHonors: [],
+      eventClassAssignments: [],
+    };
+  }
+
+  const linkedRosterMemberIds = new Set(input.linkedRosterMembers.map((member) => member.id));
+  const rosterMemberNameById = new Map(
+    input.linkedRosterMembers.map((member) => [member.id, getRosterMemberDisplayName(member)]),
+  );
+  const honorByCode = new Map(input.honorCatalog.map((item) => [item.code, item.title]));
+
+  const completedHonorEntries = input.completedRequirements
+    .filter(
+      (requirement) =>
+        requirement.rosterMemberId !== null && linkedRosterMemberIds.has(requirement.rosterMemberId),
+    )
+    .map((requirement) => ({
+      ...requirement,
+      honorCode: readHonorCodeFromMetadata(requirement.metadata),
+    }))
+    .filter((requirement): requirement is typeof requirement & { honorCode: string } => Boolean(requirement.honorCode));
+
+  return {
+    linkedStudents: input.linkedRosterMembers.map((member) => ({
+      rosterMemberId: member.id,
+      rosterMemberName: getRosterMemberDisplayName(member),
+      memberRole: member.memberRole,
+      clubName: member.clubName,
+      clubCode: member.clubCode,
+      rosterYearLabel: member.rosterYearLabel,
+    })),
+    completedHonors: completedHonorEntries.map((requirement) => ({
+      id: requirement.id,
+      honorCode: requirement.honorCode,
+      honorTitle: honorByCode.get(requirement.honorCode) ?? requirement.honorCode,
+      completedAt: requirement.completedAt,
+      rosterMemberName:
+        requirement.rosterMemberId === null
+          ? "Linked Student"
+          : rosterMemberNameById.get(requirement.rosterMemberId) ?? "Linked Student",
+    })),
+    eventClassAssignments: input.upcomingEnrollments
+      .filter((enrollment) => linkedRosterMemberIds.has(enrollment.rosterMemberId))
+      .map((enrollment) => ({
+        enrollmentId: enrollment.id,
+        eventName: enrollment.offering.event.name,
+        classTitle: enrollment.offering.classCatalog.title,
+        eventStartsAt: enrollment.offering.event.startsAt,
+        eventEndsAt: enrollment.offering.event.endsAt,
+        location: enrollment.offering.event.locationName,
+        rosterMemberName:
+          rosterMemberNameById.get(enrollment.rosterMemberId) ?? "Linked Student",
+      })),
+  };
 }
 
 export async function getStudentPortalData(userId: string): Promise<StudentPortalData> {
   const linkedRosterMembers = await getLinkedRosterMembers(userId);
 
   if (linkedRosterMembers.length === 0) {
-    return {
-      completedHonors: [],
-      schedule: [],
-    };
+    return buildStudentPortalData({
+      linkedRosterMembers,
+      completedRequirements: [],
+      upcomingEnrollments: [],
+      honorCatalog: [],
+    });
   }
 
   const linkedRosterMemberIds = linkedRosterMembers.map((member) => member.id);
-  const rosterMemberNameById = new Map(
-    linkedRosterMembers.map((member) => [member.id, getRosterMemberName(member)]),
-  );
   const now = new Date();
 
   const [completedRequirements, upcomingEnrollments] = await Promise.all([
@@ -166,28 +317,10 @@ export async function getStudentPortalData(userId: string): Promise<StudentPorta
           },
         });
 
-  const honorByCode = new Map(honorCatalog.map((item) => [item.code, item.title]));
-
-  return {
-    completedHonors: completedHonorEntries.map((requirement) => ({
-      id: requirement.id,
-      honorCode: requirement.honorCode,
-      honorTitle: honorByCode.get(requirement.honorCode) ?? requirement.honorCode,
-      completedAt: requirement.completedAt,
-      rosterMemberName:
-        requirement.rosterMemberId === null
-          ? "Linked Student"
-          : rosterMemberNameById.get(requirement.rosterMemberId) ?? "Linked Student",
-    })),
-    schedule: upcomingEnrollments.map((enrollment) => ({
-      enrollmentId: enrollment.id,
-      eventName: enrollment.offering.event.name,
-      classTitle: enrollment.offering.classCatalog.title,
-      startsAt: enrollment.offering.event.startsAt,
-      endsAt: enrollment.offering.event.endsAt,
-      location: enrollment.offering.event.locationName,
-      rosterMemberName:
-        rosterMemberNameById.get(enrollment.rosterMemberId) ?? "Linked Student",
-    })),
-  };
+  return buildStudentPortalData({
+    linkedRosterMembers,
+    completedRequirements,
+    upcomingEnrollments,
+    honorCatalog,
+  });
 }

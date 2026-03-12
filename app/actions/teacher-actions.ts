@@ -4,6 +4,7 @@ import { RequirementType, type Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "../../auth";
+import { buildClassAttendanceUpdate } from "../../lib/class-model";
 import { prisma } from "../../lib/prisma";
 
 type MarkAttendanceInput = {
@@ -74,7 +75,16 @@ export async function updateClassAttendance(input: MarkAttendanceInput) {
     throw new Error("Class offering and roster member are required.");
   }
 
-  const { offering } = await assertTeacherAccessToOffering(input.offeringId);
+  await assertTeacherAccessToOffering(input.offeringId);
+  await updateClassAttendanceForOffering(input);
+  revalidatePath(`/teacher/class/${input.offeringId}`);
+  revalidatePath("/teacher/dashboard");
+}
+
+export async function updateClassAttendanceForOffering(input: MarkAttendanceInput) {
+  if (!input.offeringId || !input.rosterMemberId) {
+    throw new Error("Class offering and roster member are required.");
+  }
 
   const enrollment = await prisma.classEnrollment.findUnique({
     where: {
@@ -92,33 +102,12 @@ export async function updateClassAttendance(input: MarkAttendanceInput) {
     throw new Error("Roster member is not enrolled in this class.");
   }
 
-  const attendee = await prisma.registrationAttendee.findFirst({
+  await prisma.classEnrollment.update({
     where: {
-      rosterMemberId: input.rosterMemberId,
-      eventRegistration: {
-        eventId: offering.eventId,
-      },
+      id: enrollment.id,
     },
-    select: {
-      id: true,
-    },
+    data: buildClassAttendanceUpdate(input.attended),
   });
-
-  if (!attendee) {
-    throw new Error("Event attendee record was not found for this roster member.");
-  }
-
-  await prisma.registrationAttendee.update({
-    where: {
-      id: attendee.id,
-    },
-    data: {
-      checkedInAt: input.attended ? new Date() : null,
-    },
-  });
-
-  revalidatePath(`/teacher/class/${input.offeringId}`);
-  revalidatePath("/teacher/dashboard");
 }
 
 export async function signOffRequirementsForStudents(input: SignOffRequirementsInput) {

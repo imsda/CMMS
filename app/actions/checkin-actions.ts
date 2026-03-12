@@ -1,41 +1,13 @@
 "use server";
 
-import { RegistrationStatus } from "@prisma/client";
+import { FormFieldScope, RegistrationStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { type Session } from "next-auth";
 
 import { auth } from "../../auth";
+import { getMissingRequiredFieldLabels } from "../../lib/event-form-completeness";
 import { prisma } from "../../lib/prisma";
-
-type EventFieldOptionsMetadata = {
-  attendeeSpecific?: boolean;
-  scope?: "ATTENDEE" | "GLOBAL";
-};
-
-function isOptionsMetadata(value: unknown): value is EventFieldOptionsMetadata {
-  if (!value || typeof value !== "object" || Array.isArray(value)) {
-    return false;
-  }
-
-  const record = value as Record<string, unknown>;
-
-  if (
-    typeof record.attendeeSpecific !== "undefined" &&
-    typeof record.attendeeSpecific !== "boolean"
-  ) {
-    return false;
-  }
-
-  if (
-    typeof record.scope !== "undefined" &&
-    record.scope !== "ATTENDEE" &&
-    record.scope !== "GLOBAL"
-  ) {
-    return false;
-  }
-
-  return true;
-}
+import { assertRegistrationCanBeCheckedIn } from "../../lib/registration-lifecycle";
 
 function ensureSuperAdmin(session: Session | null) {
   if (!session?.user || session.user.role !== "SUPER_ADMIN") {
@@ -55,34 +27,6 @@ function requireTrimmedString(value: FormDataEntryValue | null, label: string) {
   }
 
   return trimmed;
-}
-
-function isAttendeeSpecificField(field: {
-  key: string;
-  description: string | null;
-  options: unknown;
-}) {
-  if (field.key.startsWith("attendee_") || field.key.startsWith("member_")) {
-    return true;
-  }
-
-  if (typeof field.description === "string" && field.description.toLowerCase().includes("[attendee]")) {
-    return true;
-  }
-
-  if (field.options && typeof field.options === "object" && !Array.isArray(field.options)) {
-    if (!isOptionsMetadata(field.options)) {
-      return false;
-    }
-
-    return field.options.attendeeSpecific === true || field.options.scope === "ATTENDEE";
-  }
-
-  if (Array.isArray(field.options)) {
-    return field.options.includes("__ATTENDEE_LIST__");
-  }
-
-  return false;
 }
 
 export async function getEventCheckinDashboard(eventId: string) {
@@ -110,6 +54,7 @@ export async function getEventCheckinDashboard(eventId: string) {
           key: true,
           label: true,
           description: true,
+          fieldScope: true,
           options: true,
         },
       },
@@ -159,51 +104,12 @@ export async function getEventCheckinDashboard(eventId: string) {
     return null;
   }
 
-  const requiredGlobalFields = event.dynamicFields.filter((field) => !isAttendeeSpecificField(field));
-  const requiredAttendeeFields = event.dynamicFields.filter((field) => isAttendeeSpecificField(field));
-
   const registrations = event.registrations.map((registration) => {
-    const globalResponses = new Set(
-      registration.formResponses
-        .filter((response) => response.attendeeId === null)
-        .map((response) => response.eventFormFieldId),
-    );
-
-    const attendeeResponsesByField = registration.formResponses.reduce<Record<string, Set<string>>>((map, response) => {
-      if (!response.attendeeId) {
-        return map;
-      }
-
-      if (!map[response.eventFormFieldId]) {
-        map[response.eventFormFieldId] = new Set();
-      }
-
-      map[response.eventFormFieldId].add(response.attendeeId);
-      return map;
-    }, {});
-
-    const missingRequiredFields: string[] = [];
-
-    for (const field of requiredGlobalFields) {
-      if (!globalResponses.has(field.id)) {
-        missingRequiredFields.push(field.label);
-      }
-    }
-
-    for (const field of requiredAttendeeFields) {
-      const responsesForField = attendeeResponsesByField[field.id] ?? new Set<string>();
-      const missingAttendeeCount = registration.attendees.reduce((count, attendee) => {
-        if (responsesForField.has(attendee.rosterMemberId)) {
-          return count;
-        }
-
-        return count + 1;
-      }, 0);
-
-      if (missingAttendeeCount > 0) {
-        missingRequiredFields.push(`${field.label} (${missingAttendeeCount} attendee${missingAttendeeCount > 1 ? "s" : ""})`);
-      }
-    }
+    const missingRequiredFields = getMissingRequiredFieldLabels({
+      requiredFields: event.dynamicFields,
+      attendees: registration.attendees,
+      formResponses: registration.formResponses,
+    });
 
     const checkedInCount = registration.attendees.filter((attendee) => attendee.checkedInAt !== null).length;
 
@@ -228,6 +134,14 @@ export async function markRegistrationCheckedIn(formData: FormData) {
   const eventId = requireTrimmedString(formData.get("eventId"), "Event");
   const registrationId = requireTrimmedString(formData.get("registrationId"), "Registration");
 
+  await approveRegistrationForCheckIn(eventId, registrationId);
+
+  revalidatePath(`/admin/events/${eventId}`);
+  revalidatePath(`/admin/events/${eventId}/checkin`);
+}
+
+export async function approveRegistrationForCheckIn(eventId: string, registrationId: string) {
+
   await prisma.$transaction(async (tx) => {
     const registration = await tx.eventRegistration.findUnique({
       where: {
@@ -236,11 +150,57 @@ export async function markRegistrationCheckedIn(formData: FormData) {
       select: {
         id: true,
         eventId: true,
+        status: true,
+        attendees: {
+          select: {
+            rosterMemberId: true,
+          },
+        },
+        formResponses: {
+          select: {
+            attendeeId: true,
+            eventFormFieldId: true,
+          },
+        },
+        event: {
+          select: {
+            dynamicFields: {
+              where: {
+                isRequired: true,
+              },
+              orderBy: {
+                sortOrder: "asc",
+              },
+              select: {
+                id: true,
+                key: true,
+                label: true,
+                description: true,
+                fieldScope: true,
+                options: true,
+              },
+            },
+          },
+        },
       },
     });
 
     if (!registration || registration.eventId !== eventId) {
       throw new Error("Registration not found for this event.");
+    }
+
+    assertRegistrationCanBeCheckedIn(registration.status);
+
+    const missingRequiredFields = getMissingRequiredFieldLabels({
+      requiredFields: registration.event.dynamicFields,
+      attendees: registration.attendees,
+      formResponses: registration.formResponses,
+    });
+
+    if (missingRequiredFields.length > 0) {
+      throw new Error(
+        `Check-in blocked: required registration fields are incomplete. Missing: ${missingRequiredFields.join(", ")}.`,
+      );
     }
 
     const checkedInAt = new Date();
@@ -265,7 +225,4 @@ export async function markRegistrationCheckedIn(formData: FormData) {
       },
     });
   });
-
-  revalidatePath(`/admin/events/${eventId}`);
-  revalidatePath(`/admin/events/${eventId}/checkin`);
 }

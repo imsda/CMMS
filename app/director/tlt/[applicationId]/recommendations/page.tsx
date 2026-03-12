@@ -10,10 +10,10 @@ import { prisma } from "../../../../../lib/prisma";
 import { RecommendationLinkGenerator } from "./_components/recommendation-link-generator";
 
 type RecommendationManagerPageProps = {
-  params: {
+  params: Promise<{
     applicationId: string;
-  };
-  searchParams?: {
+  }>;
+  searchParams?: Promise<{
     generated?: string;
     emails?: string;
     failed?: string;
@@ -21,7 +21,7 @@ type RecommendationManagerPageProps = {
     retry?: string;
     reason?: string;
     sent?: string;
-  };
+  }>;
 };
 
 function getBaseUrl() {
@@ -49,15 +49,16 @@ export default async function RecommendationManagerPage({
   params,
   searchParams,
 }: RecommendationManagerPageProps) {
-  const { applicationId } = params;
-  const generated = searchParams?.generated === "1";
-  const emailStatus = searchParams?.emails;
-  const failedCount = Number(searchParams?.failed ?? "0");
-  const error = searchParams?.error;
-  const retryStatus = searchParams?.retry;
-  const retryReason = searchParams?.reason;
-  const retrySent = Number(searchParams?.sent ?? "0");
-  const retryFailed = Number(searchParams?.failed ?? "0");
+  const { applicationId } = await params;
+  const resolvedSearchParams = await searchParams;
+  const generated = resolvedSearchParams?.generated === "1";
+  const emailStatus = resolvedSearchParams?.emails;
+  const failedCount = Number(resolvedSearchParams?.failed ?? "0");
+  const error = resolvedSearchParams?.error;
+  const retryStatus = resolvedSearchParams?.retry;
+  const retryReason = resolvedSearchParams?.reason;
+  const retrySent = Number(resolvedSearchParams?.sent ?? "0");
+  const retryFailed = Number(resolvedSearchParams?.failed ?? "0");
   const emailConfigured = Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
 
   const session = await auth();

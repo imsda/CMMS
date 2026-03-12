@@ -2,13 +2,13 @@ import { submitPublicTltRecommendation } from "../../actions/tlt-recommendation-
 import { prisma } from "../../../lib/prisma";
 
 type PublicRecommendationPageProps = {
-  params: {
+  params: Promise<{
     token: string;
-  };
+  }>;
 };
 
 export default async function PublicRecommendationPage({ params }: PublicRecommendationPageProps) {
-  const { token } = params;
+  const { token } = await params;
 
   const recommendation = await prisma.tltRecommendation.findUnique({
     where: {

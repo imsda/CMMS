@@ -25,7 +25,7 @@ export default async function DirectorEventsPage() {
 
   if (!membership) {
     return (
-      <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
+      <section className="glass-panel">
         <h1 className="text-xl font-semibold">No club membership found</h1>
         <p className="mt-2 text-sm">This account must be linked to a club before event registration can begin.</p>
       </section>
@@ -66,16 +66,16 @@ export default async function DirectorEventsPage() {
 
   return (
     <section className="space-y-6">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium text-slate-500">Club Director</p>
-        <h1 className="mt-1 text-3xl font-semibold text-slate-900">Event Registration</h1>
-        <p className="mt-2 text-sm text-slate-600">
+      <header className="glass-panel">
+        <p className="hero-kicker">Club Director</p>
+        <h1 className="hero-title mt-3">Event Registration</h1>
+        <p className="hero-copy">
           Open an event to select attendees, complete dynamic forms, and submit your club registration.
         </p>
       </header>
 
       {events.length === 0 ? (
-        <article className="rounded-2xl border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm">
+        <article className="empty-state text-sm text-slate-600">
           No upcoming events are currently available.
         </article>
       ) : (
@@ -84,7 +84,7 @@ export default async function DirectorEventsPage() {
             const registration = event.registrations[0];
 
             return (
-              <article key={event.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              <article key={event.id} className="glass-card">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
                     <h2 className="text-xl font-semibold text-slate-900">{event.name}</h2>
@@ -99,7 +99,7 @@ export default async function DirectorEventsPage() {
 
                   <Link
                     href={`/director/events/${event.id}`}
-                    className="inline-flex rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-indigo-500"
+                    className="btn-primary inline-flex"
                   >
                     Open Event
                   </Link>

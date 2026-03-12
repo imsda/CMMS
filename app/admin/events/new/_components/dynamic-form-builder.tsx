@@ -21,6 +21,7 @@ export type DynamicFieldDraft = {
   label: string;
   description: string;
   type: SupportedFormFieldType;
+  fieldScope: "GLOBAL" | "ATTENDEE";
   isRequired: boolean;
   options: string[];
 };
@@ -43,6 +44,7 @@ function createEmptyField(
     label: "",
     description: "",
     type,
+    fieldScope: "GLOBAL",
     isRequired: false,
     options: [],
   };
@@ -240,7 +242,7 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
           />
         </label>
 
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-3">
           <label className="space-y-1 text-sm text-slate-700">
             <span>Type</span>
             <select
@@ -249,6 +251,7 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
                 const nextType = event.currentTarget.value as SupportedFormFieldType;
                 updateField(field.id, {
                   type: nextType,
+                  fieldScope: nextType === "FIELD_GROUP" ? "GLOBAL" : field.fieldScope,
                   options: typeAllowsOptions(nextType) ? field.options : [],
                   isRequired: nextType === "FIELD_GROUP" ? false : field.isRequired,
                 });
@@ -266,6 +269,23 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
               <option value="ROSTER_SELECT">ROSTER_SELECT</option>
               <option value="ROSTER_MULTI_SELECT">ROSTER_MULTI_SELECT</option>
               {field.parentFieldId === null ? <option value="FIELD_GROUP">FIELD_GROUP</option> : null}
+            </select>
+          </label>
+
+          <label className="space-y-1 text-sm text-slate-700">
+            <span>Scope</span>
+            <select
+              value={isGroup ? "GLOBAL" : field.fieldScope}
+              onChange={(event) =>
+                updateField(field.id, {
+                  fieldScope: event.currentTarget.value as DynamicFieldDraft["fieldScope"],
+                })
+              }
+              className="w-full rounded-lg border border-slate-300 px-3 py-2"
+              disabled={isGroup}
+            >
+              <option value="GLOBAL">GLOBAL</option>
+              <option value="ATTENDEE">ATTENDEE</option>
             </select>
           </label>
 

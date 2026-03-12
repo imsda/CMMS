@@ -30,10 +30,10 @@ export default async function AdminClubsPage() {
 
   return (
     <section className="space-y-6">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium text-slate-500">Super Admin</p>
-        <h1 className="mt-1 text-3xl font-semibold text-slate-900">Club Directory</h1>
-        <p className="mt-2 text-sm text-slate-600">
+      <header className="glass-panel">
+        <p className="hero-kicker">Super Admin</p>
+        <h1 className="hero-title mt-3">Club Directory</h1>
+        <p className="hero-copy">
           Review conference clubs and current participation counts.
         </p>
       </header>
@@ -50,13 +50,13 @@ export default async function AdminClubsPage() {
         }))}
       />
 
-      <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <article className="glass-table table-shell overflow-hidden">
         {clubs.length === 0 ? (
-          <p className="px-6 py-5 text-sm text-slate-600">No clubs found.</p>
+          <p className="empty-state m-4 text-sm text-slate-600">No clubs found.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
-              <thead className="bg-slate-50">
+            <table className="text-sm">
+              <thead>
                 <tr>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">Club</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">Type</th>
@@ -66,7 +66,7 @@ export default async function AdminClubsPage() {
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody>
                 {clubs.map((club) => (
                   <tr key={club.id}>
                     <td className="px-4 py-3">
@@ -82,7 +82,7 @@ export default async function AdminClubsPage() {
                     <td className="px-4 py-3">
                       <Link
                         href={`/admin/dashboard`}
-                        className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
+                        className="btn-secondary px-3 py-1.5 text-xs"
                       >
                         Back to Dashboard
                       </Link>

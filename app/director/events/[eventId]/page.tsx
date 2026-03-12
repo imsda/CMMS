@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 
 import { auth } from "../../../../auth";
+import { getRegistrationLifecycleState } from "../../../../lib/registration-lifecycle";
 import { prisma } from "../../../../lib/prisma";
 import { RegistrationFormFulfiller } from "./_components/registration-form-fulfiller";
 
@@ -67,7 +68,7 @@ export default async function DirectorEventRegistrationPage({
 
   if (!membership?.club) {
     return (
-      <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
+      <section className="glass-panel">
         <h1 className="text-xl font-semibold">No club membership found</h1>
         <p className="mt-2 text-sm">You need an active club membership before registering for events.</p>
       </section>
@@ -118,13 +119,18 @@ export default async function DirectorEventRegistrationPage({
   const inLateFeeWindow = new Date() >= event.lateFeeStartsAt;
   const currentPricePerAttendee = inLateFeeWindow ? event.lateFeePrice : event.basePrice;
   const estimatedTotal = attendeeCount * currentPricePerAttendee;
+  const lifecycleState = getRegistrationLifecycleState({
+    registrationOpensAt: event.registrationOpensAt,
+    registrationClosesAt: event.registrationClosesAt,
+    registrationStatus: registration?.status ?? null,
+  });
 
   return (
     <section className="space-y-6">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium text-slate-500">Event Registration</p>
-        <h1 className="text-3xl font-semibold text-slate-900">{event.name}</h1>
-        <p className="mt-2 text-sm text-slate-600">{event.description ?? "No additional description provided."}</p>
+      <header className="glass-panel">
+        <p className="hero-kicker">Event Registration</p>
+        <h1 className="hero-title mt-3">{event.name}</h1>
+        <p className="hero-copy">{event.description ?? "No additional description provided."}</p>
 
         <dl className="mt-4 grid gap-3 text-sm text-slate-700 md:grid-cols-2">
           <div>
@@ -168,6 +174,7 @@ export default async function DirectorEventRegistrationPage({
           label: field.label,
           description: field.description,
           type: field.type,
+          fieldScope: field.fieldScope,
           isRequired: field.isRequired,
           options: field.options,
           parentFieldId: field.parentFieldId,
@@ -181,6 +188,8 @@ export default async function DirectorEventRegistrationPage({
           })) ?? []
         }
         registrationStatus={registration?.status ?? null}
+        canEditRegistration={lifecycleState.canEdit}
+        registrationNotice={lifecycleState.message}
       />
     </section>
   );

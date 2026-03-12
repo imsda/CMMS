@@ -1,6 +1,6 @@
 "use server";
 
-import { FormFieldType, type Prisma } from "@prisma/client";
+import { FormFieldScope, FormFieldType, type Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -14,6 +14,7 @@ type IncomingDynamicField = {
   label?: string;
   description?: string;
   type?: string;
+  fieldScope?: string;
   isRequired?: boolean;
   options?: string[];
   optionsJson?: string;
@@ -223,6 +224,8 @@ function parseDynamicFields(value: FormDataEntryValue | null) {
     const description = (candidate.description ?? "").trim();
     const type = candidate.type;
     const parentFieldId = typeof candidate.parentFieldId === "string" ? candidate.parentFieldId.trim() : null;
+    const fieldScope =
+      candidate.fieldScope === FormFieldScope.ATTENDEE ? FormFieldScope.ATTENDEE : FormFieldScope.GLOBAL;
 
     if (id.length === 0) {
       throw new Error(`Dynamic field ${index + 1} is missing an id.`);
@@ -257,6 +260,7 @@ function parseDynamicFields(value: FormDataEntryValue | null) {
       description: description.length > 0 ? description : null,
       type: type as FormFieldType,
       options: options ?? null,
+      fieldScope: type === FormFieldType.FIELD_GROUP ? FormFieldScope.GLOBAL : fieldScope,
       isRequired: type === FormFieldType.FIELD_GROUP ? false : Boolean(candidate.isRequired),
       sortOrder: index,
     };
@@ -330,6 +334,7 @@ async function replaceEventDynamicFields(
         label: field.label,
         description: field.description,
         type: field.type,
+        fieldScope: field.fieldScope,
         options: field.options,
         isRequired: field.isRequired,
         sortOrder: field.sortOrder,
@@ -357,6 +362,7 @@ async function replaceEventDynamicFields(
         label: field.label,
         description: field.description,
         type: field.type,
+        fieldScope: field.fieldScope,
         options: field.options,
         isRequired: field.isRequired,
         sortOrder: field.sortOrder,

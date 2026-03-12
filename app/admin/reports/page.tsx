@@ -3,10 +3,10 @@ import Link from "next/link";
 import { getAdminReportsData } from "../../actions/club-report-actions";
 
 type ReportsPageProps = {
-  searchParams?: {
+  searchParams?: Promise<{
     sort?: string;
     direction?: string;
-  };
+  }>;
 };
 
 function formatMonth(reportMonth: Date) {
@@ -29,8 +29,9 @@ function getDirectionToggle(currentDirection: "asc" | "desc") {
 }
 
 export default async function AdminReportsPage({ searchParams }: ReportsPageProps) {
-  const sortBy = parseSort(searchParams?.sort);
-  const direction = parseDirection(searchParams?.direction);
+  const resolvedSearchParams = await searchParams;
+  const sortBy = parseSort(resolvedSearchParams?.sort);
+  const direction = parseDirection(resolvedSearchParams?.direction);
   const nextDirection = getDirectionToggle(direction);
 
   const reportData = await getAdminReportsData(sortBy, direction);

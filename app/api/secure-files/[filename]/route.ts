@@ -28,7 +28,7 @@ function resolveContentType(filename: string) {
 
 export async function GET(
   _request: Request,
-  { params }: { params: { filename: string } },
+  context: { params: Promise<{ filename: string }> },
 ) {
   const session = await auth();
 
@@ -36,7 +36,7 @@ export async function GET(
     return new NextResponse("Unauthorized", { status: 401 });
   }
 
-  const { filename } = params;
+  const { filename } = await context.params;
   const safeFilename = path.basename(filename);
 
   if (!safeFilename || safeFilename !== filename) {

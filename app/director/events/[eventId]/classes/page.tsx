@@ -2,6 +2,7 @@ import { type MemberRole, type Prisma, type RequirementType } from "@prisma/clie
 import { notFound, redirect } from "next/navigation";
 
 import { auth } from "../../../../../auth";
+import { CLASS_ASSIGNMENT_POLICY } from "../../../../../lib/class-model";
 import { prisma } from "../../../../../lib/prisma";
 import { type RequirementInput } from "../../../../../lib/class-prerequisite-utils";
 import { ClassAssignmentBoard } from "./_components/class-assignment-board";
@@ -56,17 +57,6 @@ function readHonorCodeFromMetadata(metadata: Prisma.JsonValue): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value.trim().toUpperCase() : null;
 }
 
-function formatSlotLabel(startsAt: Date) {
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  });
-
-  return formatter.format(startsAt);
-}
-
 export default async function DirectorClassSelectionPage({
   params,
 }: {
@@ -94,7 +84,7 @@ export default async function DirectorClassSelectionPage({
 
   if (!membership) {
     return (
-      <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
+      <section className="glass-panel">
         <h1 className="text-xl font-semibold">No club membership found</h1>
         <p className="mt-2 text-sm">You need an active club membership before assigning event classes.</p>
       </section>
@@ -195,61 +185,15 @@ export default async function DirectorClassSelectionPage({
     orderBy: [{ classCatalog: { title: "asc" } }],
   });
 
-  const slotMap = new Map<
-    string,
-    {
-      slotKey: string;
-      label: string;
-      offerings: Array<{
-        id: string;
-        title: string;
-        code: string;
-        location: string | null;
-        dayIndex: number;
-        startsAt: string;
-        endsAt: string;
-        capacity: number | null;
-        enrolledCount: number;
-        requirements: RequirementInput[];
-      }>;
-    }
-  >();
-
-  for (const offering of offerings) {
-    const slotKey = offering.event.startsAt.toISOString();
-
-    if (!slotMap.has(slotKey)) {
-      slotMap.set(slotKey, {
-        slotKey,
-        label: formatSlotLabel(offering.event.startsAt),
-        offerings: [],
-      });
-    }
-
-    slotMap.get(slotKey)?.offerings.push({
-      id: offering.id,
-      title: offering.classCatalog.title,
-      code: offering.classCatalog.code,
-      location: offering.event.locationName,
-      dayIndex: 0,
-      startsAt: offering.event.startsAt.toISOString(),
-      endsAt: offering.event.endsAt.toISOString(),
-      capacity: offering.capacity,
-      enrolledCount: offering._count.enrollments,
-      requirements: mapRequirementsToEvaluatorInput(offering.classCatalog.requirements),
-    });
-  }
-
-  const slotGroups = Array.from(slotMap.values());
-
   return (
     <section className="space-y-6">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium text-slate-500">Class Assignment</p>
-        <h1 className="text-3xl font-semibold text-slate-900">{registration.event.name}</h1>
-        <p className="mt-2 text-sm text-slate-600">
-          Assign each registered attendee to classes and honors. Capacity updates live as enrollments are made.
+      <header className="glass-panel">
+        <p className="hero-kicker">Class Assignment</p>
+        <h1 className="hero-title mt-3">{registration.event.name}</h1>
+        <p className="hero-copy">
+          Assign each registered attendee to one event class. Capacity updates live as enrollments are made.
         </p>
+        <p className="mt-1 text-xs font-medium text-slate-500">{CLASS_ASSIGNMENT_POLICY}</p>
       </header>
 
       <ClassAssignmentBoard
@@ -266,7 +210,15 @@ export default async function DirectorClassSelectionPage({
             .filter((item): item is string => Boolean(item)),
           enrolledOfferingIds: attendee.rosterMember.classEnrollments.map((enrollment) => enrollment.eventClassOfferingId),
         }))}
-        slotGroups={slotGroups}
+        offerings={offerings.map((offering) => ({
+          id: offering.id,
+          title: offering.classCatalog.title,
+          code: offering.classCatalog.code,
+          location: offering.event.locationName,
+          capacity: offering.capacity,
+          enrolledCount: offering._count.enrollments,
+          requirements: mapRequirementsToEvaluatorInput(offering.classCatalog.requirements),
+        }))}
       />
     </section>
   );

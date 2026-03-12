@@ -71,23 +71,13 @@ export default async function TeacherClassRosterPage({
       eventClassOfferingId: offering.id,
     },
     select: {
+      attendedAt: true,
       rosterMemberId: true,
       rosterMember: {
         select: {
           firstName: true,
           lastName: true,
           memberRole: true,
-          registrations: {
-            where: {
-              eventRegistration: {
-                eventId: offering.eventId,
-              },
-            },
-            select: {
-              checkedInAt: true,
-            },
-            take: 1,
-          },
           completedRequirements: {
             where: {
               requirementType: "COMPLETED_HONOR",
@@ -113,22 +103,26 @@ export default async function TeacherClassRosterPage({
 
   return (
     <section className="space-y-6">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium text-slate-500">Class Management</p>
-        <h1 className="text-3xl font-semibold text-slate-900">
+      <header className="glass-panel">
+        <p className="hero-kicker">Class Management</p>
+        <h1 className="hero-title mt-3">
           {offering.classCatalog.title}
           <span className="ml-2 text-sm font-medium text-slate-500">({offering.classCatalog.code})</span>
         </h1>
         <p className="mt-2 text-sm text-slate-600">{offering.event.name}</p>
+        <p className="text-sm font-medium text-slate-700">Event dates</p>
         <p className="text-sm text-slate-600">
           {formatDateRange(offering.event.startsAt, offering.event.endsAt)}
         </p>
         <p className="text-sm text-slate-500">{offering.event.locationName ?? "Location TBD"}</p>
       </header>
 
-      <article className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+      <article className="glass-card">
         <p className="text-sm font-medium text-slate-700">
           Enrollment: {offering._count.enrollments}/{offering.capacity ?? "Open"}
+        </p>
+        <p className="mt-1 text-xs text-slate-500">
+          Attendance marked: {students.filter((student) => student.attendedAt !== null).length}/{students.length}
         </p>
       </article>
 
@@ -139,8 +133,8 @@ export default async function TeacherClassRosterPage({
           rosterMemberId: student.rosterMemberId,
           name: `${student.rosterMember.firstName} ${student.rosterMember.lastName}`,
           memberRole: student.rosterMember.memberRole.replaceAll("_", " "),
-          checkedInAt: student.rosterMember.registrations[0]?.checkedInAt
-            ? student.rosterMember.registrations[0].checkedInAt.toISOString()
+          attendedAt: student.attendedAt
+            ? student.attendedAt.toISOString()
             : null,
           alreadyCompleted: student.rosterMember.completedRequirements.length > 0,
         }))}

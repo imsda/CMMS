@@ -11,50 +11,80 @@ export default async function SuperAdminDashboardPage() {
 
   return (
     <section className="space-y-8">
-      <header>
-        <p className="text-sm font-medium text-slate-500">Super Admin Dashboard</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Conference Overview</h1>
-        <p className="mt-1 text-sm text-slate-600">
+      <header className="glass-panel">
+        <p className="hero-kicker">Super Admin Dashboard</p>
+        <h1 className="hero-title mt-3">Conference Overview</h1>
+        <p className="hero-copy">
           Monitor club participation, conference member totals, and active event windows.
         </p>
       </header>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm text-slate-500">Total Active Clubs</p>
-          <p className="mt-2 text-4xl font-semibold text-slate-900">{overview.totalActiveClubs}</p>
+        <article className="metric-card">
+          <p className="metric-label">Total Active Clubs</p>
+          <p className="metric-value">{overview.totalActiveClubs}</p>
         </article>
 
-        <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm text-slate-500">Conference Members</p>
-          <p className="mt-2 text-4xl font-semibold text-slate-900">{overview.totalConferenceMembers}</p>
-          <p className="mt-2 text-xs text-slate-500">From active members in active roster years.</p>
+        <article className="metric-card">
+          <p className="metric-label">Conference Members</p>
+          <p className="metric-value">{overview.totalConferenceMembers}</p>
+          <p className="metric-caption">From active members in active roster years.</p>
         </article>
 
-        <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <p className="text-sm text-slate-500">Upcoming Events</p>
-          <p className="mt-2 text-4xl font-semibold text-slate-900">{overview.upcomingEvents.length}</p>
-          <p className="mt-2 text-xs text-slate-500">Events ending today or later.</p>
+        <article className="metric-card">
+          <p className="metric-label">Upcoming Events</p>
+          <p className="metric-value">{overview.upcomingEvents.length}</p>
+          <p className="metric-caption">Events ending today or later.</p>
         </article>
       </div>
 
-      <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <article className="glass-panel">
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h2 className="section-title">System Health</h2>
+            <p className="section-copy">
+              Launch-critical startup checks and maintenance warnings surfaced from the live system state.
+            </p>
+          </div>
+          <span className={overview.systemHealth.warnings.length === 0 ? "status-chip-success" : "status-chip-warning"}>
+            {overview.systemHealth.warnings.length === 0 ? "Healthy" : `${overview.systemHealth.warnings.length} warning${overview.systemHealth.warnings.length === 1 ? "" : "s"}`}
+          </span>
+        </div>
+
+        {overview.systemHealth.warnings.length === 0 ? (
+          <p className="alert-success mt-4">No system-health warnings detected.</p>
+        ) : (
+          <div className="mt-4 grid gap-3">
+            {overview.systemHealth.warnings.map((warning) => (
+              <article
+                key={warning.code}
+                className={warning.level === "critical" ? "alert-danger" : "alert-warning"}
+              >
+                <p className="font-semibold uppercase tracking-[0.12em]">{warning.code.replaceAll("_", " ")}</p>
+                <p>{warning.message}</p>
+              </article>
+            ))}
+          </div>
+        )}
+      </article>
+
+      <article className="glass-panel">
         <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-slate-900">Upcoming Event Timeline</h2>
+          <h2 className="section-title">Upcoming Event Timeline</h2>
           <Link
             href="/admin/events/new"
-            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+            className="btn-primary"
           >
             Create Event
           </Link>
         </div>
 
         {overview.upcomingEvents.length === 0 ? (
-          <p className="mt-4 text-sm text-slate-600">No upcoming events have been scheduled.</p>
+          <p className="empty-state mt-4 text-sm text-slate-600">No upcoming events have been scheduled.</p>
         ) : (
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
-              <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+          <div className="glass-table table-shell mt-4 overflow-x-auto">
+            <table className="text-sm">
+              <thead>
                 <tr>
                   <th className="px-4 py-3">Event</th>
                   <th className="px-4 py-3">Dates</th>
@@ -63,7 +93,7 @@ export default async function SuperAdminDashboardPage() {
                   <th className="px-4 py-3">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody>
                 {overview.upcomingEvents.map((event) => (
                   <tr key={event.id} className="align-top">
                     <td className="px-4 py-3 font-medium text-slate-900">{event.name}</td>
@@ -73,7 +103,7 @@ export default async function SuperAdminDashboardPage() {
                     <td className="px-4 py-3">
                       <Link
                         href={`/admin/events/${event.id}`}
-                        className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
+                        className="btn-secondary px-3 py-1.5 text-xs"
                       >
                         Open Overseer
                       </Link>

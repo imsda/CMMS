@@ -70,6 +70,11 @@ enum FormFieldType {
   FIELD_GROUP
 }
 
+enum FormFieldScope {
+  GLOBAL
+  ATTENDEE
+}
+
 enum ClassType {
   HONOR
   SPECIALTY
@@ -113,6 +118,16 @@ enum TltRecommendationInviteEmailStatus {
   FAILED
 }
 
+enum ComplianceSyncRunStatus {
+  PREVIEW
+  APPLIED
+}
+
+enum AuthRateLimitScope {
+  EMAIL_IP
+  IP
+}
+
 model User {
   id                    String               @id @default(cuid())
   email                 String               @unique
@@ -125,6 +140,9 @@ model User {
   memberships           ClubMembership[]
   taughtOfferings       EventClassOffering[] @relation("OfferingTeacher")
   completedRequirements MemberRequirement[]
+  complianceSyncRuns    ComplianceSyncRun[]
+  appliedComplianceSyncRuns ComplianceSyncRun[] @relation("ComplianceSyncRunAppliedBy")
+  rosterMemberLinks     UserRosterMemberLink[]
 }
 
 model Club {
@@ -144,6 +162,7 @@ model Club {
   yearEndReports  YearEndReport[]
   nominations     Nomination[]
   tltApplications TltApplication[]
+  complianceSyncRuns ComplianceSyncRun[]
 }
 
 model ClubMembership {
@@ -175,6 +194,7 @@ model ClubRosterYear {
   copiedFromYear   ClubRosterYear?  @relation("RosterYearRollover", fields: [copiedFromYearId], references: [id])
   rolledIntoYears  ClubRosterYear[] @relation("RosterYearRollover")
   members          RosterMember[]
+  complianceSyncRuns ComplianceSyncRun[]
 
   @@unique([clubId, yearLabel])
   @@index([clubId, isActive])
@@ -204,6 +224,7 @@ model RosterMember {
   insurancePolicyNumber      String?
   insuranceCardFilename      String?
   lastTetanusDate            DateTime?
+  lastTetanusDateEncrypted   String?
   photoReleaseConsent        Boolean               @default(false)
   medicalTreatmentConsent    Boolean               @default(false)
   membershipAgreementConsent Boolean               @default(false)
@@ -217,9 +238,23 @@ model RosterMember {
   eventFormResponses     EventFormResponse[]
   nominations            Nomination[]
   tltApplication         TltApplication?
+  portalUsers            UserRosterMemberLink[]
 
   @@index([clubRosterYearId, isActive])
   @@index([lastName, firstName])
+}
+
+model UserRosterMemberLink {
+  id             String   @id @default(cuid())
+  userId         String
+  rosterMemberId String
+  createdAt      DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  rosterMember RosterMember @relation(fields: [rosterMemberId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, rosterMemberId])
+  @@index([rosterMemberId])
 }
 
 model TltApplication {
@@ -320,6 +355,7 @@ model EventFormField {
   label         String
   description   String?
   type          FormFieldType
+  fieldScope    FormFieldScope   @default(GLOBAL)
   options       Json?
   isRequired    Boolean          @default(false)
   sortOrder     Int              @default(0)
@@ -420,6 +456,7 @@ model ClassEnrollment {
   eventClassOfferingId String
   rosterMemberId       String
   assignedAt           DateTime @default(now())
+  attendedAt           DateTime?
 
   offering     EventClassOffering @relation(fields: [eventClassOfferingId], references: [id], onDelete: Cascade)
   rosterMember RosterMember       @relation(fields: [rosterMemberId], references: [id], onDelete: Cascade)
@@ -442,6 +479,47 @@ model MemberRequirement {
 
   @@index([userId, requirementType])
   @@index([rosterMemberId, requirementType])
+}
+
+model ComplianceSyncRun {
+  id               String                  @id @default(cuid())
+  uploadedByUserId String
+  appliedByUserId  String?
+  clubId           String
+  clubRosterYearId String
+  fileName         String
+  status           ComplianceSyncRunStatus @default(PREVIEW)
+  processedRows    Int
+  passedRows       Int
+  updateCount      Int
+  skippedCount     Int
+  ambiguousCount   Int
+  rowResults       Json
+  appliedAt        DateTime?
+  createdAt        DateTime                @default(now())
+
+  uploadedBy      User            @relation(fields: [uploadedByUserId], references: [id], onDelete: Cascade)
+  appliedBy       User?           @relation("ComplianceSyncRunAppliedBy", fields: [appliedByUserId], references: [id], onDelete: SetNull)
+  club            Club            @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  clubRosterYear  ClubRosterYear  @relation(fields: [clubRosterYearId], references: [id], onDelete: Cascade)
+
+  @@index([clubId, createdAt])
+  @@index([clubRosterYearId, createdAt])
+  @@index([uploadedByUserId, createdAt])
+  @@index([appliedByUserId, createdAt])
+}
+
+model AuthRateLimitBucket {
+  keyHash       String             @id
+  scopeType     AuthRateLimitScope
+  attemptCount  Int
+  windowStartedAt DateTime
+  blockedUntil  DateTime?
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([scopeType, updatedAt])
+  @@index([blockedUntil])
 }
 
 model EventFormResponse {

@@ -1,9 +1,14 @@
 "use server";
 
-import { type MemberRole, type Prisma } from "@prisma/client";
+import { Prisma, type MemberRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "../../auth";
+import {
+  findEventEnrollmentConflict,
+  formatEnrollmentConflictMessage,
+  isOfferingFull,
+} from "../../lib/class-model";
 import { prisma } from "../../lib/prisma";
 import {
   evaluateClassRequirements,
@@ -92,22 +97,50 @@ async function getDirectorClubIdForEnrollment() {
   return membership.clubId;
 }
 
-export async function enrollAttendeeInClass(input: EnrollAttendeeInput) {
-  const clubId = await getDirectorClubIdForEnrollment();
+async function runSerializableEnrollmentTransaction<T>(
+  callback: Parameters<typeof prisma.$transaction>[0],
+) {
+  let lastError: unknown;
 
-  if (!input.eventId || !input.rosterMemberId || !input.eventClassOfferingId) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      return await prisma.$transaction(callback, {
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      }) as T;
+    } catch (error) {
+      lastError = error;
+
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "code" in error &&
+        (error as { code?: string }).code === "P2034" &&
+        attempt < 2
+      ) {
+        continue;
+      }
+
+      throw error;
+    }
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Unable to complete class enrollment.");
+}
+
+export async function enrollAttendeeInClassForClub(input: EnrollAttendeeInput & { clubId: string }) {
+  if (!input.eventId || !input.rosterMemberId || !input.eventClassOfferingId || !input.clubId) {
     throw new Error("Event, attendee, and class offering are required.");
   }
 
-  await prisma.$transaction(async (tx) => {
+  await runSerializableEnrollmentTransaction(async (tx) => {
     const registrationAttendee = await tx.registrationAttendee.findFirst({
       where: {
         rosterMemberId: input.rosterMemberId,
-        eventRegistration: {
-          eventId: input.eventId,
-          clubId,
+          eventRegistration: {
+            eventId: input.eventId,
+            clubId: input.clubId,
+          },
         },
-      },
       select: {
         id: true,
       },
@@ -125,8 +158,11 @@ export async function enrollAttendeeInClass(input: EnrollAttendeeInput) {
       select: {
         id: true,
         capacity: true,
+        eventId: true,
         classCatalog: {
           select: {
+            title: true,
+            code: true,
             requirements: {
               select: {
                 requirementType: true,
@@ -149,7 +185,7 @@ export async function enrollAttendeeInClass(input: EnrollAttendeeInput) {
           some: {
             eventRegistration: {
               eventId: input.eventId,
-              clubId,
+              clubId: input.clubId,
             },
           },
         },
@@ -207,17 +243,15 @@ export async function enrollAttendeeInClass(input: EnrollAttendeeInput) {
       return;
     }
 
-    const conflictingEnrollment = await tx.classEnrollment.findFirst({
+    const existingEventEnrollments = await tx.classEnrollment.findMany({
       where: {
         rosterMemberId: input.rosterMemberId,
-        eventClassOfferingId: {
-          not: input.eventClassOfferingId,
-        },
         offering: {
           eventId: input.eventId,
         },
       },
       select: {
+        eventClassOfferingId: true,
         offering: {
           select: {
             classCatalog: {
@@ -231,11 +265,17 @@ export async function enrollAttendeeInClass(input: EnrollAttendeeInput) {
       },
     });
 
+    const conflictingEnrollment = findEventEnrollmentConflict(
+      existingEventEnrollments.map((enrollment) => ({
+        eventClassOfferingId: enrollment.eventClassOfferingId,
+        classTitle: enrollment.offering.classCatalog.title,
+        classCode: enrollment.offering.classCatalog.code,
+      })),
+      input.eventClassOfferingId,
+    );
+
     if (conflictingEnrollment) {
-      const { title, code } = conflictingEnrollment.offering.classCatalog;
-      throw new Error(
-        `Attendee is already assigned to ${title} (${code}). Remove that enrollment before assigning another class.`,
-      );
+      throw new Error(formatEnrollmentConflictMessage(conflictingEnrollment));
     }
 
     const enrollmentCount = await tx.classEnrollment.count({
@@ -244,7 +284,7 @@ export async function enrollAttendeeInClass(input: EnrollAttendeeInput) {
       },
     });
 
-    if (typeof offering.capacity === "number" && enrollmentCount >= offering.capacity) {
+    if (isOfferingFull(offering.capacity, enrollmentCount)) {
       throw new Error("This class is full. Please choose another class.");
     }
 
@@ -259,22 +299,28 @@ export async function enrollAttendeeInClass(input: EnrollAttendeeInput) {
   revalidatePath(`/director/events/${input.eventId}/classes`);
 }
 
-export async function removeAttendeeFromClass(input: EnrollAttendeeInput) {
+export async function enrollAttendeeInClass(input: EnrollAttendeeInput) {
   const clubId = await getDirectorClubIdForEnrollment();
+  await enrollAttendeeInClassForClub({
+    ...input,
+    clubId,
+  });
+}
 
-  if (!input.eventId || !input.rosterMemberId || !input.eventClassOfferingId) {
+export async function removeAttendeeFromClassForClub(input: EnrollAttendeeInput & { clubId: string }) {
+  if (!input.eventId || !input.rosterMemberId || !input.eventClassOfferingId || !input.clubId) {
     throw new Error("Event, attendee, and class offering are required.");
   }
 
-  await prisma.$transaction(async (tx) => {
+  await runSerializableEnrollmentTransaction(async (tx) => {
     const registrationAttendee = await tx.registrationAttendee.findFirst({
       where: {
         rosterMemberId: input.rosterMemberId,
-        eventRegistration: {
-          eventId: input.eventId,
-          clubId,
+          eventRegistration: {
+            eventId: input.eventId,
+            clubId: input.clubId,
+          },
         },
-      },
       select: {
         id: true,
       },
@@ -307,4 +353,12 @@ export async function removeAttendeeFromClass(input: EnrollAttendeeInput) {
   });
 
   revalidatePath(`/director/events/${input.eventId}/classes`);
+}
+
+export async function removeAttendeeFromClass(input: EnrollAttendeeInput) {
+  const clubId = await getDirectorClubIdForEnrollment();
+  await removeAttendeeFromClassForClub({
+    ...input,
+    clubId,
+  });
 }

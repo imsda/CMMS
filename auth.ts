@@ -3,6 +3,13 @@ import bcrypt from "bcryptjs";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 
+import {
+  assertLoginAllowed,
+  clearFailedLoginAttempts,
+  getClientIpFromHeaders,
+  normalizeEmailAddress,
+  recordFailedLoginAttempt,
+} from "./lib/auth-rate-limit";
 import { prisma } from "./lib/prisma";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -26,17 +33,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           type: "password",
         },
       },
-      async authorize(credentials) {
+      async authorize(credentials, request) {
         const email = typeof credentials?.email === "string" ? credentials.email.trim() : "";
         const password = typeof credentials?.password === "string" ? credentials.password : "";
+        const normalizedEmail = normalizeEmailAddress(email);
+        const clientIp = getClientIpFromHeaders(request.headers);
 
-        if (!email || !password) {
+        if (!normalizedEmail || !password) {
           return null;
         }
 
-        const user = await prisma.user.findUnique({
+        await assertLoginAllowed(normalizedEmail, clientIp);
+
+        const user = await prisma.user.findFirst({
           where: {
-            email,
+            email: {
+              equals: normalizedEmail,
+              mode: "insensitive",
+            },
           },
           select: {
             id: true,
@@ -57,6 +71,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         });
 
         if (!user?.passwordHash) {
+          await recordFailedLoginAttempt(normalizedEmail, clientIp);
           return null;
         }
 
@@ -66,8 +81,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         );
 
         if (!passwordMatches) {
+          await recordFailedLoginAttempt(normalizedEmail, clientIp);
           return null;
         }
+
+        await clearFailedLoginAttempts(normalizedEmail, clientIp);
 
         return {
           id: user.id,

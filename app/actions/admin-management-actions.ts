@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "../../auth";
 import { sendAccountCredentialEmail } from "../../lib/email/resend";
 import { prisma } from "../../lib/prisma";
+import { isStudentPortalEligibleMemberRole } from "../../lib/student-portal-links";
 
 export type AdminCreateFormState = {
   status: "idle" | "success" | "error";
@@ -573,4 +574,117 @@ export async function resetUserPasswordAction(
       message: toActionErrorMessage(error, "Unable to reset password."),
     };
   }
+}
+
+export async function assignStudentPortalLinkAction(
+  _prevState: AdminCreateFormState,
+  formData: FormData,
+): Promise<AdminCreateFormState> {
+  try {
+    const session = await auth();
+    ensureSuperAdmin(session?.user?.role);
+
+    const userId = parseRequiredString(formData.get("userId"), "User");
+    const rosterMemberId = parseRequiredString(formData.get("rosterMemberId"), "Roster member");
+
+    await assignStudentPortalLink(userId, rosterMemberId);
+
+    revalidatePath("/admin/users");
+
+    return {
+      status: "success",
+      message: "Student portal link saved.",
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: toActionErrorMessage(error, "Unable to save student portal link."),
+    };
+  }
+}
+
+export async function removeStudentPortalLinkAction(
+  _prevState: AdminCreateFormState,
+  formData: FormData,
+): Promise<AdminCreateFormState> {
+  try {
+    const session = await auth();
+    ensureSuperAdmin(session?.user?.role);
+
+    const linkId = parseRequiredString(formData.get("linkId"), "Student portal link");
+
+    await removeStudentPortalLink(linkId);
+
+    revalidatePath("/admin/users");
+
+    return {
+      status: "success",
+      message: "Student portal link removed.",
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: toActionErrorMessage(error, "Unable to remove student portal link."),
+    };
+  }
+}
+
+export async function assignStudentPortalLink(userId: string, rosterMemberId: string) {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    select: {
+      id: true,
+      role: true,
+    },
+  });
+
+  if (!user) {
+    throw new Error("User was not found.");
+  }
+
+  if (user.role !== UserRole.STUDENT_PARENT) {
+    throw new Error("Only STUDENT_PARENT users can be linked to portal student records.");
+  }
+
+  const rosterMember = await prisma.rosterMember.findUnique({
+    where: {
+      id: rosterMemberId,
+    },
+    select: {
+      id: true,
+      memberRole: true,
+    },
+  });
+
+  if (!rosterMember) {
+    throw new Error("Roster member was not found.");
+  }
+
+  if (!isStudentPortalEligibleMemberRole(rosterMember.memberRole)) {
+    throw new Error("Only student roster members can be linked to the student portal.");
+  }
+
+  await prisma.userRosterMemberLink.upsert({
+    where: {
+      userId_rosterMemberId: {
+        userId,
+        rosterMemberId,
+      },
+    },
+    update: {},
+    create: {
+      userId,
+      rosterMemberId,
+    },
+  });
+}
+
+export async function removeStudentPortalLink(linkId: string) {
+  await prisma.userRosterMemberLink.delete({
+    where: {
+      id: linkId,
+    },
+  });
 }

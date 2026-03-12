@@ -1,9 +1,10 @@
+import { decryptMedicalFields } from "../medical-data";
 import { prisma } from "../prisma";
 
 export type EventRegistrationExportData = Awaited<ReturnType<typeof getEventRegistrationExportData>>;
 
 export async function getEventRegistrationExportData(eventId: string, clubId: string) {
-  return prisma.eventRegistration.findUnique({
+  const registration = await prisma.eventRegistration.findUnique({
     where: {
       eventId_clubId: {
         eventId,
@@ -58,4 +59,16 @@ export async function getEventRegistrationExportData(eventId: string, clubId: st
       },
     },
   });
+
+  if (!registration) {
+    return null;
+  }
+
+  return {
+    ...registration,
+    attendees: registration.attendees.map((attendee) => ({
+      ...attendee,
+      rosterMember: decryptMedicalFields(attendee.rosterMember),
+    })),
+  };
 }

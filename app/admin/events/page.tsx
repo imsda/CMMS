@@ -11,29 +11,29 @@ export default async function AdminEventsPage() {
 
   return (
     <section className="space-y-6">
-      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <p className="text-sm font-medium text-slate-500">Super Admin</p>
-        <h1 className="mt-1 text-3xl font-semibold text-slate-900">Event Management</h1>
-        <p className="mt-2 text-sm text-slate-600">
+      <header className="glass-panel">
+        <p className="hero-kicker">Super Admin</p>
+        <h1 className="hero-title mt-3">Event Management</h1>
+        <p className="hero-copy">
           Review event windows, registration status, and open overseer pages.
         </p>
         <div className="mt-4">
           <Link
             href="/admin/events/new"
-            className="inline-flex rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500"
+            className="btn-primary inline-flex"
           >
             Create Event
           </Link>
         </div>
       </header>
 
-      <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+      <article className="glass-table table-shell overflow-hidden">
         {events.length === 0 ? (
-          <p className="px-6 py-5 text-sm text-slate-600">No events found. Create your first event.</p>
+          <p className="empty-state m-4 text-sm text-slate-600">No events found. Create your first event.</p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200 text-sm">
-              <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+            <table className="text-sm">
+              <thead>
                 <tr>
                   <th className="px-4 py-3">Event</th>
                   <th className="px-4 py-3">Dates</th>
@@ -43,7 +43,7 @@ export default async function AdminEventsPage() {
                   <th className="px-4 py-3">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody>
                 {events.map((event) => (
                   <tr key={event.id}>
                     <td className="px-4 py-3 text-slate-900">
@@ -84,19 +84,19 @@ export default async function AdminEventsPage() {
                       <div className="flex gap-2">
                         <Link
                           href={`/admin/events/${event.id}`}
-                          className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
+                          className="btn-secondary px-3 py-1.5 text-xs"
                         >
                           Open Overseer
                         </Link>
                         <Link
                           href={`/admin/events/${event.id}/edit`}
-                          className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
+                          className="btn-secondary px-3 py-1.5 text-xs"
                         >
                           Edit
                         </Link>
                         <Link
                           href={`/admin/events/${event.id}/classes`}
-                          className="rounded-md border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
+                          className="btn-secondary px-3 py-1.5 text-xs"
                         >
                           Classes
                         </Link>

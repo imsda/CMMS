@@ -44,15 +44,15 @@ export default async function AdminCatalogPage() {
 
   return (
     <section className="space-y-6">
-      <header>
-        <p className="text-sm font-medium text-slate-500">Super Admin</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Master Class/Honor Catalog</h1>
-        <p className="mt-1 text-sm text-slate-600">
+      <header className="glass-panel">
+        <p className="hero-kicker">Super Admin</p>
+        <h1 className="hero-title mt-3">Master Class/Honor Catalog</h1>
+        <p className="hero-copy">
           Manage conference-wide honors, workshops, and prerequisite requirements.
         </p>
       </header>
 
-      <details className="group rounded-2xl border border-indigo-200 bg-indigo-50 p-6 shadow-sm" open>
+      <details className="glass-panel group" open>
         <summary className="cursor-pointer list-none text-lg font-semibold text-indigo-900">
           Add New Honor / Catalog Item
         </summary>
@@ -120,7 +120,7 @@ export default async function AdminCatalogPage() {
             </label>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-white p-4">
+          <div className="glass-subsection">
             <h2 className="text-sm font-semibold text-slate-900">Prerequisite (Optional)</h2>
             <div className="mt-3 grid gap-4 md:grid-cols-3">
               <label className="space-y-1 text-sm text-slate-700">
@@ -181,16 +181,16 @@ export default async function AdminCatalogPage() {
             </div>
           </div>
 
-          <button type="submit" className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500">
+          <button type="submit" className="btn-primary">
             Add Catalog Item
           </button>
         </form>
       </details>
 
-      <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-semibold text-slate-900">Catalog Table</h2>
+      <article className="glass-panel">
+        <h2 className="section-title">Catalog Table</h2>
         {catalog.length === 0 ? (
-          <p className="mt-3 text-sm text-slate-600">No class catalog items found.</p>
+          <p className="empty-state mt-3 text-sm text-slate-600">No class catalog items found.</p>
         ) : (
           <div className="mt-4 space-y-4">
             {catalog.map((item) => {
@@ -200,7 +200,7 @@ export default async function AdminCatalogPage() {
                 <form
                   key={item.id}
                   action={updateMasterCatalogItem}
-                  className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+                  className="glass-card-soft"
                 >
                   <input type="hidden" name="classCatalogId" value={item.id} />
                   <div className="grid gap-3 md:grid-cols-4">

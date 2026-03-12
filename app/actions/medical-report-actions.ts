@@ -4,6 +4,7 @@ import { MemberRole, RegistrationStatus } from "@prisma/client";
 import { type Session } from "next-auth";
 
 import { auth } from "../../auth";
+import { decryptMedicalFields } from "../../lib/medical-data";
 import { prisma } from "../../lib/prisma";
 
 export type MedicalManifestRow = {
@@ -166,8 +167,9 @@ export async function getMedicalManifest(eventId: string): Promise<MedicalManife
 
   const rows: MedicalManifestRow[] = attendees
     .map((attendee) => {
-      const dietaryRestrictions = normalizeNullableText(attendee.rosterMember.dietaryRestrictions);
-      const medicalFlags = normalizeNullableText(attendee.rosterMember.medicalFlags);
+      const decryptedMember = decryptMedicalFields(attendee.rosterMember);
+      const dietaryRestrictions = normalizeNullableText(decryptedMember.dietaryRestrictions);
+      const medicalFlags = normalizeNullableText(decryptedMember.medicalFlags);
 
       if (!dietaryRestrictions && !medicalFlags) {
         return null;

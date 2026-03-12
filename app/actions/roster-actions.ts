@@ -10,6 +10,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { auth } from "../../auth";
+import { decryptMedicalFields, prepareMedicalFieldsForWrite } from "../../lib/medical-data";
 import { prisma } from "../../lib/prisma";
 
 function parseOptionalNumber(value: FormDataEntryValue | null) {
@@ -109,6 +110,13 @@ export async function saveRosterMember(formData: FormData) {
     ? new Date(`${backgroundCheckDateRaw}T00:00:00.000Z`)
     : null;
   const lastTetanusDateRaw = parseOptionalString(formData.get("lastTetanusDate"));
+  const medicalWriteFields = prepareMedicalFieldsForWrite({
+    medicalFlags: parseOptionalString(formData.get("medicalFlags")),
+    dietaryRestrictions: parseOptionalString(formData.get("dietaryRestrictions")),
+    insuranceCompany: parseOptionalString(formData.get("insuranceCompany")),
+    insurancePolicyNumber: parseOptionalString(formData.get("insurancePolicyNumber")),
+    lastTetanusDate: lastTetanusDateRaw ? new Date(`${lastTetanusDateRaw}T00:00:00.000Z`) : null,
+  });
 
   const photoReleaseConsent = formData.get("photoReleaseConsent") === "on";
   const medicalTreatmentConsent = formData.get("medicalTreatmentConsent") === "on";
@@ -126,8 +134,8 @@ export async function saveRosterMember(formData: FormData) {
     ageAtStart: ageAtStartValue,
     dateOfBirth: dateOfBirthRaw ? new Date(`${dateOfBirthRaw}T00:00:00.000Z`) : null,
     gender: genderValue,
-    medicalFlags: parseOptionalString(formData.get("medicalFlags")),
-    dietaryRestrictions: parseOptionalString(formData.get("dietaryRestrictions")),
+    medicalFlags: medicalWriteFields.medicalFlags,
+    dietaryRestrictions: medicalWriteFields.dietaryRestrictions,
     isFirstTime: formData.get("isFirstTime") === "on",
     isMedicalPersonnel: formData.get("isMedicalPersonnel") === "on",
     masterGuide: formData.get("masterGuide") === "on",
@@ -135,9 +143,10 @@ export async function saveRosterMember(formData: FormData) {
     backgroundCheckCleared: Boolean(backgroundCheckDate),
     emergencyContactName: parseOptionalString(formData.get("emergencyContactName")),
     emergencyContactPhone: parseOptionalString(formData.get("emergencyContactPhone")),
-    insuranceCompany: parseOptionalString(formData.get("insuranceCompany")),
-    insurancePolicyNumber: parseOptionalString(formData.get("insurancePolicyNumber")),
-    lastTetanusDate: lastTetanusDateRaw ? new Date(`${lastTetanusDateRaw}T00:00:00.000Z`) : null,
+    insuranceCompany: medicalWriteFields.insuranceCompany,
+    insurancePolicyNumber: medicalWriteFields.insurancePolicyNumber,
+    lastTetanusDate: medicalWriteFields.lastTetanusDate,
+    lastTetanusDateEncrypted: medicalWriteFields.lastTetanusDateEncrypted,
     photoReleaseConsent,
     medicalTreatmentConsent,
     membershipAgreementConsent,
@@ -155,6 +164,7 @@ export async function saveRosterMember(formData: FormData) {
       },
       select: {
         id: true,
+        backgroundCheckCleared: true,
       },
     });
 
@@ -175,12 +185,15 @@ export async function saveRosterMember(formData: FormData) {
       isMedicalPersonnel: payload.isMedicalPersonnel,
       masterGuide: payload.masterGuide,
       backgroundCheckDate: payload.backgroundCheckDate,
-      backgroundCheckCleared: payload.backgroundCheckCleared,
+      // Only compliance sync should grant clearance. Director roster edits may log a date,
+      // but they must not imply a cleared status on their own.
+      backgroundCheckCleared: existingMember.backgroundCheckCleared,
       emergencyContactName: payload.emergencyContactName,
       emergencyContactPhone: payload.emergencyContactPhone,
       insuranceCompany: payload.insuranceCompany,
       insurancePolicyNumber: payload.insurancePolicyNumber,
       lastTetanusDate: payload.lastTetanusDate,
+      lastTetanusDateEncrypted: payload.lastTetanusDateEncrypted,
       photoReleaseConsent: payload.photoReleaseConsent,
       medicalTreatmentConsent: payload.medicalTreatmentConsent,
       membershipAgreementConsent: payload.membershipAgreementConsent,
@@ -195,7 +208,10 @@ export async function saveRosterMember(formData: FormData) {
     });
   } else {
     await prisma.rosterMember.create({
-      data: payload,
+      data: {
+        ...payload,
+        backgroundCheckCleared: false,
+      },
     });
   }
 
@@ -287,32 +303,44 @@ export async function executeYearlyRollover(
 
     if (activeMembers.length > 0) {
       await tx.rosterMember.createMany({
-        data: activeMembers.map((member) => ({
-          clubRosterYearId: newYear.id,
-          firstName: member.firstName,
-          lastName: member.lastName,
-          dateOfBirth: member.dateOfBirth,
-          ageAtStart: member.ageAtStart,
-          gender: member.gender,
-          memberRole: member.memberRole,
-          medicalFlags: member.medicalFlags,
-          dietaryRestrictions: member.dietaryRestrictions,
-          isFirstTime: member.isFirstTime,
-          isMedicalPersonnel: member.isMedicalPersonnel,
-          masterGuide: member.masterGuide,
-          backgroundCheckDate: member.backgroundCheckDate,
-          backgroundCheckCleared: member.backgroundCheckCleared,
-          emergencyContactName: member.emergencyContactName,
-          emergencyContactPhone: member.emergencyContactPhone,
-          insuranceCompany: member.insuranceCompany,
-          insurancePolicyNumber: member.insurancePolicyNumber,
-          lastTetanusDate: member.lastTetanusDate,
-          photoReleaseConsent: member.photoReleaseConsent,
-          medicalTreatmentConsent: member.medicalTreatmentConsent,
-          membershipAgreementConsent: member.membershipAgreementConsent,
-          isActive: true,
-          rolloverStatus: RolloverStatus.CONTINUING,
-        })),
+        data: activeMembers.map((member) => {
+          const decryptedMember = decryptMedicalFields(member);
+          const medicalWriteFields = prepareMedicalFieldsForWrite({
+            medicalFlags: decryptedMember.medicalFlags,
+            dietaryRestrictions: decryptedMember.dietaryRestrictions,
+            insuranceCompany: decryptedMember.insuranceCompany,
+            insurancePolicyNumber: decryptedMember.insurancePolicyNumber,
+            lastTetanusDate: decryptedMember.lastTetanusDate,
+          });
+
+          return {
+            clubRosterYearId: newYear.id,
+            firstName: member.firstName,
+            lastName: member.lastName,
+            dateOfBirth: member.dateOfBirth,
+            ageAtStart: member.ageAtStart,
+            gender: member.gender,
+            memberRole: member.memberRole,
+            medicalFlags: medicalWriteFields.medicalFlags,
+            dietaryRestrictions: medicalWriteFields.dietaryRestrictions,
+            isFirstTime: member.isFirstTime,
+            isMedicalPersonnel: member.isMedicalPersonnel,
+            masterGuide: member.masterGuide,
+            backgroundCheckDate: member.backgroundCheckDate,
+            backgroundCheckCleared: member.backgroundCheckCleared,
+            emergencyContactName: member.emergencyContactName,
+            emergencyContactPhone: member.emergencyContactPhone,
+            insuranceCompany: medicalWriteFields.insuranceCompany,
+            insurancePolicyNumber: medicalWriteFields.insurancePolicyNumber,
+            lastTetanusDate: medicalWriteFields.lastTetanusDate,
+            lastTetanusDateEncrypted: medicalWriteFields.lastTetanusDateEncrypted,
+            photoReleaseConsent: member.photoReleaseConsent,
+            medicalTreatmentConsent: member.medicalTreatmentConsent,
+            membershipAgreementConsent: member.membershipAgreementConsent,
+            isActive: true,
+            rolloverStatus: RolloverStatus.CONTINUING,
+          };
+        }),
       });
     }
   });

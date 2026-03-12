@@ -56,7 +56,7 @@ export default async function ClubDirectorDashboardPage() {
 
   if (!membership?.club) {
     return (
-      <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
+      <section className="glass-panel">
         <h1 className="text-xl font-semibold">No club membership found</h1>
         <p className="mt-2 text-sm">This account must be linked to a club before dashboard workflows can run.</p>
       </section>
@@ -134,24 +134,24 @@ export default async function ClubDirectorDashboardPage() {
 
   return (
     <section className="space-y-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="glass-panel flex flex-wrap items-start justify-between gap-6">
         <div>
-          <p className="text-sm font-medium text-slate-500">Club Director Dashboard</p>
-          <h2 className="text-3xl font-semibold tracking-tight text-slate-900">{membership.club.name}</h2>
-          <p className="mt-1 text-sm text-slate-600">
+          <p className="hero-kicker">Club Director Dashboard</p>
+          <h2 className="hero-title mt-3">{membership.club.name}</h2>
+          <p className="hero-copy">
             Manage roster readiness, event registrations, and class workflows from one place.
           </p>
         </div>
         <div className="flex gap-3">
           <Link
             href="/director/roster"
-            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-indigo-300 hover:text-indigo-700"
+            className="btn-secondary"
           >
             View roster
           </Link>
           <Link
             href="/director/events"
-            className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-500"
+            className="btn-primary"
           >
             Continue registration
           </Link>
@@ -159,42 +159,42 @@ export default async function ClubDirectorDashboardPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-slate-500">Active members</p>
-          <p className="mt-2 text-3xl font-semibold text-slate-900">{activeMembers.length}</p>
-          <p className="mt-2 text-xs font-medium text-slate-600">Current active roster year.</p>
+        <article className="metric-card">
+          <p className="metric-label">Active members</p>
+          <p className="metric-value">{activeMembers.length}</p>
+          <p className="metric-caption">Current active roster year.</p>
         </article>
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-slate-500">Upcoming events</p>
-          <p className="mt-2 text-3xl font-semibold text-slate-900">{upcomingEvents.length}</p>
-          <p className="mt-2 text-xs font-medium text-slate-600">Conference events open or upcoming.</p>
+        <article className="metric-card">
+          <p className="metric-label">Upcoming events</p>
+          <p className="metric-value">{upcomingEvents.length}</p>
+          <p className="metric-caption">Conference events open or upcoming.</p>
         </article>
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-slate-500">Submitted registrations</p>
-          <p className="mt-2 text-3xl font-semibold text-slate-900">{submittedRegistrations}</p>
-          <p className="mt-2 text-xs font-medium text-slate-600">Finalized by your club.</p>
+        <article className="metric-card">
+          <p className="metric-label">Submitted registrations</p>
+          <p className="metric-value">{submittedRegistrations}</p>
+          <p className="metric-caption">Finalized by your club.</p>
         </article>
-        <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm text-slate-500">Draft registrations</p>
-          <p className="mt-2 text-3xl font-semibold text-slate-900">{draftRegistrations}</p>
-          <p className="mt-2 text-xs font-medium text-slate-600">In progress and editable.</p>
+        <article className="metric-card">
+          <p className="metric-label">Draft registrations</p>
+          <p className="metric-value">{draftRegistrations}</p>
+          <p className="metric-caption">In progress and editable.</p>
         </article>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-        <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <article className="glass-panel">
           <div className="mb-4 flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-slate-900">Upcoming Events</h3>
+            <h3 className="section-title">Upcoming Events</h3>
             <Link
               href="/director/events"
-              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700"
+              className="btn-secondary px-3 py-1.5 text-xs"
             >
               Open Event List
             </Link>
           </div>
 
           {upcomingEvents.length === 0 ? (
-            <p className="text-sm text-slate-600">No upcoming events are available at this time.</p>
+            <p className="empty-state text-sm text-slate-600">No upcoming events are available at this time.</p>
           ) : (
             <ol className="space-y-3">
               {upcomingEvents.map((event) => {
@@ -203,7 +203,7 @@ export default async function ClubDirectorDashboardPage() {
                 return (
                   <li
                     key={event.id}
-                    className="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3"
+                    className="glass-card-soft flex items-center justify-between"
                   >
                     <div>
                       <p className="text-sm font-semibold text-slate-900">{event.name}</p>
@@ -224,16 +224,16 @@ export default async function ClubDirectorDashboardPage() {
           )}
         </article>
 
-        <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <h3 className="text-lg font-semibold text-slate-900">Action Alerts</h3>
+        <article className="glass-panel">
+          <h3 className="section-title">Action Alerts</h3>
           {alerts.length === 0 ? (
-            <p className="mt-4 text-sm text-emerald-700">No blocking alerts detected.</p>
+            <p className="alert-success mt-4">No blocking alerts detected.</p>
           ) : (
             <ul className="mt-4 space-y-3">
               {alerts.map((alert) => (
                 <li
                   key={alert}
-                  className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+                  className="alert-warning"
                 >
                   {alert}
                 </li>

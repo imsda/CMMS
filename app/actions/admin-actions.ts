@@ -7,6 +7,7 @@ import { type Session } from "next-auth";
 
 import { auth } from "../../auth";
 import { prisma } from "../../lib/prisma";
+import { getSystemHealthSummary } from "../../lib/system-health";
 
 type RequirementConfig = {
   minAge?: number;
@@ -236,7 +237,7 @@ export async function getAdminDashboardOverview() {
 
   const now = new Date();
 
-  const [totalActiveClubs, totalConferenceMembers, upcomingEvents] = await Promise.all([
+  const [totalActiveClubs, totalConferenceMembers, upcomingEvents, systemHealth] = await Promise.all([
     prisma.club.count(),
     prisma.rosterMember.count({
       where: {
@@ -264,12 +265,14 @@ export async function getAdminDashboardOverview() {
         },
       },
     }),
+    getSystemHealthSummary(),
   ]);
 
   return {
     totalActiveClubs,
     totalConferenceMembers,
     upcomingEvents,
+    systemHealth,
   };
 }
 
@@ -620,6 +623,7 @@ export async function updateEventClassOfferingAction(formData: FormData) {
     revalidatePath(`/admin/events/${eventId}`);
     revalidatePath(`/director/events/${eventId}/classes`);
     revalidatePath("/teacher/dashboard");
+    revalidatePath(`/teacher/class/${offeringId}`);
 
     redirectEventClassOfferingAction(eventId, "success", "Class offering updated.");
   } catch (error) {
@@ -664,6 +668,7 @@ export async function removeEventClassOfferingAction(formData: FormData) {
     revalidatePath(`/admin/events/${eventId}`);
     revalidatePath(`/director/events/${eventId}/classes`);
     revalidatePath("/teacher/dashboard");
+    revalidatePath(`/teacher/class/${offeringId}`);
 
     redirectEventClassOfferingAction(eventId, "success", "Class offering removed.");
   } catch (error) {
@@ -697,6 +702,7 @@ export async function clearEventClassOfferingEnrollmentsAction(formData: FormDat
     revalidatePath(`/admin/events/${eventId}`);
     revalidatePath(`/director/events/${eventId}/classes`);
     revalidatePath("/teacher/dashboard");
+    revalidatePath(`/teacher/class/${offeringId}`);
 
     if (deleted.count === 0) {
       redirectEventClassOfferingAction(eventId, "error", "No enrollments were found to clear.");
