@@ -15,6 +15,8 @@ Included screens:
 - Same screen, different roles comparison
 - State gallery
 - Click path walkthroughs
+- Create event preview
+- Dynamic question styles preview
 - Login
 - Admin dashboard
 - Director dashboard
@@ -37,3 +39,5 @@ Suggested review order:
 - `/Users/calebdurant/Downloads/CMMS-main/public/ui-preview/same-screen-roles.html`
 - `/Users/calebdurant/Downloads/CMMS-main/public/ui-preview/state-gallery.html`
 - `/Users/calebdurant/Downloads/CMMS-main/public/ui-preview/click-paths.html`
+- `/Users/calebdurant/Downloads/CMMS-main/public/ui-preview/create-event.html`
+- `/Users/calebdurant/Downloads/CMMS-main/public/ui-preview/question-styles.html`

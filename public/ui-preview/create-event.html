@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UI Preview - Create Event</title>
+    <link rel="stylesheet" href="./preview.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="shell-header">
+        <div class="shell-header-inner">
+          <div>
+            <p class="hero-kicker">Conference Platform</p>
+            <h1 class="section-title">Create Event Preview</h1>
+          </div>
+          <div class="top-row">
+            <span class="status-chip-success">Super Admin Workflow</span>
+            <a class="btn-secondary" href="./index.html">All Screens</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="shell-content page-stack">
+        <section class="glass-panel">
+          <p class="hero-kicker">Event Builder</p>
+          <h2 class="hero-title">Create Event</h2>
+          <p class="hero-copy">
+            This preview mirrors the stepped event-creation workflow: basics, registration/location settings, and dynamic registration questions.
+          </p>
+        </section>
+
+        <section class="glass-panel">
+          <div class="step-grid">
+            <article class="step-card complete">
+              <p class="tiny muted"><strong>Step 1</strong></p>
+              <h3 class="section-title" style="margin-top: 0.35rem;">Event Basics</h3>
+              <p class="section-copy">Set event name and start/end dates.</p>
+            </article>
+            <article class="step-card complete">
+              <p class="tiny muted"><strong>Step 2</strong></p>
+              <h3 class="section-title" style="margin-top: 0.35rem;">Registration &amp; Location</h3>
+              <p class="section-copy">Configure registration windows, pricing, and venue details.</p>
+            </article>
+            <article class="step-card active">
+              <p class="tiny muted"><strong>Step 3</strong></p>
+              <h3 class="section-title" style="margin-top: 0.35rem;">Dynamic Questions</h3>
+              <p class="section-copy">Add optional custom form questions for event registrations.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="two-col">
+          <article class="glass-panel stack">
+            <h3 class="section-title">Event Basics</h3>
+            <div class="form-grid">
+              <div>
+                <label class="field-label">Event Name</label>
+                <input class="input-glass" value="2026 Spring Camporee" />
+              </div>
+              <div>
+                <label class="field-label">Starts At</label>
+                <input class="input-glass" value="2026-04-17T17:00" />
+              </div>
+              <div>
+                <label class="field-label">Ends At</label>
+                <input class="input-glass" value="2026-04-19T13:00" />
+              </div>
+            </div>
+          </article>
+
+          <article class="glass-panel stack">
+            <h3 class="section-title">Registration &amp; Location</h3>
+            <div class="form-grid">
+              <div>
+                <label class="field-label">Registration Opens</label>
+                <input class="input-glass" value="2026-03-20T08:00" />
+              </div>
+              <div>
+                <label class="field-label">Registration Closes</label>
+                <input class="input-glass" value="2026-04-10T23:59" />
+              </div>
+              <div>
+                <label class="field-label">Base Price</label>
+                <input class="input-glass" value="35.00" />
+              </div>
+              <div>
+                <label class="field-label">Late Fee Price</label>
+                <input class="input-glass" value="50.00" />
+              </div>
+              <div>
+                <label class="field-label">Late Fee Starts At</label>
+                <input class="input-glass" value="2026-04-01T00:00" />
+              </div>
+              <div>
+                <label class="field-label">Location Name</label>
+                <input class="input-glass" value="Indian Creek Camp" />
+              </div>
+            </div>
+          </article>
+        </section>
+
+        <section class="glass-panel stack">
+          <div class="between">
+            <div>
+              <h3 class="section-title">Dynamic Question Builder</h3>
+              <p class="section-copy">Preview of the builder card style and how grouped questions can be arranged.</p>
+            </div>
+            <a class="btn-secondary" href="./question-styles.html">Open Question Style Gallery</a>
+          </div>
+
+          <div class="question-gallery">
+            <article class="builder-card stack">
+              <div class="between">
+                <p><strong>Field Group 1</strong></p>
+                <span class="status-chip-neutral">GLOBAL</span>
+              </div>
+              <div class="form-grid">
+                <div>
+                  <label class="field-label">Key</label>
+                  <input class="input-glass" value="travel_group" />
+                </div>
+                <div>
+                  <label class="field-label">Label</label>
+                  <input class="input-glass" value="Travel & Arrival" />
+                </div>
+                <div>
+                  <label class="field-label">Type</label>
+                  <select class="select-glass"><option>FIELD_GROUP</option></select>
+                </div>
+              </div>
+              <p class="field-help">Groups related questions under one heading in the registration experience.</p>
+            </article>
+
+            <article class="builder-card stack">
+              <div class="between">
+                <p><strong>Question 1.1</strong></p>
+                <div class="top-row">
+                  <span class="status-chip-warning">ATTENDEE</span>
+                  <span class="status-chip-success">Required</span>
+                </div>
+              </div>
+              <div class="form-grid">
+                <div>
+                  <label class="field-label">Key</label>
+                  <input class="input-glass" value="arrival_method" />
+                </div>
+                <div>
+                  <label class="field-label">Label</label>
+                  <input class="input-glass" value="How is this attendee arriving?" />
+                </div>
+                <div>
+                  <label class="field-label">Type</label>
+                  <select class="select-glass"><option>SINGLE_SELECT</option></select>
+                </div>
+              </div>
+              <div class="badge-row">
+                <span class="status-chip-neutral">Bus</span>
+                <span class="status-chip-neutral">Van</span>
+                <span class="status-chip-neutral">Parent Drop-off</span>
+              </div>
+            </article>
+
+            <article class="builder-card stack">
+              <div class="between">
+                <p><strong>Question 2</strong></p>
+                <div class="top-row">
+                  <span class="status-chip-neutral">GLOBAL</span>
+                  <span class="status-chip-neutral">Optional</span>
+                </div>
+              </div>
+              <div class="form-grid">
+                <div>
+                  <label class="field-label">Key</label>
+                  <input class="input-glass" value="baptism_names" />
+                </div>
+                <div>
+                  <label class="field-label">Label</label>
+                  <input class="input-glass" value="Spiritual decisions / baptism names" />
+                </div>
+                <div>
+                  <label class="field-label">Type</label>
+                  <select class="select-glass"><option>LONG_TEXT</option></select>
+                </div>
+              </div>
+              <p class="field-help">Example of a conference-level note field used in reporting later.</p>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UI Preview - Question Styles</title>
+    <link rel="stylesheet" href="./preview.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="shell-header">
+        <div class="shell-header-inner">
+          <div>
+            <p class="hero-kicker">Conference Platform</p>
+            <h1 class="section-title">Question Styles Preview</h1>
+          </div>
+          <div class="top-row">
+            <span class="status-chip-success">Dynamic Field Types</span>
+            <a class="btn-secondary" href="./index.html">All Screens</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="shell-content page-stack">
+        <section class="glass-panel">
+          <p class="hero-kicker">Field Gallery</p>
+          <h2 class="hero-title">What kinds of questions can be built</h2>
+          <p class="hero-copy">
+            Based on the current builder, the system supports text, date, number, boolean, roster-linked selectors, select lists, and grouped question sections with global or attendee scope.
+          </p>
+        </section>
+
+        <section class="question-gallery">
+          <article class="glass-panel stack">
+            <div class="between">
+              <h3 class="section-title">Short Text</h3>
+              <span class="status-chip-neutral">SHORT_TEXT</span>
+            </div>
+            <label class="field-label">Emergency pickup contact</label>
+            <input class="input-glass" value="Ruth Jensen" />
+          </article>
+
+          <article class="glass-panel stack">
+            <div class="between">
+              <h3 class="section-title">Long Text</h3>
+              <span class="status-chip-neutral">LONG_TEXT</span>
+            </div>
+            <label class="field-label">Special notes for staff</label>
+            <textarea class="textarea-glass">One attendee will arrive late Friday because of school travel.</textarea>
+          </article>
+
+          <article class="glass-panel stack">
+            <div class="between">
+              <h3 class="section-title">Date</h3>
+              <span class="status-chip-neutral">DATE</span>
+            </div>
+            <label class="field-label">Arrival date override</label>
+            <input class="input-glass" value="2026-04-18" />
+          </article>
+
+          <article class="glass-panel stack">
+            <div class="between">
+              <h3 class="section-title">Number</h3>
+              <span class="status-chip-neutral">NUMBER</span>
+            </div>
+            <label class="field-label">Meal count needed</label>
+            <input class="input-glass" value="24" />
+          </article>
+
+          <article class="glass-panel stack">
+            <div class="between">
+              <h3 class="section-title">Single Select</h3>
+              <span class="status-chip-neutral">SINGLE_SELECT</span>
+            </div>
+            <label class="field-label">Cabin preference</label>
+            <select class="select-glass">
+              <option>Lower lodge</option>
+            </select>
+          </article>
+
+          <article class="glass-panel stack">
+            <div class="between">
+              <h3 class="section-title">Multi Select</h3>
+              <span class="status-chip-neutral">MULTI_SELECT</span>
+            </div>
+            <label class="field-label">Requested duties</label>
+            <div class="badge-row">
+              <span class="status-chip-success">Audio / Visual</span>
+              <span class="status-chip-success">Kitchen Assist</span>
+              <span class="status-chip-neutral">Check-in</span>
+            </div>
+          </article>
+
+          <article class="glass-panel stack">
+            <div class="between">
+              <h3 class="section-title">Boolean</h3>
+              <span class="status-chip-neutral">BOOLEAN</span>
+            </div>
+            <label class="glass-card-soft"><input type="checkbox" checked /> This club will bring a first-aid kit.</label>
+          </article>
+
+          <article class="glass-panel stack">
+            <div class="between">
+              <h3 class="section-title">Roster Select</h3>
+              <span class="status-chip-neutral">ROSTER_SELECT</span>
+            </div>
+            <label class="field-label">Primary speaker</label>
+            <select class="select-glass">
+              <option>Mateo Ruiz</option>
+            </select>
+          </article>
+
+          <article class="glass-panel stack">
+            <div class="between">
+              <h3 class="section-title">Roster Multi Select</h3>
+              <span class="status-chip-neutral">ROSTER_MULTI_SELECT</span>
+            </div>
+            <label class="field-label">Students eligible for Bible quiz finals</label>
+            <div class="badge-row">
+              <span class="status-chip-warning">Ava Durant</span>
+              <span class="status-chip-warning">Noah Benton</span>
+            </div>
+          </article>
+
+          <article class="glass-panel stack">
+            <div class="between">
+              <h3 class="section-title">Field Group</h3>
+              <span class="status-chip-neutral">FIELD_GROUP</span>
+            </div>
+            <div class="glass-subsection">
+              <p><strong>Travel & Arrival</strong></p>
+              <p class="field-help">A heading container for related questions instead of a response field itself.</p>
+            </div>
+          </article>
+        </section>
+
+        <section class="glass-panel stack">
+          <h3 class="section-title">Scope and styling notes</h3>
+          <div class="three-col">
+            <div class="glass-card-soft">
+              <p class="metric-label">GLOBAL scope</p>
+              <p class="section-copy">One answer applies to the whole club registration.</p>
+            </div>
+            <div class="glass-card-soft">
+              <p class="metric-label">ATTENDEE scope</p>
+              <p class="section-copy">Each selected attendee gets their own answer entry.</p>
+            </div>
+            <div class="glass-card-soft">
+              <p class="metric-label">Required toggle</p>
+              <p class="section-copy">Any non-group field can be marked required for submission validation.</p>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

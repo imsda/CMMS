@@ -803,6 +803,43 @@ textarea {
   gap: 1rem;
 }
 
+.step-grid {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+.step-card {
+  border-radius: 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(248, 250, 252, 0.8);
+}
+
+.step-card.active {
+  border-color: rgba(165, 180, 252, 0.9);
+  background: rgba(224, 231, 255, 0.72);
+}
+
+.step-card.complete {
+  border-color: rgba(110, 231, 183, 0.9);
+  background: rgba(220, 252, 231, 0.72);
+}
+
+.question-gallery {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.builder-card {
+  border-radius: 1.2rem;
+  padding: 1rem;
+  border: 1px solid rgba(160, 181, 217, 0.3);
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: var(--shadow-soft);
+}
+
 .code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
 }
