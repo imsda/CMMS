@@ -2,9 +2,9 @@
 
 import { useFormState } from "react-dom";
 
+import { updateEventInitialState } from "../../../../../actions/event-admin-state";
 import {
   updateEventCoreDetails,
-  updateEventInitialState,
 } from "../../../../../actions/event-admin-actions";
 
 type EventEditDefaults = {

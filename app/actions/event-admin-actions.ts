@@ -4,6 +4,10 @@ import { FormFieldScope, FormFieldType, type Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import {
+  type CreateEventActionState,
+  type UpdateEventActionState,
+} from "./event-admin-state";
 import { auth } from "../../auth";
 import { prisma } from "../../lib/prisma";
 
@@ -18,16 +22,6 @@ type IncomingDynamicField = {
   isRequired?: boolean;
   options?: string[];
   optionsJson?: string;
-};
-
-export type CreateEventActionState = {
-  status: "idle" | "error";
-  message: string | null;
-};
-
-export type UpdateEventActionState = {
-  status: "idle" | "success" | "error";
-  message: string | null;
 };
 
 function requireTrimmedString(value: FormDataEntryValue | null, fieldLabel: string) {
@@ -484,13 +478,6 @@ export async function createEventWithDynamicFields(
     };
   }
 }
-
-const UPDATE_EVENT_INITIAL_STATE: UpdateEventActionState = {
-  status: "idle",
-  message: null,
-};
-
-export const updateEventInitialState = UPDATE_EVENT_INITIAL_STATE;
 
 export async function updateEventCoreDetails(
   _prevState: UpdateEventActionState,

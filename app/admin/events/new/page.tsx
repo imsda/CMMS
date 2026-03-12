@@ -4,9 +4,9 @@ import { useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useFormState } from "react-dom";
 
+import { type CreateEventActionState } from "../../../actions/event-admin-state";
 import {
   createEventWithDynamicFields,
-  type CreateEventActionState,
 } from "../../../actions/event-admin-actions";
 import {
   DynamicFormBuilder,

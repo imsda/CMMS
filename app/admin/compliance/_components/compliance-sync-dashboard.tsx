@@ -3,10 +3,12 @@
 import { useFormState, useFormStatus } from "react-dom";
 
 import {
-  applySterlingBackgroundChecksPreview,
   initialComplianceSyncState,
-  previewSterlingBackgroundChecks,
   type ComplianceSyncState,
+} from "../../../actions/compliance-state";
+import {
+  applySterlingBackgroundChecksPreview,
+  previewSterlingBackgroundChecks,
 } from "../../../actions/compliance-actions";
 
 type RosterYearOption = {

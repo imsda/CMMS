@@ -4,15 +4,11 @@ import { ClubType, Prisma, UserRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 
+import { type AdminCreateFormState } from "./admin-management-state";
 import { auth } from "../../auth";
 import { sendAccountCredentialEmail } from "../../lib/email/resend";
 import { prisma } from "../../lib/prisma";
 import { isStudentPortalEligibleMemberRole } from "../../lib/student-portal-links";
-
-export type AdminCreateFormState = {
-  status: "idle" | "success" | "error";
-  message: string | null;
-};
 
 function toActionErrorMessage(error: unknown, fallback: string) {
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -76,13 +72,6 @@ function parseUserRole(value: FormDataEntryValue | null) {
 
   return role as UserRole;
 }
-
-const INITIAL_STATE: AdminCreateFormState = {
-  status: "idle",
-  message: null,
-};
-
-export const adminCreateInitialState = INITIAL_STATE;
 
 export async function createClubAction(
   _prevState: AdminCreateFormState,

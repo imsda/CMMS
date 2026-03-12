@@ -4,8 +4,8 @@ import { UserRole } from "@prisma/client";
 import { useMemo, useState } from "react";
 import { useFormState } from "react-dom";
 
+import { adminCreateInitialState } from "../../../actions/admin-management-state";
 import {
-  adminCreateInitialState,
   createUserAction,
 } from "../../../actions/admin-management-actions";
 

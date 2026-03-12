@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { initialComplianceSyncState, type ComplianceSyncState } from "./compliance-state";
 import { auth } from "../../auth";
 import {
   ADULT_ROLES,
@@ -13,42 +14,6 @@ import {
   type ComplianceSyncRowPreview,
 } from "../../lib/compliance-sync";
 import { prisma } from "../../lib/prisma";
-
-export type ComplianceSyncState = {
-  status: "idle" | "success" | "error";
-  phase: "idle" | "preview" | "applied";
-  message: string;
-  runId: string | null;
-  fileName: string | null;
-  scopeLabel: string | null;
-  processedRows: number;
-  passedRows: number;
-  updateCount: number;
-  skippedCount: number;
-  ambiguousCount: number;
-  appliedCount: number;
-  updates: ComplianceSyncRowPreview[];
-  skipped: ComplianceSyncRowPreview[];
-  ambiguous: ComplianceSyncRowPreview[];
-};
-
-export const initialComplianceSyncState: ComplianceSyncState = {
-  status: "idle",
-  phase: "idle",
-  message: "Upload a Sterling Volunteers CSV and preview the roster-year scoped matches before applying any updates.",
-  runId: null,
-  fileName: null,
-  scopeLabel: null,
-  processedRows: 0,
-  passedRows: 0,
-  updateCount: 0,
-  skippedCount: 0,
-  ambiguousCount: 0,
-  appliedCount: 0,
-  updates: [],
-  skipped: [],
-  ambiguous: [],
-};
 
 function isPreviewRow(value: unknown): value is ComplianceSyncRowPreview {
   if (!value || typeof value !== "object" || Array.isArray(value)) {

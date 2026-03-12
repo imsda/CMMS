@@ -3,9 +3,9 @@
 import { useMemo, useState } from "react";
 import { useFormState } from "react-dom";
 
+import { updateEventInitialState } from "../../../../../actions/event-admin-state";
 import {
   updateEventDynamicFields,
-  updateEventInitialState,
 } from "../../../../../actions/event-admin-actions";
 import {
   DynamicFormBuilder,
