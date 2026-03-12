@@ -655,6 +655,12 @@ textarea {
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
 }
 
+.preview-highlight-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
 .preview-card-link {
   height: 100%;
 }
@@ -692,6 +698,109 @@ textarea {
 .attendance-pill.absent {
   color: #475569;
   background: rgba(148, 163, 184, 0.16);
+}
+
+.phone-frame {
+  max-width: 390px;
+  margin: 0 auto;
+  padding: 0.9rem;
+  border-radius: 2rem;
+  border: 1px solid rgba(140, 164, 205, 0.34);
+  background: linear-gradient(180deg, rgba(223, 233, 255, 0.8), rgba(245, 249, 255, 0.88));
+  box-shadow: 0 28px 60px rgba(35, 61, 120, 0.16);
+}
+
+.phone-notch {
+  width: 38%;
+  height: 1.35rem;
+  margin: 0 auto 0.75rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.9);
+}
+
+.mobile-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.hamburger {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 2.6rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(133, 160, 208, 0.34);
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.hamburger span {
+  display: block;
+  height: 2px;
+  border-radius: 999px;
+  background: #1e293b;
+}
+
+.mobile-menu-sheet {
+  border-radius: 1.5rem;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.86), rgba(244, 248, 255, 0.76));
+  box-shadow: var(--shadow-glass);
+}
+
+.comparison-shell {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+}
+
+.route-flow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.route-step {
+  border-radius: 1rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid rgba(160, 181, 217, 0.34);
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow: var(--shadow-soft);
+  min-width: 180px;
+}
+
+.route-arrow {
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.state-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.role-map-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.same-screen-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.compact-shell {
+  display: grid;
+  gap: 1rem;
 }
 
 .code {

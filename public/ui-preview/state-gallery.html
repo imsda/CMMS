@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UI Preview - State Gallery</title>
+    <link rel="stylesheet" href="./preview.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="shell-header">
+        <div class="shell-header-inner">
+          <div>
+            <p class="hero-kicker">Conference Platform</p>
+            <h1 class="section-title">State Gallery</h1>
+          </div>
+          <div class="top-row">
+            <span class="status-chip-neutral">Empty + Warning + Success</span>
+            <a class="btn-secondary" href="./index.html">All Screens</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="shell-content page-stack">
+        <section class="glass-panel">
+          <p class="hero-kicker">State Review</p>
+          <h2 class="hero-title">Key dashboard states worth checking</h2>
+          <p class="hero-copy">
+            These scenarios isolate the messages and density shifts that matter when menus and shells are working but the underlying data changes dramatically.
+          </p>
+        </section>
+
+        <section class="state-grid">
+          <article class="glass-panel stack">
+            <p class="hero-kicker">Admin Warning</p>
+            <h3 class="section-title">Compliance issues present</h3>
+            <p class="alert-warning">Two clubs still have staff awaiting Sterling clearance.</p>
+            <p class="alert-danger">Storage remediation is required before the next cleanup cycle.</p>
+          </article>
+
+          <article class="glass-panel stack">
+            <p class="hero-kicker">Admin Success</p>
+            <h3 class="section-title">Healthy system</h3>
+            <p class="alert-success">No system-health warnings detected.</p>
+            <p class="empty-state">Upcoming event timeline still appears even when health checks are all green.</p>
+          </article>
+
+          <article class="glass-panel stack">
+            <p class="hero-kicker">Director Warning</p>
+            <h3 class="section-title">No active roster year</h3>
+            <p class="alert-warning">No active roster year found. Run annual rollover before event registration.</p>
+            <p class="alert-warning">No upcoming events are currently published by conference administration.</p>
+          </article>
+
+          <article class="glass-panel stack">
+            <p class="hero-kicker">Director Success</p>
+            <h3 class="section-title">Club is ready</h3>
+            <p class="alert-success">No blocking alerts detected.</p>
+            <p class="glass-card-soft">Submitted registrations and roster counts become the main emphasis instead of warnings.</p>
+          </article>
+
+          <article class="glass-panel stack">
+            <p class="hero-kicker">Teacher Empty</p>
+            <h3 class="section-title">No class assignments</h3>
+            <div class="empty-state">
+              <p class="section-title">Empty state reference</p>
+              <p class="section-copy">You do not have any upcoming event class assignments right now.</p>
+            </div>
+          </article>
+
+          <article class="glass-panel stack">
+            <p class="hero-kicker">Student Empty</p>
+            <h3 class="section-title">No linked students</h3>
+            <div class="empty-state">
+              <p class="section-title">Empty state reference</p>
+              <p class="section-copy">No student profiles are linked to this account yet.</p>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>

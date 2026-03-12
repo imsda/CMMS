@@ -9,7 +9,12 @@ Open them in either of these ways:
 
 Included screens:
 
+- Role map
 - Role menus comparison
+- Mobile navigation comparison
+- Same screen, different roles comparison
+- State gallery
+- Click path walkthroughs
 - Login
 - Admin dashboard
 - Director dashboard
@@ -23,3 +28,12 @@ Included screens:
 Mock data is summarized in `/Users/calebdurant/Downloads/CMMS-main/public/ui-preview/mock-data.json` and grouped by screen. The HTML pages are static snapshots built from those same scenarios, so you can inspect layout, spacing, table density, badges, and empty states without Prisma, auth, server actions, or environment setup.
 
 If your main concern is role navigation, start with `/Users/calebdurant/Downloads/CMMS-main/public/ui-preview/role-menus.html`. That page compares the Super Admin and Club Director sidebars directly, then also shows the smaller Student / Parent and Teacher menus for completeness.
+
+Suggested review order:
+
+- `/Users/calebdurant/Downloads/CMMS-main/public/ui-preview/role-map.html`
+- `/Users/calebdurant/Downloads/CMMS-main/public/ui-preview/role-menus.html`
+- `/Users/calebdurant/Downloads/CMMS-main/public/ui-preview/mobile-nav.html`
+- `/Users/calebdurant/Downloads/CMMS-main/public/ui-preview/same-screen-roles.html`
+- `/Users/calebdurant/Downloads/CMMS-main/public/ui-preview/state-gallery.html`
+- `/Users/calebdurant/Downloads/CMMS-main/public/ui-preview/click-paths.html`

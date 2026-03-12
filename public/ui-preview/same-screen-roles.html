@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UI Preview - Same Screen Different Roles</title>
+    <link rel="stylesheet" href="./preview.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="shell-header">
+        <div class="shell-header-inner">
+          <div>
+            <p class="hero-kicker">Conference Platform</p>
+            <h1 class="section-title">Same Screen, Different Roles</h1>
+          </div>
+          <div class="top-row">
+            <span class="status-chip-neutral">Comparison Focus</span>
+            <a class="btn-secondary" href="./index.html">All Screens</a>
+          </div>
+        </div>
+      </header>
+
+      <main class="shell-content page-stack">
+        <section class="glass-panel">
+          <p class="hero-kicker">Direct Comparison</p>
+          <h2 class="hero-title">Shared shell, different responsibility</h2>
+          <p class="hero-copy">
+            Both roles use the same glass shell and header rhythm, but the sidebar, page title, metrics, and call-to-action emphasis shift with permission scope.
+          </p>
+        </section>
+
+        <section class="same-screen-grid">
+          <article class="glass-panel stack">
+            <p class="hero-kicker">Super Admin Version</p>
+            <div class="compact-shell">
+              <aside class="glass-sidebar">
+                <div class="glass-card-soft">
+                  <p class="hero-kicker">Operations</p>
+                  <h3 class="section-title" style="margin-top: 0.5rem;">Super Admin</h3>
+                  <p class="section-copy">Conference controls, compliance, and reporting.</p>
+                </div>
+                <nav class="nav-group">
+                  <a class="nav-link nav-link-active" href="./admin-dashboard.html">Dashboard</a>
+                  <a class="nav-link nav-link-idle" href="./role-menus.html">Clubs</a>
+                  <a class="nav-link nav-link-idle" href="./role-menus.html">Users</a>
+                  <a class="nav-link nav-link-idle" href="./registration-flow.html">Events</a>
+                  <a class="nav-link nav-link-idle" href="./role-menus.html">Compliance</a>
+                </nav>
+              </aside>
+              <div class="glass-card">
+                <p class="hero-kicker">Dashboard</p>
+                <h3 class="section-title">Conference Overview</h3>
+                <p class="section-copy">Cross-club metrics and system health.</p>
+                <div class="metric-grid" style="margin-top: 1rem;">
+                  <div class="glass-card-soft">
+                    <p class="metric-label">Active Clubs</p>
+                    <p class="metric-value" style="font-size: 1.8rem;">14</p>
+                  </div>
+                  <div class="glass-card-soft">
+                    <p class="metric-label">Warnings</p>
+                    <p class="metric-value" style="font-size: 1.8rem;">2</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="glass-panel stack">
+            <p class="hero-kicker">Club Director Version</p>
+            <div class="compact-shell">
+              <aside class="glass-sidebar">
+                <div class="glass-card-soft">
+                  <p class="hero-kicker">Club Control</p>
+                  <h3 class="section-title" style="margin-top: 0.5rem;">Club Director</h3>
+                  <p class="section-copy">Roster readiness, event workflows, and class coordination.</p>
+                </div>
+                <nav class="nav-group">
+                  <a class="nav-link nav-link-active" href="./director-dashboard.html">Dashboard</a>
+                  <a class="nav-link nav-link-idle" href="./registration-flow.html">Events</a>
+                  <a class="nav-link nav-link-idle" href="./roster.html">Roster</a>
+                  <a class="nav-link nav-link-idle" href="./role-menus.html">TLT</a>
+                </nav>
+              </aside>
+              <div class="glass-card">
+                <p class="hero-kicker">Dashboard</p>
+                <h3 class="section-title">Cedar Rapids Pioneers</h3>
+                <p class="section-copy">Single-club readiness and registration progress.</p>
+                <div class="metric-grid" style="margin-top: 1rem;">
+                  <div class="glass-card-soft">
+                    <p class="metric-label">Active Members</p>
+                    <p class="metric-value" style="font-size: 1.8rem;">27</p>
+                  </div>
+                  <div class="glass-card-soft">
+                    <p class="metric-label">Drafts</p>
+                    <p class="metric-value" style="font-size: 1.8rem;">1</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </body>
+</html>
