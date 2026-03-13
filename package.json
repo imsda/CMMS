@@ -13,6 +13,7 @@
     "cleanup:auth-rate-limits": "tsx prisma/cleanup-auth-rate-limits.ts",
     "audit:email-normalization": "tsx prisma/audit-user-email-normalization.ts",
     "check:startup": "NODE_ENV=production tsx scripts/run-startup-self-checks.ts",
+    "verify:docker": "bash scripts/verify-docker-compose.sh",
     "schedule:auth-rate-limit-cleanup": "bash scripts/run-auth-rate-limit-cleanup.sh",
     "schedule:jobs": "tsx scripts/run-scheduled-jobs.ts",
     "postinstall": "prisma generate"
@@ -30,6 +31,7 @@
     "next": "^15.5.10",
     "next-auth": "^5.0.0-beta.30",
     "next-intl": "^3.26.4",
+    "prisma": "^5.22.0",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },
@@ -41,7 +43,6 @@
     "eslint": "^8.57.1",
     "eslint-config-next": "^15.5.10",
     "postcss": "^8.5.6",
-    "prisma": "^5.22.0",
     "tailwindcss": "^3.4.17",
     "tsx": "^4.19.3",
     "typescript": "^5.8.2"

@@ -1,3 +1,4 @@
+import { ensureDatabaseConnectivity } from "./db-healthcheck";
 import { prisma } from "./prisma";
 import { REQUIRED_MIGRATION_NAMES } from "./required-migrations";
 import { validateRequiredServerConfigOnStartup } from "./server-config";
@@ -145,6 +146,8 @@ export async function runStartupSelfChecks() {
   if (process.env.NODE_ENV !== "production") {
     return;
   }
+
+  await ensureDatabaseConnectivity();
 
   const summary = await getSystemHealthSummary();
 
