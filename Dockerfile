@@ -21,7 +21,6 @@ COPY docs ./docs
 COPY lib ./lib
 COPY messages ./messages
 COPY prisma ./prisma
-COPY public ./public
 COPY scripts ./scripts
 COPY types ./types
 COPY auth.ts ./
@@ -50,7 +49,6 @@ RUN npm install --omit=dev --ignore-scripts
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/next.config.mjs ./next.config.mjs
 COPY --from=builder /app/prisma ./prisma
-COPY --from=builder /app/public ./public
 COPY --from=builder /app/scripts ./scripts
 COPY --from=builder /app/entrypoint.sh ./entrypoint.sh
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
