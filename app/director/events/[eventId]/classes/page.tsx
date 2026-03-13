@@ -1,7 +1,7 @@
 import { type MemberRole, type Prisma, type RequirementType } from "@prisma/client";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
-import { auth } from "../../../../../auth";
+import { getManagedClubContext } from "../../../../../lib/club-management";
 import { CLASS_ASSIGNMENT_POLICY } from "../../../../../lib/class-model";
 import { prisma } from "../../../../../lib/prisma";
 import { type RequirementInput } from "../../../../../lib/class-prerequisite-utils";
@@ -59,34 +59,20 @@ function readHonorCodeFromMetadata(metadata: Prisma.JsonValue): string | null {
 
 export default async function DirectorClassSelectionPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ eventId: string }>;
+  searchParams?: Promise<{ clubId?: string }>;
 }) {
-  const session = await auth();
-
-  if (!session?.user || session.user.role !== "CLUB_DIRECTOR") {
-    redirect("/login");
-  }
-
   const { eventId } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const managedClub = await getManagedClubContext(resolvedSearchParams?.clubId ?? null);
 
-  const membership = await prisma.clubMembership.findFirst({
-    where: {
-      userId: session.user.id,
-    },
-    select: {
-      clubId: true,
-    },
-    orderBy: {
-      isPrimary: "desc",
-    },
-  });
-
-  if (!membership) {
+  if (!managedClub.clubId) {
     return (
       <section className="glass-panel">
-        <h1 className="text-xl font-semibold">No club membership found</h1>
-        <p className="mt-2 text-sm">You need an active club membership before assigning event classes.</p>
+        <h1 className="text-xl font-semibold">Club not found</h1>
+        <p className="mt-2 text-sm">You need a valid club before assigning event classes.</p>
       </section>
     );
   }
@@ -94,7 +80,7 @@ export default async function DirectorClassSelectionPage({
   const registration = await prisma.eventRegistration.findFirst({
     where: {
       eventId,
-      clubId: membership.clubId,
+      clubId: managedClub.clubId,
     },
     select: {
       event: {
@@ -198,6 +184,7 @@ export default async function DirectorClassSelectionPage({
 
       <ClassAssignmentBoard
         eventId={registration.event.id}
+        managedClubId={managedClub.isSuperAdmin ? managedClub.clubId : null}
         attendees={registration.attendees.map((attendee) => ({
           id: attendee.rosterMember.id,
           firstName: attendee.rosterMember.firstName,

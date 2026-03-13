@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
+
+import { buildDirectorPath } from "../../../lib/director-path";
 
 type DirectorNavItem = {
   href: string;
@@ -23,6 +25,9 @@ function isActive(pathname: string, href: string) {
 
 export function DirectorNav() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const managedClubId = searchParams.get("clubId");
+  const isSuperAdminView = managedClubId !== null;
 
   return (
     <aside className="glass-sidebar h-fit lg:sticky lg:top-28">
@@ -41,11 +46,14 @@ export function DirectorNav() {
         </p>
         {navItems.map((item) => {
           const active = isActive(pathname, item.href);
+          const href = managedClubId
+            ? buildDirectorPath(item.href, managedClubId, isSuperAdminView)
+            : item.href;
 
           return (
             <Link
               key={item.href}
-              href={item.href}
+              href={href}
               className={`nav-link ${active ? "nav-link-active" : "nav-link-idle"}`}
             >
               {item.label}

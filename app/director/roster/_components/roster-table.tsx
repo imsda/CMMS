@@ -33,6 +33,7 @@ type RosterMemberRow = {
 
 type RosterTableProps = {
   rosterYearId: string;
+  managedClubId: string | null;
   members: RosterMemberRow[];
 };
 
@@ -78,7 +79,7 @@ function hasMissingRequiredConsent(member: RosterMemberRow) {
   return !(member.photoReleaseConsent && member.medicalTreatmentConsent && member.membershipAgreementConsent);
 }
 
-export function RosterTable({ rosterYearId, members }: RosterTableProps) {
+export function RosterTable({ rosterYearId, managedClubId, members }: RosterTableProps) {
   const [modalState, setModalState] = useState<ModalState | null>(null);
 
   const sortedMembers = useMemo(
@@ -235,8 +236,9 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
               </div>
 
               <form action={saveRosterMember} className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                <input type="hidden" name="clubRosterYearId" value={rosterYearId} />
-                {modalState.member ? <input type="hidden" name="memberId" value={modalState.member.id} /> : null}
+              <input type="hidden" name="clubRosterYearId" value={rosterYearId} />
+              {managedClubId ? <input type="hidden" name="clubId" value={managedClubId} /> : null}
+              {modalState.member ? <input type="hidden" name="memberId" value={modalState.member.id} /> : null}
 
                 <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-5">
                   <div className="grid gap-4 md:grid-cols-2">

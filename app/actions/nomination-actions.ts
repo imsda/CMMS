@@ -5,33 +5,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { auth } from "../../auth";
+import { getManagedClubContext } from "../../lib/club-management";
+import { buildDirectorPath, readManagedClubId } from "../../lib/director-path";
 import { prisma } from "../../lib/prisma";
-
-async function getDirectorClubId() {
-  const session = await auth();
-
-  if (!session?.user || session.user.role !== "CLUB_DIRECTOR") {
-    throw new Error("Only club directors can submit nominations.");
-  }
-
-  const membership = await prisma.clubMembership.findFirst({
-    where: {
-      userId: session.user.id,
-    },
-    select: {
-      clubId: true,
-    },
-    orderBy: {
-      isPrimary: "desc",
-    },
-  });
-
-  if (!membership) {
-    throw new Error("No club membership found for current user.");
-  }
-
-  return membership.clubId;
-}
 
 async function assertSuperAdmin() {
   const session = await auth();
@@ -41,8 +17,9 @@ async function assertSuperAdmin() {
   }
 }
 
-export async function getDirectorNominationPageData() {
-  const clubId = await getDirectorClubId();
+export async function getDirectorNominationPageData(clubIdOverride?: string | null) {
+  const managedClub = await getManagedClubContext(clubIdOverride);
+  const clubId = managedClub.clubId;
 
   const club = await prisma.club.findUnique({
     where: { id: clubId },
@@ -85,7 +62,8 @@ export async function getDirectorNominationPageData() {
 }
 
 export async function submitNomination(formData: FormData) {
-  const clubId = await getDirectorClubId();
+  const managedClub = await getManagedClubContext(readManagedClubId(formData.get("clubId")));
+  const clubId = managedClub.clubId;
 
   const rosterMemberIdEntry = formData.get("rosterMemberId");
   const awardTypeEntry = formData.get("awardType");
@@ -155,7 +133,7 @@ export async function submitNomination(formData: FormData) {
 
   revalidatePath("/director/nominations");
   revalidatePath("/admin/nominations");
-  redirect("/director/nominations");
+  redirect(buildDirectorPath("/director/nominations", clubId, managedClub.isSuperAdmin));
 }
 
 export async function getAdminNominations() {

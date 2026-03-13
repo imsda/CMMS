@@ -158,6 +158,27 @@ function parseOptionalBoolean(value: FormDataEntryValue | null) {
   throw new Error("Boolean value is invalid.");
 }
 
+function parseOptionalBooleanString(value: string | null, label: string) {
+  if (value === null) {
+    return null;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (normalized.length === 0) {
+    return null;
+  }
+
+  if (["true", "1", "yes", "y"].includes(normalized)) {
+    return true;
+  }
+
+  if (["false", "0", "no", "n"].includes(normalized)) {
+    return false;
+  }
+
+  throw new Error(`${label} must be true/false, yes/no, 1/0, or blank.`);
+}
+
 function parseRequirementFromFormData(formData: FormData): ParsedRequirementInput | null {
   const requirementType = parseRequirementType(formData.get("requirementType"));
   if (!requirementType) {
@@ -216,6 +237,165 @@ function parseRequirementConfig(config: Prisma.JsonValue): RequirementConfig {
     requiredHonorCode: typeof raw.requiredHonorCode === "string" ? raw.requiredHonorCode : undefined,
     requiredMasterGuide: typeof raw.requiredMasterGuide === "boolean" ? raw.requiredMasterGuide : undefined,
   };
+}
+
+function parseCatalogCsvLine(line: string) {
+  const columns: string[] = [];
+  let value = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < line.length; index += 1) {
+    const character = line[index];
+
+    if (character === '"') {
+      const nextCharacter = line[index + 1];
+
+      if (inQuotes && nextCharacter === '"') {
+        value += '"';
+        index += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+
+      continue;
+    }
+
+    if (character === "," && !inQuotes) {
+      columns.push(value.trim());
+      value = "";
+      continue;
+    }
+
+    value += character;
+  }
+
+  columns.push(value.trim());
+  return columns;
+}
+
+function getCsvHeaderIndex(headers: string[], expected: string[]) {
+  return headers.findIndex((header) => {
+    const normalized = header.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+    return expected.includes(normalized);
+  });
+}
+
+type CatalogImportRow = {
+  title: string;
+  code: string;
+  classType: ClassType;
+  description: string | null;
+  active: boolean;
+  requirement: ParsedRequirementInput | null;
+};
+
+function parseCatalogImportCsv(csvText: string): CatalogImportRow[] {
+  const normalized = csvText.replace(/^\uFEFF/, "");
+  const rows = normalized
+    .split(/\r?\n/)
+    .map((row) => row.trim())
+    .filter((row) => row.length > 0);
+
+  if (rows.length < 2) {
+    throw new Error("CSV must include a header row and at least one catalog row.");
+  }
+
+  const headers = parseCatalogCsvLine(rows[0]);
+  const titleIndex = getCsvHeaderIndex(headers, ["title", "name"]);
+  const codeIndex = getCsvHeaderIndex(headers, ["code", "honorcode", "catalogcode"]);
+  const classTypeIndex = getCsvHeaderIndex(headers, ["classtype", "type"]);
+  const descriptionIndex = getCsvHeaderIndex(headers, ["description", "details"]);
+  const activeIndex = getCsvHeaderIndex(headers, ["active", "isactive"]);
+  const requirementTypeIndex = getCsvHeaderIndex(headers, ["requirementtype"]);
+  const minAgeIndex = getCsvHeaderIndex(headers, ["minage", "minimumage"]);
+  const maxAgeIndex = getCsvHeaderIndex(headers, ["maxage", "maximumage"]);
+  const requiredMemberRoleIndex = getCsvHeaderIndex(headers, ["requiredmemberrole", "memberrole"]);
+  const requiredHonorCodeIndex = getCsvHeaderIndex(headers, ["requiredhonorcode", "prereqhonorcode"]);
+  const requiredMasterGuideIndex = getCsvHeaderIndex(headers, ["requiredmasterguide", "masterguide"]);
+
+  if (titleIndex === -1 || codeIndex === -1) {
+    throw new Error("CSV headers must include Title and Code columns.");
+  }
+
+  return rows.slice(1).map((row, index) => {
+    const columns = parseCatalogCsvLine(row);
+    const title = columns[titleIndex]?.trim() ?? "";
+    const code = (columns[codeIndex]?.trim() ?? "").toUpperCase();
+    const classTypeRaw = classTypeIndex === -1 ? "HONOR" : columns[classTypeIndex]?.trim() ?? "HONOR";
+    const description = descriptionIndex === -1 ? null : optionalTrimmedString(columns[descriptionIndex] ?? null);
+    const activeRaw = activeIndex === -1 ? null : columns[activeIndex]?.trim() ?? null;
+    const requirementTypeRaw =
+      requirementTypeIndex === -1 ? null : columns[requirementTypeIndex]?.trim() ?? null;
+
+    if (!title || !code) {
+      throw new Error(`Row ${index + 2} must include both Title and Code.`);
+    }
+
+    if (!Object.values(ClassType).includes(classTypeRaw as ClassType)) {
+      throw new Error(`Row ${index + 2} has an invalid Class Type.`);
+    }
+
+    const active = parseOptionalBooleanString(activeRaw, `Row ${index + 2} Active`) ?? true;
+    const minAge =
+      minAgeIndex === -1 ? null : parseOptionalInt(columns[minAgeIndex] ?? null, `Row ${index + 2} Minimum age`);
+    const maxAge =
+      maxAgeIndex === -1 ? null : parseOptionalInt(columns[maxAgeIndex] ?? null, `Row ${index + 2} Maximum age`);
+    const requiredMemberRole =
+      requiredMemberRoleIndex === -1 ? null : parseOptionalMemberRole(columns[requiredMemberRoleIndex] ?? null);
+    const requiredHonorCode =
+      requiredHonorCodeIndex === -1
+        ? null
+        : optionalTrimmedString(columns[requiredHonorCodeIndex] ?? null)?.toUpperCase() ?? null;
+    const requiredMasterGuide =
+      requiredMasterGuideIndex === -1
+        ? null
+        : parseOptionalBooleanString(columns[requiredMasterGuideIndex] ?? null, `Row ${index + 2} Master Guide`);
+
+    let requirement: ParsedRequirementInput | null = null;
+
+    if (requirementTypeRaw && requirementTypeRaw !== "NONE") {
+      if (!Object.values(RequirementType).includes(requirementTypeRaw as RequirementType)) {
+        throw new Error(`Row ${index + 2} has an invalid Requirement Type.`);
+      }
+
+      const requirementType = requirementTypeRaw as RequirementType;
+      const config: RequirementConfig = {};
+
+      if (requirementType === RequirementType.MIN_AGE && minAge !== null) {
+        config.minAge = minAge;
+      }
+
+      if (requirementType === RequirementType.MAX_AGE && maxAge !== null) {
+        config.maxAge = maxAge;
+      }
+
+      if (requirementType === RequirementType.MEMBER_ROLE && requiredMemberRole) {
+        config.requiredMemberRole = requiredMemberRole;
+      }
+
+      if (requirementType === RequirementType.COMPLETED_HONOR && requiredHonorCode) {
+        config.requiredHonorCode = requiredHonorCode;
+      }
+
+      if (requirementType === RequirementType.MASTER_GUIDE && requiredMasterGuide !== null) {
+        config.requiredMasterGuide = requiredMasterGuide;
+      }
+
+      requirement = {
+        requirementType,
+        config,
+      };
+    }
+
+    return {
+      title,
+      code,
+      classType: classTypeRaw as ClassType,
+      description,
+      active,
+      requirement,
+    };
+  });
 }
 
 function toRequirementDisplay(requirementType: RequirementType, config: Prisma.JsonValue): RequirementDisplay {
@@ -423,6 +603,73 @@ export async function updateMasterCatalogItem(formData: FormData) {
   });
 
   revalidatePath("/admin/catalog");
+}
+
+export async function importMasterCatalogCsv(formData: FormData) {
+  const session = await auth();
+  ensureSuperAdmin(session);
+
+  const file = formData.get("catalogCsv");
+
+  if (!(file instanceof File)) {
+    redirect("/admin/catalog?importStatus=error&importMessage=Please+choose+a+CSV+file.");
+  }
+
+  if (!file.name.toLowerCase().endsWith(".csv")) {
+    redirect("/admin/catalog?importStatus=error&importMessage=Only+.csv+files+are+supported.");
+  }
+
+  try {
+    const rows = parseCatalogImportCsv(await file.text());
+
+    await prisma.$transaction(async (tx) => {
+      for (const row of rows) {
+        const item = await tx.classCatalog.upsert({
+          where: {
+            code: row.code,
+          },
+          update: {
+            title: row.title,
+            description: row.description,
+            classType: row.classType,
+            active: row.active,
+          },
+          create: {
+            title: row.title,
+            code: row.code,
+            description: row.description,
+            classType: row.classType,
+            active: row.active,
+          },
+          select: {
+            id: true,
+          },
+        });
+
+        await tx.classRequirement.deleteMany({
+          where: {
+            classCatalogId: item.id,
+          },
+        });
+
+        if (row.requirement) {
+          await tx.classRequirement.create({
+            data: {
+              classCatalogId: item.id,
+              requirementType: row.requirement.requirementType,
+              config: row.requirement.config,
+            },
+          });
+        }
+      }
+    });
+
+    revalidatePath("/admin/catalog");
+    redirect(`/admin/catalog?importStatus=success&importMessage=${encodeURIComponent(`Imported ${rows.length} catalog item(s).`)}`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Catalog import failed.";
+    redirect(`/admin/catalog?importStatus=error&importMessage=${encodeURIComponent(message)}`);
+  }
 }
 
 export async function getAdminEventRegistrations(eventId: string) {

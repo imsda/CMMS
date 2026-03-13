@@ -80,12 +80,20 @@ export default async function AdminClubsPage() {
                     <td className="px-4 py-3 text-slate-700">{club._count.memberships}</td>
                     <td className="px-4 py-3 text-slate-700">{club._count.rosterYears}</td>
                     <td className="px-4 py-3">
-                      <Link
-                        href={`/admin/dashboard`}
-                        className="btn-secondary px-3 py-1.5 text-xs"
-                      >
-                        Back to Dashboard
-                      </Link>
+                      <div className="flex flex-wrap gap-2">
+                        <Link
+                          href={`/director/dashboard?clubId=${club.id}`}
+                          className="btn-primary px-3 py-1.5 text-xs"
+                        >
+                          Open Director Workspace
+                        </Link>
+                        <Link
+                          href={`/admin/dashboard`}
+                          className="btn-secondary px-3 py-1.5 text-xs"
+                        >
+                          Back to Dashboard
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}

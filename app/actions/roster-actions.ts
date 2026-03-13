@@ -10,6 +10,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { auth } from "../../auth";
+import { getManagedClubContext } from "../../lib/club-management";
+import { buildDirectorPath, readManagedClubId } from "../../lib/director-path";
 import { decryptMedicalFields, prepareMedicalFieldsForWrite } from "../../lib/medical-data";
 import { prisma } from "../../lib/prisma";
 
@@ -31,34 +33,14 @@ function parseOptionalString(value: FormDataEntryValue | null) {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-async function getDirectorClubId() {
-  const session = await auth();
-
-  if (!session?.user || session.user.role !== "CLUB_DIRECTOR") {
-    throw new Error("Only club directors can manage rosters.");
-  }
-
-  const membership = await prisma.clubMembership.findFirst({
-    where: {
-      userId: session.user.id,
-    },
-    select: {
-      clubId: true,
-    },
-    orderBy: {
-      isPrimary: "desc",
-    },
-  });
-
-  if (!membership) {
-    throw new Error("No club membership found for current user.");
-  }
-
-  return membership.clubId;
+async function getRosterManagementContext(clubIdOverride?: string | null) {
+  return getManagedClubContext(clubIdOverride);
 }
 
 export async function saveRosterMember(formData: FormData) {
-  const clubId = await getDirectorClubId();
+  const clubIdOverride = readManagedClubId(formData.get("clubId"));
+  const managedClub = await getRosterManagementContext(clubIdOverride);
+  const clubId = managedClub.clubId;
 
   const rosterYearIdEntry = formData.get("clubRosterYearId");
   const memberIdEntry = formData.get("memberId");
@@ -216,11 +198,12 @@ export async function saveRosterMember(formData: FormData) {
   }
 
   revalidatePath("/director/roster");
-  redirect("/director/roster");
+  redirect(buildDirectorPath("/director/roster", clubId, managedClub.isSuperAdmin));
 }
 
-export async function createRosterYear(newYearLabel: string) {
-  const clubId = await getDirectorClubId();
+export async function createRosterYear(newYearLabel: string, clubIdOverride?: string | null) {
+  const managedClub = await getRosterManagementContext(clubIdOverride);
+  const clubId = managedClub.clubId;
   const label = newYearLabel.trim();
 
   if (label.length === 0) {
@@ -272,15 +255,17 @@ export async function createRosterYear(newYearLabel: string) {
   });
 
   revalidatePath("/director/roster");
-  redirect("/director/roster");
+  redirect(buildDirectorPath("/director/roster", clubId, managedClub.isSuperAdmin));
 }
 
 export async function executeYearlyRollover(
   clubId: string,
   previousYearId: string,
   newYearLabel: string,
+  clubIdOverride?: string | null,
 ) {
-  const directorClubId = await getDirectorClubId();
+  const managedClub = await getRosterManagementContext(clubIdOverride);
+  const directorClubId = managedClub.clubId;
 
   if (directorClubId !== clubId) {
     throw new Error("You can only rollover the roster for your own club.");
@@ -402,5 +387,5 @@ export async function executeYearlyRollover(
   });
 
   revalidatePath("/director/roster");
-  redirect("/director/roster");
+  redirect(buildDirectorPath("/director/roster", clubId, managedClub.isSuperAdmin));
 }

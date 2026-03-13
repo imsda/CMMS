@@ -1,36 +1,16 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
-import { auth } from "../../../auth";
+import { getManagedClubContext } from "../../../lib/club-management";
+import { buildDirectorPath } from "../../../lib/director-path";
 import { prisma } from "../../../lib/prisma";
 
-export default async function DirectorEventsPage() {
-  const session = await auth();
-
-  if (!session?.user || session.user.role !== "CLUB_DIRECTOR") {
-    redirect("/login");
-  }
-
-  const membership = await prisma.clubMembership.findFirst({
-    where: {
-      userId: session.user.id,
-    },
-    select: {
-      clubId: true,
-    },
-    orderBy: {
-      isPrimary: "desc",
-    },
-  });
-
-  if (!membership) {
-    return (
-      <section className="glass-panel">
-        <h1 className="text-xl font-semibold">No club membership found</h1>
-        <p className="mt-2 text-sm">This account must be linked to a club before event registration can begin.</p>
-      </section>
-    );
-  }
+export default async function DirectorEventsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ clubId?: string }>;
+}) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const managedClub = await getManagedClubContext(resolvedSearchParams?.clubId ?? null);
 
   const events = await prisma.event.findMany({
     where: {
@@ -46,7 +26,7 @@ export default async function DirectorEventsPage() {
       locationName: true,
       registrations: {
         where: {
-          clubId: membership.clubId,
+          clubId: managedClub.clubId,
         },
         select: {
           status: true,
@@ -98,7 +78,7 @@ export default async function DirectorEventsPage() {
                   </div>
 
                   <Link
-                    href={`/director/events/${event.id}`}
+                    href={buildDirectorPath(`/director/events/${event.id}`, managedClub.clubId, managedClub.isSuperAdmin)}
                     className="btn-primary inline-flex"
                   >
                     Open Event

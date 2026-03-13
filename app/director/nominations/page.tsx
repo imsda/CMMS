@@ -1,9 +1,16 @@
 import { getDirectorNominationPageData, submitNomination } from "../../actions/nomination-actions";
+import { getManagedClubContext } from "../../../lib/club-management";
 
 const awardTypes = ["Pathfinder of the Year"];
 
-export default async function DirectorNominationsPage() {
-  const nominationData = await getDirectorNominationPageData();
+export default async function DirectorNominationsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ clubId?: string }>;
+}) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const managedClub = await getManagedClubContext(resolvedSearchParams?.clubId ?? null);
+  const nominationData = await getDirectorNominationPageData(managedClub.clubId);
   const currentYear = new Date().getFullYear();
 
   return (
@@ -29,6 +36,7 @@ export default async function DirectorNominationsPage() {
           </p>
         ) : (
           <form action={submitNomination} className="mt-6 grid gap-4 md:grid-cols-2">
+            {managedClub.isSuperAdmin ? <input type="hidden" name="clubId" value={managedClub.clubId} /> : null}
             <label className="space-y-1 text-sm font-medium text-slate-700 md:col-span-2">
               <span>Roster Member</span>
               <select

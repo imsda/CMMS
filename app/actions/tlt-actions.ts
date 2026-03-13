@@ -4,7 +4,8 @@ import { MemberRole, TltApplicationStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { auth } from "../../auth";
+import { getManagedClubContext } from "../../lib/club-management";
+import { buildDirectorPath, readManagedClubId } from "../../lib/director-path";
 import { prisma } from "../../lib/prisma";
 
 function parseRequiredString(value: FormDataEntryValue | null, fieldName: string) {
@@ -25,34 +26,9 @@ function parseRequiredInteger(value: FormDataEntryValue | null, fieldName: strin
   return parsed;
 }
 
-async function getDirectorClubId() {
-  const session = await auth();
-
-  if (!session?.user || session.user.role !== "CLUB_DIRECTOR") {
-    throw new Error("Only club directors can manage TLT applications.");
-  }
-
-  const membership = await prisma.clubMembership.findFirst({
-    where: {
-      userId: session.user.id,
-    },
-    select: {
-      clubId: true,
-    },
-    orderBy: {
-      isPrimary: "desc",
-    },
-  });
-
-  if (!membership) {
-    throw new Error("No club membership found for current user.");
-  }
-
-  return membership.clubId;
-}
-
 export async function saveTltApplication(formData: FormData) {
-  const clubId = await getDirectorClubId();
+  const managedClub = await getManagedClubContext(readManagedClubId(formData.get("clubId")));
+  const clubId = managedClub.clubId;
 
   const rosterMemberId = parseRequiredString(formData.get("rosterMemberId"), "Roster member");
 
@@ -122,5 +98,5 @@ export async function saveTltApplication(formData: FormData) {
 
   revalidatePath("/director/tlt");
   revalidatePath(`/director/tlt/apply/${member.id}`);
-  redirect("/director/tlt");
+  redirect(buildDirectorPath("/director/tlt", clubId, managedClub.isSuperAdmin));
 }

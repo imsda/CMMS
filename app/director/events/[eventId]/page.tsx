@@ -1,6 +1,6 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 
-import { auth } from "../../../../auth";
+import { getManagedClubContext } from "../../../../lib/club-management";
 import { getRegistrationLifecycleState } from "../../../../lib/registration-lifecycle";
 import { prisma } from "../../../../lib/prisma";
 import { RegistrationFormFulfiller } from "./_components/registration-form-fulfiller";
@@ -23,54 +23,45 @@ function formatCurrency(value: number) {
 
 export default async function DirectorEventRegistrationPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ eventId: string }>;
+  searchParams?: Promise<{ clubId?: string }>;
 }) {
-  const session = await auth();
-
-  if (!session?.user || session.user.role !== "CLUB_DIRECTOR") {
-    redirect("/login");
-  }
-
   const { eventId } = await params;
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const managedClub = await getManagedClubContext(resolvedSearchParams?.clubId ?? null);
 
-  const membership = await prisma.clubMembership.findFirst({
+  const club = await prisma.club.findUnique({
     where: {
-      userId: session.user.id,
+      id: managedClub.clubId,
     },
     include: {
-      club: {
+      rosterYears: {
+        where: {
+          isActive: true,
+        },
         include: {
-          rosterYears: {
+          members: {
             where: {
               isActive: true,
             },
-            include: {
-              members: {
-                where: {
-                  isActive: true,
-                },
-                orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-              },
-            },
-            orderBy: {
-              startsOn: "desc",
-            },
-            take: 1,
+            orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
           },
         },
+        orderBy: {
+          startsOn: "desc",
+        },
+        take: 1,
       },
-    },
-    orderBy: {
-      isPrimary: "desc",
     },
   });
 
-  if (!membership?.club) {
+  if (!club) {
     return (
       <section className="glass-panel">
-        <h1 className="text-xl font-semibold">No club membership found</h1>
-        <p className="mt-2 text-sm">You need an active club membership before registering for events.</p>
+        <h1 className="text-xl font-semibold">Club not found</h1>
+        <p className="mt-2 text-sm">The selected club could not be loaded before registering for events.</p>
       </section>
     );
   }
@@ -87,7 +78,7 @@ export default async function DirectorEventRegistrationPage({
       },
       registrations: {
         where: {
-          clubId: membership.club.id,
+          clubId: club.id,
         },
         include: {
           attendees: {
@@ -113,7 +104,7 @@ export default async function DirectorEventRegistrationPage({
   }
 
   const registration = event.registrations[0] ?? null;
-  const activeRoster = membership.club.rosterYears[0];
+  const activeRoster = club.rosterYears[0];
   const attendees = activeRoster?.members ?? [];
   const attendeeCount = registration?.attendees.length ?? 0;
   const inLateFeeWindow = new Date() >= event.lateFeeStartsAt;
@@ -162,6 +153,7 @@ export default async function DirectorEventRegistrationPage({
 
       <RegistrationFormFulfiller
         eventId={event.id}
+        managedClubId={managedClub.isSuperAdmin ? managedClub.clubId : null}
         attendees={attendees.map((member) => ({
           id: member.id,
           firstName: member.firstName,

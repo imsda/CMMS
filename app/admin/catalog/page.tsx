@@ -3,6 +3,7 @@ import { ClassType, MemberRole, RequirementType } from "@prisma/client";
 import {
   createMasterCatalogItem,
   getMasterCatalogData,
+  importMasterCatalogCsv,
   updateMasterCatalogItem,
 } from "../../actions/admin-actions";
 
@@ -39,8 +40,18 @@ function renderRequirementSummary(requirement: {
   return parts.join(" • ");
 }
 
-export default async function AdminCatalogPage() {
+type AdminCatalogPageProps = {
+  searchParams?: Promise<{
+    importStatus?: string;
+    importMessage?: string;
+  }>;
+};
+
+export default async function AdminCatalogPage({ searchParams }: AdminCatalogPageProps) {
   const catalog = await getMasterCatalogData();
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const importStatus = resolvedSearchParams?.importStatus;
+  const importMessage = resolvedSearchParams?.importMessage;
 
   return (
     <section className="space-y-6">
@@ -51,6 +62,45 @@ export default async function AdminCatalogPage() {
           Manage conference-wide honors, workshops, and prerequisite requirements.
         </p>
       </header>
+
+      {importMessage ? (
+        <article className={importStatus === "error" ? "glass-panel border-rose-200 text-rose-700" : "glass-panel border-emerald-200 text-emerald-700"}>
+          <p className="text-sm font-medium">{importMessage}</p>
+        </article>
+      ) : null}
+
+      <details className="glass-panel">
+        <summary className="cursor-pointer list-none text-lg font-semibold text-indigo-900">
+          Import Honors / Catalog Items from CSV
+        </summary>
+        <p className="mt-2 text-sm text-indigo-800">
+          Bulk import or update catalog items by code. Default type is <strong>HONOR</strong> when omitted.
+        </p>
+        <p className="mt-2 rounded-xl bg-white/60 px-4 py-3 font-mono text-xs text-slate-700">
+          title,code,classType,description,active,requirementType,minAge,maxAge,requiredMemberRole,requiredHonorCode,requiredMasterGuide
+        </p>
+
+        <form action={importMasterCatalogCsv} className="mt-4 space-y-4">
+          <label className="block space-y-2 text-sm text-slate-700">
+            <span>Catalog CSV</span>
+            <input
+              name="catalogCsv"
+              type="file"
+              accept=".csv,text/csv"
+              required
+              className="block w-full max-w-xl rounded-2xl border border-slate-300 bg-white/80 px-3 py-2 text-sm text-slate-700 file:mr-3 file:rounded-xl file:border-0 file:bg-indigo-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-indigo-500"
+            />
+          </label>
+
+          <p className="text-xs text-slate-500">
+            Rows with an existing <strong>code</strong> are updated. Rows with a new code are created. Requirement fields are optional.
+          </p>
+
+          <button type="submit" className="btn-primary">
+            Import CSV
+          </button>
+        </form>
+      </details>
 
       <details className="glass-panel group" open>
         <summary className="cursor-pointer list-none text-lg font-semibold text-indigo-900">

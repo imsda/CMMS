@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { TltApplicationStatus } from "@prisma/client";
-import { redirect } from "next/navigation";
 
-import { auth } from "../../../../../auth";
+import { getManagedClubContext } from "../../../../../lib/club-management";
+import { buildDirectorPath } from "../../../../../lib/director-path";
 import { saveTltApplication } from "../../../../actions/tlt-actions";
 import { prisma } from "../../../../../lib/prisma";
 
@@ -11,38 +11,30 @@ const shirtSizes = ["XS", "S", "M", "L", "XL", "2XL", "3XL"];
 
 export default async function TltApplicationPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ memberId: string }>;
+  searchParams?: Promise<{ clubId?: string }>;
 }) {
   const { memberId } = await params;
-  const session = await auth();
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const managedClub = await getManagedClubContext(resolvedSearchParams?.clubId ?? null);
 
-  if (!session?.user || session.user.role !== "CLUB_DIRECTOR") {
-    redirect("/login");
-  }
-
-  const membership = await prisma.clubMembership.findFirst({
+  const club = await prisma.club.findUnique({
     where: {
-      userId: session.user.id,
+      id: managedClub.clubId,
     },
     select: {
-      clubId: true,
-      club: {
-        select: {
-          name: true,
-        },
-      },
-    },
-    orderBy: {
-      isPrimary: "desc",
+      id: true,
+      name: true,
     },
   });
 
-  if (!membership) {
+  if (!club) {
     return (
       <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
-        <h1 className="text-xl font-semibold">No club membership found</h1>
-        <p className="mt-2 text-sm">You need an active club membership before submitting TLT applications.</p>
+        <h1 className="text-xl font-semibold">Club not found</h1>
+        <p className="mt-2 text-sm">You need a valid club before submitting TLT applications.</p>
       </section>
     );
   }
@@ -52,7 +44,7 @@ export default async function TltApplicationPage({
       id: memberId,
       memberRole: "TLT",
       clubRosterYear: {
-        clubId: membership.clubId,
+        clubId: club.id,
       },
     },
     include: {
@@ -71,7 +63,7 @@ export default async function TltApplicationPage({
         <h1 className="text-xl font-semibold">TLT member not found</h1>
         <p className="mt-2 text-sm">The selected member is not a TLT in your club roster.</p>
         <Link
-          href="/director/tlt"
+          href={buildDirectorPath("/director/tlt", club.id, managedClub.isSuperAdmin)}
           className="mt-4 inline-flex rounded-lg bg-amber-700 px-4 py-2 text-sm font-semibold text-white"
         >
           Back to TLT Dashboard
@@ -91,12 +83,13 @@ export default async function TltApplicationPage({
         <p className="text-sm font-medium text-slate-500">Teen Leadership Training</p>
         <h1 className="text-3xl font-semibold tracking-tight text-slate-900">TLT Application Form</h1>
         <p className="mt-1 text-sm text-slate-600">
-          {member.firstName} {member.lastName} • {membership.club.name} • Roster {member.clubRosterYear.yearLabel}
+          {member.firstName} {member.lastName} • {club.name} • Roster {member.clubRosterYear.yearLabel}
         </p>
       </header>
 
       <form action={saveTltApplication} className="grid gap-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:grid-cols-2">
         <input type="hidden" name="rosterMemberId" value={member.id} />
+        {managedClub.isSuperAdmin ? <input type="hidden" name="clubId" value={club.id} /> : null}
 
         <label className="space-y-1 text-sm font-medium text-slate-700">
           <span>Grade</span>
@@ -243,7 +236,7 @@ export default async function TltApplicationPage({
           <button type="submit" className="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-indigo-500">
             Save TLT Application
           </button>
-          <Link href="/director/tlt" className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700">
+          <Link href={buildDirectorPath("/director/tlt", club.id, managedClub.isSuperAdmin)} className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700">
             Cancel
           </Link>
         </div>

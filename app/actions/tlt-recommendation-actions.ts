@@ -5,7 +5,8 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { auth } from "../../auth";
+import { getManagedClubContext } from "../../lib/club-management";
+import { buildDirectorPath, readManagedClubId } from "../../lib/director-path";
 import { getResendConfig } from "../../lib/email/resend";
 import { prisma } from "../../lib/prisma";
 
@@ -45,30 +46,14 @@ function getRecommendationInviteBaseUrl() {
   return appUrl.replace(/\/$/, "");
 }
 
-async function getDirectorClubId() {
-  const session = await auth();
-
-  if (!session?.user || session.user.role !== "CLUB_DIRECTOR") {
-    throw new Error("Only club directors can manage recommendation links.");
+function buildRecommendationPath(tltApplicationId: string, clubId: string, isSuperAdmin: boolean, query = "") {
+  const basePath = buildDirectorPath(`/director/tlt/${tltApplicationId}/recommendations`, clubId, isSuperAdmin);
+  if (!query) {
+    return basePath;
   }
 
-  const membership = await prisma.clubMembership.findFirst({
-    where: {
-      userId: session.user.id,
-    },
-    select: {
-      clubId: true,
-    },
-    orderBy: {
-      isPrimary: "desc",
-    },
-  });
-
-  if (!membership) {
-    throw new Error("No club membership found for current user.");
-  }
-
-  return membership.clubId;
+  const separator = basePath.includes("?") ? "&" : "?";
+  return `${basePath}${separator}${query}`;
 }
 
 async function sendRecommendationInviteEmail(input: { to: string; applicantName: string; recommendationUrl: string }) {
@@ -121,7 +106,8 @@ export async function generateTltRecommendationLinks(
   formData: FormData,
 ): Promise<RecommendationInviteActionState> {
   try {
-    const clubId = await getDirectorClubId();
+    const managedClub = await getManagedClubContext(readManagedClubId(formData.get("clubId")));
+    const clubId = managedClub.clubId;
     const tltApplicationId = parseRequiredString(formData.get("tltApplicationId"), "TLT application");
     const shouldEmail = formData.get("sendEmails") === "on";
 
@@ -145,7 +131,7 @@ export async function generateTltRecommendationLinks(
     }
 
     if (shouldEmail && !getResendConfig()) {
-      redirect(`/director/tlt/${tltApplicationId}/recommendations?error=email_not_configured`);
+      redirect(buildRecommendationPath(tltApplicationId, clubId, managedClub.isSuperAdmin, "error=email_not_configured"));
     }
 
     const application = await prisma.tltApplication.findFirst({
@@ -230,16 +216,14 @@ export async function generateTltRecommendationLinks(
       revalidatePath(`/director/tlt/${tltApplicationId}/recommendations`);
 
       if (failedCount > 0) {
-        redirect(
-          `/director/tlt/${tltApplicationId}/recommendations?generated=1&emails=partial&failed=${failedCount}`,
-        );
+        redirect(buildRecommendationPath(tltApplicationId, clubId, managedClub.isSuperAdmin, `generated=1&emails=partial&failed=${failedCount}`));
       }
 
-      redirect(`/director/tlt/${tltApplicationId}/recommendations?generated=1&emails=sent`);
+      redirect(buildRecommendationPath(tltApplicationId, clubId, managedClub.isSuperAdmin, "generated=1&emails=sent"));
     }
 
     revalidatePath(`/director/tlt/${tltApplicationId}/recommendations`);
-    redirect(`/director/tlt/${tltApplicationId}/recommendations?generated=1`);
+    redirect(buildRecommendationPath(tltApplicationId, clubId, managedClub.isSuperAdmin, "generated=1"));
   } catch (error) {
     if (isRedirectError(error)) {
       throw error;
@@ -298,12 +282,13 @@ export async function submitPublicTltRecommendation(formData: FormData) {
 }
 
 export async function retryTltRecommendationInviteEmail(formData: FormData) {
-  const clubId = await getDirectorClubId();
+  const managedClub = await getManagedClubContext(readManagedClubId(formData.get("clubId")));
+  const clubId = managedClub.clubId;
   const tltApplicationId = parseRequiredString(formData.get("tltApplicationId"), "TLT application");
   const recommendationId = parseRequiredString(formData.get("recommendationId"), "Recommendation");
 
   if (!getResendConfig()) {
-    redirect(`/director/tlt/${tltApplicationId}/recommendations?retry=error&reason=email_not_configured`);
+    redirect(buildRecommendationPath(tltApplicationId, clubId, managedClub.isSuperAdmin, "retry=error&reason=email_not_configured"));
   }
 
   const recommendation = await prisma.tltRecommendation.findFirst({
@@ -333,11 +318,11 @@ export async function retryTltRecommendationInviteEmail(formData: FormData) {
   });
 
   if (!recommendation) {
-    redirect(`/director/tlt/${tltApplicationId}/recommendations?retry=error&reason=not_found`);
+    redirect(buildRecommendationPath(tltApplicationId, clubId, managedClub.isSuperAdmin, "retry=error&reason=not_found"));
   }
 
   if (recommendation.status === "COMPLETED") {
-    redirect(`/director/tlt/${tltApplicationId}/recommendations?retry=error&reason=already_completed`);
+    redirect(buildRecommendationPath(tltApplicationId, clubId, managedClub.isSuperAdmin, "retry=error&reason=already_completed"));
   }
 
   const recommendationUrl = `${getRecommendationInviteBaseUrl()}/recommendation/${recommendation.secureToken}`;
@@ -362,7 +347,7 @@ export async function retryTltRecommendationInviteEmail(formData: FormData) {
     });
 
     revalidatePath(`/director/tlt/${tltApplicationId}/recommendations`);
-    redirect(`/director/tlt/${tltApplicationId}/recommendations?retry=success`);
+    redirect(buildRecommendationPath(tltApplicationId, clubId, managedClub.isSuperAdmin, "retry=success"));
   } catch (error) {
     await prisma.tltRecommendation.update({
       where: {
@@ -375,16 +360,17 @@ export async function retryTltRecommendationInviteEmail(formData: FormData) {
     });
 
     revalidatePath(`/director/tlt/${tltApplicationId}/recommendations`);
-    redirect(`/director/tlt/${tltApplicationId}/recommendations?retry=error&reason=send_failed`);
+    redirect(buildRecommendationPath(tltApplicationId, clubId, managedClub.isSuperAdmin, "retry=error&reason=send_failed"));
   }
 }
 
 export async function retryFailedTltRecommendationInviteEmails(formData: FormData) {
-  const clubId = await getDirectorClubId();
+  const managedClub = await getManagedClubContext(readManagedClubId(formData.get("clubId")));
+  const clubId = managedClub.clubId;
   const tltApplicationId = parseRequiredString(formData.get("tltApplicationId"), "TLT application");
 
   if (!getResendConfig()) {
-    redirect(`/director/tlt/${tltApplicationId}/recommendations?retry=error&reason=email_not_configured`);
+    redirect(buildRecommendationPath(tltApplicationId, clubId, managedClub.isSuperAdmin, "retry=error&reason=email_not_configured"));
   }
 
   const application = await prisma.tltApplication.findFirst({
@@ -417,11 +403,11 @@ export async function retryFailedTltRecommendationInviteEmails(formData: FormDat
   });
 
   if (!application) {
-    redirect(`/director/tlt/${tltApplicationId}/recommendations?retry=error&reason=not_found`);
+    redirect(buildRecommendationPath(tltApplicationId, clubId, managedClub.isSuperAdmin, "retry=error&reason=not_found"));
   }
 
   if (application.recommendations.length === 0) {
-    redirect(`/director/tlt/${tltApplicationId}/recommendations?retry=error&reason=nothing_to_retry`);
+    redirect(buildRecommendationPath(tltApplicationId, clubId, managedClub.isSuperAdmin, "retry=error&reason=nothing_to_retry"));
   }
 
   const applicantName = `${application.rosterMember.firstName} ${application.rosterMember.lastName}`;
@@ -464,7 +450,5 @@ export async function retryFailedTltRecommendationInviteEmails(formData: FormDat
   }
 
   revalidatePath(`/director/tlt/${tltApplicationId}/recommendations`);
-  redirect(
-    `/director/tlt/${tltApplicationId}/recommendations?retry=batch&sent=${successCount}&failed=${failedCount}`,
-  );
+  redirect(buildRecommendationPath(tltApplicationId, clubId, managedClub.isSuperAdmin, `retry=batch&sent=${successCount}&failed=${failedCount}`));
 }

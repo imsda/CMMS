@@ -3,7 +3,7 @@
 import { FormFieldScope, MemberRole, PaymentStatus, RegistrationStatus, type Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
-import { auth } from "../../auth";
+import { getManagedClubContext } from "../../lib/club-management";
 import { sendRegistrationReceiptEmail } from "../../lib/email/resend";
 import { getFieldScope } from "../../lib/event-form-scope";
 import { prisma } from "../../lib/prisma";
@@ -258,44 +258,19 @@ async function getClubRegistrationContext(input: {
   };
 }
 
-async function requireDirectorClubForEvent(eventId: string) {
-  const session = await auth();
-
-  if (!session?.user || session.user.role !== "CLUB_DIRECTOR") {
-    throw new Error("Only club directors can register for events.");
-  }
-
-  const membership = await prisma.clubMembership.findFirst({
-    where: {
-      userId: session.user.id,
-    },
-    include: {
-      user: {
-        select: {
-          email: true,
-        },
-      },
-      club: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-    },
-    orderBy: {
-      isPrimary: "desc",
-    },
-  });
-
-  if (!membership?.club) {
-    throw new Error("No club membership was found for this director.");
-  }
+async function requireDirectorClubForEvent(eventId: string, clubIdOverride?: string | null) {
+  const managedClub = await getManagedClubContext(clubIdOverride);
 
   return getClubRegistrationContext({
     eventId,
-    clubId: membership.club.id,
-    directorEmail: membership.user.email ?? session.user.email ?? null,
+    clubId: managedClub.clubId,
+    directorEmail: managedClub.userEmail,
   });
+}
+
+function readManagedClubIdFromFormData(formData: FormData) {
+  const clubId = formData.get("clubId");
+  return typeof clubId === "string" && clubId.trim().length > 0 ? clubId.trim() : null;
 }
 
 export async function persistRegistrationForClub(input: {
@@ -507,6 +482,7 @@ export async function persistRegistrationForClub(input: {
 
   revalidatePath(`/director/events/${input.eventId}`);
   revalidatePath("/director/dashboard");
+  revalidatePath("/director/events");
 
   if (input.nextStatus === RegistrationStatus.SUBMITTED && input.directorEmail) {
     try {
@@ -535,8 +511,7 @@ async function persistRegistration(formData: FormData, nextStatus: RegistrationS
 
   const eventId = eventIdEntry.trim();
   const payload = parsePayload(formData.get("registrationPayload"));
-
-  const context = await requireDirectorClubForEvent(eventId);
+  const context = await requireDirectorClubForEvent(eventId, readManagedClubIdFromFormData(formData));
 
   return persistRegistrationForClub({
     eventId,

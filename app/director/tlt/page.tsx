@@ -1,69 +1,63 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
-import { auth } from "../../../auth";
+import { getManagedClubContext } from "../../../lib/club-management";
+import { buildDirectorPath } from "../../../lib/director-path";
 import { prisma } from "../../../lib/prisma";
 
-export default async function DirectorTltDashboardPage() {
-  const session = await auth();
+export default async function DirectorTltDashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ clubId?: string }>;
+}) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const managedClub = await getManagedClubContext(resolvedSearchParams?.clubId ?? null);
 
-  if (!session?.user || session.user.role !== "CLUB_DIRECTOR") {
-    redirect("/login");
-  }
-
-  const membership = await prisma.clubMembership.findFirst({
+  const club = await prisma.club.findUnique({
     where: {
-      userId: session.user.id,
+      id: managedClub.clubId,
     },
     include: {
-      club: {
+      rosterYears: {
+        where: {
+          isActive: true,
+        },
+        orderBy: {
+          startsOn: "desc",
+        },
+        take: 1,
         include: {
-          rosterYears: {
+          members: {
             where: {
               isActive: true,
+              memberRole: "TLT",
             },
-            orderBy: {
-              startsOn: "desc",
-            },
-            take: 1,
+            orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
             include: {
-              members: {
-                where: {
-                  isActive: true,
-                  memberRole: "TLT",
-                },
-                orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-                include: {
-                  tltApplication: true,
-                },
-              },
+              tltApplication: true,
             },
           },
         },
       },
     },
-    orderBy: {
-      isPrimary: "desc",
-    },
   });
 
-  if (!membership?.club) {
+  if (!club) {
     return (
       <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
-        <h2 className="text-xl font-semibold">No club membership found</h2>
-        <p className="mt-2 text-sm">You need an active club membership before you can manage TLT applications.</p>
+        <h2 className="text-xl font-semibold">Club not found</h2>
+        <p className="mt-2 text-sm">The selected club could not be loaded for TLT applications.</p>
       </section>
     );
   }
 
-  const activeRosterYear = membership.club.rosterYears[0] ?? null;
+  const activeRosterYear = club.rosterYears[0] ?? null;
   const tltMembers = activeRosterYear?.members ?? [];
 
   return (
     <section className="space-y-6">
       <header>
         <p className="text-sm font-medium text-slate-500">Teen Leadership Training</p>
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{membership.club.name} TLT Dashboard</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">{club.name} TLT Dashboard</h1>
         <p className="mt-1 text-sm text-slate-600">Track TLT applications, baptism status, honors progress, and uniform sizing.</p>
       </header>
 
@@ -110,7 +104,7 @@ export default async function DirectorTltDashboardPage() {
                       </td>
                       <td className="px-4 py-3">
                         <Link
-                          href={`/director/tlt/apply/${member.id}`}
+                          href={buildDirectorPath(`/director/tlt/apply/${member.id}`, managedClub.clubId, managedClub.isSuperAdmin)}
                           className="inline-flex rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-indigo-500"
                         >
                           {application ? "Edit TLT Application" : "Start TLT Application"}

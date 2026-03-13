@@ -1,59 +1,52 @@
-import { auth } from "../../../auth";
 import { createRosterYear, executeYearlyRollover } from "../../actions/roster-actions";
+import { getManagedClubContext } from "../../../lib/club-management";
 import { decryptMedicalFields } from "../../../lib/medical-data";
 import { prisma } from "../../../lib/prisma";
 import { RosterTable } from "./_components/roster-table";
-import { redirect } from "next/navigation";
 
 const CURRENT_YEAR_LABEL = String(new Date().getFullYear());
 
-export default async function DirectorRosterPage() {
-  const session = await auth();
+export default async function DirectorRosterPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ clubId?: string }>;
+}) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const managedClub = await getManagedClubContext(resolvedSearchParams?.clubId ?? null);
 
-  if (!session?.user || session.user.role !== "CLUB_DIRECTOR") {
-    redirect("/login");
-  }
-
-  const membership = await prisma.clubMembership.findFirst({
+  const club = await prisma.club.findUnique({
     where: {
-      userId: session.user.id,
+      id: managedClub.clubId,
     },
     include: {
-      club: {
+      rosterYears: {
         include: {
-          rosterYears: {
-            include: {
-              members: {
-                where: {
-                  isActive: true,
-                },
-                orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
-              },
+          members: {
+            where: {
+              isActive: true,
             },
-            orderBy: {
-              startsOn: "desc",
-            },
+            orderBy: [{ lastName: "asc" }, { firstName: "asc" }],
           },
+        },
+        orderBy: {
+          startsOn: "desc",
         },
       },
     },
-    orderBy: {
-      isPrimary: "desc",
-    },
   });
 
-  if (!membership?.club) {
+  if (!club) {
     return (
       <section className="glass-panel">
-        <h2 className="text-xl font-semibold">No club membership found</h2>
+        <h2 className="text-xl font-semibold">Club not found</h2>
         <p className="mt-2 text-sm">
-          You need an active club membership before you can manage roster years.
+          The selected club could not be loaded for roster management.
         </p>
       </section>
     );
   }
 
-  const rosterYears = membership.club.rosterYears;
+  const rosterYears = club.rosterYears;
   const currentYearActiveRoster = rosterYears.find(
     (year) => year.yearLabel === CURRENT_YEAR_LABEL && year.isActive,
   );
@@ -70,7 +63,7 @@ export default async function DirectorRosterPage() {
       <div className="glass-panel">
         <p className="hero-kicker">Roster Management</p>
         <h1 className="hero-title mt-3">
-          {membership.club.name}
+          {club.name}
         </h1>
         <p className="hero-copy">
           Review this year&apos;s active roster, update member details, and run your annual rollover.
@@ -90,11 +83,7 @@ export default async function DirectorRosterPage() {
             <form
               action={async () => {
                 "use server";
-                await executeYearlyRollover(
-                  membership.club.id,
-                  previousYearCandidate.id,
-                  CURRENT_YEAR_LABEL,
-                );
+                await executeYearlyRollover(club.id, previousYearCandidate.id, CURRENT_YEAR_LABEL, managedClub.clubId);
               }}
             >
               <button
@@ -125,6 +114,7 @@ export default async function DirectorRosterPage() {
 
           <RosterTable
             rosterYearId={selectedRosterYear.id}
+            managedClubId={managedClub.isSuperAdmin ? managedClub.clubId : null}
             members={selectedRosterYear.members.map((member) => {
               const decryptedMember = decryptMedicalFields(member);
 
@@ -170,7 +160,7 @@ export default async function DirectorRosterPage() {
             className="mt-4"
             action={async () => {
               "use server";
-              await createRosterYear(CURRENT_YEAR_LABEL);
+              await createRosterYear(CURRENT_YEAR_LABEL, managedClub.clubId);
             }}
           >
             <button

@@ -42,6 +42,7 @@ type ExistingResponse = {
 
 type RegistrationFormFulfillerProps = {
   eventId: string;
+  managedClubId: string | null;
   attendees: Attendee[];
   dynamicFields: DynamicField[];
   initialSelectedAttendeeIds: string[];
@@ -78,6 +79,7 @@ const INITIAL_ACTION_STATE: RegistrationActionState = {
 
 export function RegistrationFormFulfiller({
   eventId,
+  managedClubId,
   attendees,
   dynamicFields,
   initialSelectedAttendeeIds,
@@ -391,6 +393,7 @@ export function RegistrationFormFulfiller({
   return (
     <form className="space-y-6">
       <input type="hidden" name="eventId" value={eventId} readOnly />
+      {managedClubId ? <input type="hidden" name="clubId" value={managedClubId} readOnly /> : null}
       <input type="hidden" name="registrationPayload" value={payload} readOnly />
 
       {registrationNotice ? (

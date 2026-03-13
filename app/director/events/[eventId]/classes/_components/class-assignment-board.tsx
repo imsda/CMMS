@@ -55,6 +55,7 @@ type OptimisticAction =
 
 type ClassAssignmentBoardProps = {
   eventId: string;
+  managedClubId: string | null;
   attendees: Attendee[];
   offerings: Offering[];
 };
@@ -71,7 +72,7 @@ function formatAssignmentCount(count: number) {
   return "1 class assigned";
 }
 
-export function ClassAssignmentBoard({ eventId, attendees, offerings }: ClassAssignmentBoardProps) {
+export function ClassAssignmentBoard({ eventId, managedClubId, attendees, offerings }: ClassAssignmentBoardProps) {
   const [selectedAttendeeId, setSelectedAttendeeId] = useState<string>(attendees[0]?.id ?? "");
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -282,6 +283,7 @@ export function ClassAssignmentBoard({ eventId, attendees, offerings }: ClassAss
                               eventId,
                               rosterMemberId: selectedAttendee.id,
                               eventClassOfferingId: offering.id,
+                              clubId: managedClubId,
                             });
                           } catch (error) {
                             const message =
@@ -317,6 +319,7 @@ export function ClassAssignmentBoard({ eventId, attendees, offerings }: ClassAss
                                 eventId,
                                 rosterMemberId: selectedAttendee.id,
                                 eventClassOfferingId: offering.id,
+                                clubId: managedClubId,
                               });
                             } catch (error) {
                               const message =

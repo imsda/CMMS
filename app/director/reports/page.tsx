@@ -1,4 +1,5 @@
 import { createMonthlyReport, getDirectorReportsDashboardData } from "../../actions/club-report-actions";
+import { getManagedClubContext } from "../../../lib/club-management";
 
 function formatMonthLabel(reportMonth: Date) {
   return reportMonth.toLocaleDateString(undefined, {
@@ -7,8 +8,14 @@ function formatMonthLabel(reportMonth: Date) {
   });
 }
 
-export default async function DirectorReportsPage() {
-  const dashboardData = await getDirectorReportsDashboardData();
+export default async function DirectorReportsPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ clubId?: string }>;
+}) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const managedClub = await getManagedClubContext(resolvedSearchParams?.clubId ?? null);
+  const dashboardData = await getDirectorReportsDashboardData(managedClub.clubId);
 
   return (
     <section className="space-y-8">
@@ -32,6 +39,7 @@ export default async function DirectorReportsPage() {
         </p>
 
         <form action={createMonthlyReport} className="mt-6 grid gap-4 md:grid-cols-2">
+          {managedClub.isSuperAdmin ? <input type="hidden" name="clubId" value={managedClub.clubId} /> : null}
           <label className="space-y-1 text-sm font-medium text-slate-700">
             <span>Report month</span>
             <input

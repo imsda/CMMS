@@ -9,6 +9,7 @@ import {
 
 type RecommendationLinkGeneratorProps = {
   tltApplicationId: string;
+  managedClubId: string | null;
   emailConfigured: boolean;
 };
 
@@ -19,6 +20,7 @@ const INITIAL_STATE: RecommendationInviteActionState = {
 
 export function RecommendationLinkGenerator({
   tltApplicationId,
+  managedClubId,
   emailConfigured,
 }: RecommendationLinkGeneratorProps) {
   const [state, formAction] = useFormState(generateTltRecommendationLinks, INITIAL_STATE);
@@ -26,6 +28,7 @@ export function RecommendationLinkGenerator({
   return (
     <form action={formAction} className="mt-4 space-y-4">
       <input type="hidden" name="tltApplicationId" value={tltApplicationId} />
+      {managedClubId ? <input type="hidden" name="clubId" value={managedClubId} /> : null}
 
       {[1, 2, 3].map((slot) => (
         <div key={slot} className="space-y-1">

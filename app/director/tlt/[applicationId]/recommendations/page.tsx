@@ -1,7 +1,6 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 
-import { auth } from "../../../../../auth";
+import { getManagedClubContext } from "../../../../../lib/club-management";
 import {
   retryFailedTltRecommendationInviteEmails,
   retryTltRecommendationInviteEmail,
@@ -21,6 +20,7 @@ type RecommendationManagerPageProps = {
     retry?: string;
     reason?: string;
     sent?: string;
+    clubId?: string;
   }>;
 };
 
@@ -60,35 +60,23 @@ export default async function RecommendationManagerPage({
   const retrySent = Number(resolvedSearchParams?.sent ?? "0");
   const retryFailed = Number(resolvedSearchParams?.failed ?? "0");
   const emailConfigured = Boolean(process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL);
+  const managedClub = await getManagedClubContext(resolvedSearchParams?.clubId ?? null);
 
-  const session = await auth();
-
-  if (!session?.user || session.user.role !== "CLUB_DIRECTOR") {
-    redirect("/login");
-  }
-
-  const membership = await prisma.clubMembership.findFirst({
+  const club = await prisma.club.findUnique({
     where: {
-      userId: session.user.id,
+      id: managedClub.clubId,
     },
     select: {
-      clubId: true,
-      club: {
-        select: {
-          name: true,
-        },
-      },
-    },
-    orderBy: {
-      isPrimary: "desc",
+      id: true,
+      name: true,
     },
   });
 
-  if (!membership) {
+  if (!club) {
     return (
       <section className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-amber-900">
-        <h1 className="text-xl font-semibold">No club membership found</h1>
-        <p className="mt-2 text-sm">You need an active club membership before managing recommendations.</p>
+        <h1 className="text-xl font-semibold">Club not found</h1>
+        <p className="mt-2 text-sm">You need a valid club before managing recommendations.</p>
       </section>
     );
   }
@@ -96,7 +84,7 @@ export default async function RecommendationManagerPage({
   const application = await prisma.tltApplication.findFirst({
     where: {
       id: applicationId,
-      clubId: membership.clubId,
+      clubId: club.id,
     },
     include: {
       rosterMember: {
@@ -131,7 +119,7 @@ export default async function RecommendationManagerPage({
         <p className="text-sm font-medium text-slate-500">Teen Leadership Training</p>
         <h1 className="text-3xl font-semibold tracking-tight text-slate-900">Recommendation Manager</h1>
         <p className="text-sm text-slate-600">
-          {membership.club.name} • Applicant: <span className="font-semibold text-slate-900">{applicantName}</span>
+          {club.name} • Applicant: <span className="font-semibold text-slate-900">{applicantName}</span>
         </p>
       </header>
 
@@ -183,6 +171,7 @@ export default async function RecommendationManagerPage({
 
         <RecommendationLinkGenerator
           tltApplicationId={application.id}
+          managedClubId={managedClub.isSuperAdmin ? club.id : null}
           emailConfigured={emailConfigured}
         />
       </article>
@@ -192,6 +181,7 @@ export default async function RecommendationManagerPage({
           <h2 className="text-lg font-semibold text-slate-900">Current recommendation requests</h2>
           <form action={retryFailedTltRecommendationInviteEmails}>
             <input type="hidden" name="tltApplicationId" value={application.id} />
+            {managedClub.isSuperAdmin ? <input type="hidden" name="clubId" value={club.id} /> : null}
             <button
               type="submit"
               className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
@@ -249,6 +239,7 @@ export default async function RecommendationManagerPage({
                         <form action={retryTltRecommendationInviteEmail}>
                           <input type="hidden" name="tltApplicationId" value={application.id} />
                           <input type="hidden" name="recommendationId" value={recommendation.id} />
+                          {managedClub.isSuperAdmin ? <input type="hidden" name="clubId" value={club.id} /> : null}
                           <button
                             type="submit"
                             className="rounded-md border border-slate-300 px-2 py-1 text-xs font-semibold text-slate-700 hover:border-indigo-300 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"

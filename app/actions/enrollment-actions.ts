@@ -3,12 +3,12 @@
 import { Prisma, type MemberRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
-import { auth } from "../../auth";
 import {
   findEventEnrollmentConflict,
   formatEnrollmentConflictMessage,
   isOfferingFull,
 } from "../../lib/class-model";
+import { getManagedClubContext } from "../../lib/club-management";
 import { prisma } from "../../lib/prisma";
 import {
   evaluateClassRequirements,
@@ -19,6 +19,7 @@ type EnrollAttendeeInput = {
   eventId: string;
   rosterMemberId: string;
   eventClassOfferingId: string;
+  clubId?: string | null;
 };
 
 type RequirementConfig = {
@@ -71,30 +72,9 @@ function readHonorCodeFromMetadata(metadata: Prisma.JsonValue): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value.trim().toUpperCase() : null;
 }
 
-async function getDirectorClubIdForEnrollment() {
-  const session = await auth();
-
-  if (!session?.user || session.user.role !== "CLUB_DIRECTOR") {
-    throw new Error("Only club directors can enroll attendees.");
-  }
-
-  const membership = await prisma.clubMembership.findFirst({
-    where: {
-      userId: session.user.id,
-    },
-    select: {
-      clubId: true,
-    },
-    orderBy: {
-      isPrimary: "desc",
-    },
-  });
-
-  if (!membership) {
-    throw new Error("No club membership found for the current user.");
-  }
-
-  return membership.clubId;
+async function getDirectorClubIdForEnrollment(clubIdOverride?: string | null) {
+  const managedClub = await getManagedClubContext(clubIdOverride);
+  return managedClub.clubId;
 }
 
 async function runSerializableEnrollmentTransaction<T>(
@@ -300,7 +280,7 @@ export async function enrollAttendeeInClassForClub(input: EnrollAttendeeInput & 
 }
 
 export async function enrollAttendeeInClass(input: EnrollAttendeeInput) {
-  const clubId = await getDirectorClubIdForEnrollment();
+  const clubId = await getDirectorClubIdForEnrollment(input.clubId ?? null);
   await enrollAttendeeInClassForClub({
     ...input,
     clubId,
@@ -356,7 +336,7 @@ export async function removeAttendeeFromClassForClub(input: EnrollAttendeeInput 
 }
 
 export async function removeAttendeeFromClass(input: EnrollAttendeeInput) {
-  const clubId = await getDirectorClubIdForEnrollment();
+  const clubId = await getDirectorClubIdForEnrollment(input.clubId ?? null);
   await removeAttendeeFromClassForClub({
     ...input,
     clubId,

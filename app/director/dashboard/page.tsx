@@ -1,69 +1,63 @@
 import Link from "next/link";
 import { MemberRole, RegistrationStatus } from "@prisma/client";
-import { redirect } from "next/navigation";
 
-import { auth } from "../../../auth";
+import { getManagedClubContext } from "../../../lib/club-management";
+import { buildDirectorPath } from "../../../lib/director-path";
 import { prisma } from "../../../lib/prisma";
 
 function formatDateRange(startsAt: Date, endsAt: Date) {
   return `${startsAt.toLocaleDateString()} - ${endsAt.toLocaleDateString()}`;
 }
 
-export default async function ClubDirectorDashboardPage() {
-  const session = await auth();
+export default async function ClubDirectorDashboardPage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ clubId?: string }>;
+}) {
+  const resolvedSearchParams = searchParams ? await searchParams : undefined;
+  const managedClub = await getManagedClubContext(resolvedSearchParams?.clubId ?? null);
 
-  if (!session?.user || session.user.role !== "CLUB_DIRECTOR") {
-    redirect("/login");
-  }
-
-  const membership = await prisma.clubMembership.findFirst({
+  const club = await prisma.club.findUnique({
     where: {
-      userId: session.user.id,
+      id: managedClub.clubId,
     },
     include: {
-      club: {
+      rosterYears: {
+        where: {
+          isActive: true,
+        },
         include: {
-          rosterYears: {
+          members: {
             where: {
               isActive: true,
             },
-            include: {
-              members: {
-                where: {
-                  isActive: true,
-                },
-                select: {
-                  id: true,
-                  firstName: true,
-                  lastName: true,
-                  memberRole: true,
-                  backgroundCheckCleared: true,
-                },
-              },
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              memberRole: true,
+              backgroundCheckCleared: true,
             },
-            orderBy: {
-              startsOn: "desc",
-            },
-            take: 1,
           },
         },
+        orderBy: {
+          startsOn: "desc",
+        },
+        take: 1,
       },
-    },
-    orderBy: {
-      isPrimary: "desc",
     },
   });
 
-  if (!membership?.club) {
+  if (!club) {
     return (
       <section className="glass-panel">
-        <h1 className="text-xl font-semibold">No club membership found</h1>
-        <p className="mt-2 text-sm">This account must be linked to a club before dashboard workflows can run.</p>
+        <h1 className="text-xl font-semibold">Club not found</h1>
+        <p className="mt-2 text-sm">The selected club could not be loaded for dashboard workflows.</p>
       </section>
     );
   }
 
-  const activeRoster = membership.club.rosterYears[0] ?? null;
+  const activeRoster = club.rosterYears[0] ?? null;
   const activeMembers = activeRoster?.members ?? [];
 
   const [upcomingEvents, clubRegistrations] = await Promise.all([
@@ -86,7 +80,7 @@ export default async function ClubDirectorDashboardPage() {
     }),
     prisma.eventRegistration.findMany({
       where: {
-        clubId: membership.club.id,
+        clubId: club.id,
       },
       select: {
         eventId: true,
@@ -137,20 +131,20 @@ export default async function ClubDirectorDashboardPage() {
       <div className="glass-panel flex flex-wrap items-start justify-between gap-6">
         <div>
           <p className="hero-kicker">Club Director Dashboard</p>
-          <h2 className="hero-title mt-3">{membership.club.name}</h2>
+          <h2 className="hero-title mt-3">{club.name}</h2>
           <p className="hero-copy">
             Manage roster readiness, event registrations, and class workflows from one place.
           </p>
         </div>
         <div className="flex gap-3">
           <Link
-            href="/director/roster"
+            href={buildDirectorPath("/director/roster", managedClub.clubId, managedClub.isSuperAdmin)}
             className="btn-secondary"
           >
             View roster
           </Link>
           <Link
-            href="/director/events"
+            href={buildDirectorPath("/director/events", managedClub.clubId, managedClub.isSuperAdmin)}
             className="btn-primary"
           >
             Continue registration
@@ -186,7 +180,7 @@ export default async function ClubDirectorDashboardPage() {
           <div className="mb-4 flex items-center justify-between">
             <h3 className="section-title">Upcoming Events</h3>
             <Link
-              href="/director/events"
+              href={buildDirectorPath("/director/events", managedClub.clubId, managedClub.isSuperAdmin)}
               className="btn-secondary px-3 py-1.5 text-xs"
             >
               Open Event List

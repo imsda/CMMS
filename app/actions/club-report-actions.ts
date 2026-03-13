@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { type Session } from "next-auth";
 
 import { auth } from "../../auth";
+import { getManagedClubContext } from "../../lib/club-management";
+import { readManagedClubId } from "../../lib/director-path";
 import { prisma } from "../../lib/prisma";
 
 type SortField = "club" | "month";
@@ -63,30 +65,8 @@ function calculateMonthlyPoints(
   );
 }
 
-async function getDirectorClubId(userId: string) {
-  const membership = await prisma.clubMembership.findFirst({
-    where: {
-      userId,
-    },
-    orderBy: {
-      isPrimary: "desc",
-    },
-    select: {
-      clubId: true,
-    },
-  });
-
-  if (!membership) {
-    throw new Error("Director is not assigned to a club.");
-  }
-
-  return membership.clubId;
-}
-
 export async function createMonthlyReport(formData: FormData) {
-  const session = await auth();
-  ensureRole(session, UserRole.CLUB_DIRECTOR, "Only club directors can submit monthly reports.");
-
+  const managedClub = await getManagedClubContext(readManagedClubId(formData.get("clubId")));
   const meetingCount = requireNumber(formData.get("meetingCount"), "Meeting count");
   const averagePathfinderAttendance = requireNumber(
     formData.get("averagePathfinderAttendance"),
@@ -103,7 +83,7 @@ export async function createMonthlyReport(formData: FormData) {
   }
 
   const reportMonth = requireMonthStart(formData.get("reportMonth"));
-  const clubId = await getDirectorClubId(session.user.id);
+  const clubId = managedClub.clubId;
   const pointsCalculated = calculateMonthlyPoints(
     meetingCount,
     averagePathfinderAttendance,
@@ -144,11 +124,9 @@ export async function createMonthlyReport(formData: FormData) {
   revalidatePath("/admin/reports");
 }
 
-export async function getDirectorReportsDashboardData() {
-  const session = await auth();
-  ensureRole(session, UserRole.CLUB_DIRECTOR, "Only club directors can view this page.");
-
-  const clubId = await getDirectorClubId(session.user.id);
+export async function getDirectorReportsDashboardData(clubIdOverride?: string | null) {
+  const managedClub = await getManagedClubContext(clubIdOverride);
+  const clubId = managedClub.clubId;
 
   const [club, recentReports] = await Promise.all([
     prisma.club.findUnique({
