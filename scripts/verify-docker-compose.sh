@@ -1,5 +1,5 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/usr/bin/env sh
+set -eu
 
 if ! command -v docker >/dev/null 2>&1; then
   echo "Docker is not installed or not available in PATH." >&2
@@ -40,7 +40,7 @@ prisma.$queryRaw`SELECT 1`
   });
 '
 
-if [[ "${DOCKER_CLEANUP:-0}" == "1" ]]; then
+if [ "${DOCKER_CLEANUP:-0}" = "1" ]; then
   echo "Cleaning up compose stack"
   docker compose down
 fi
