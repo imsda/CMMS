@@ -29,6 +29,7 @@ Future work should extend existing CMMS systems with these rules:
 
 - Every server action should call `auth()` and verify `session.user.role`
 - Director-scoped features should use `getManagedClubContext()` from `lib/club-management.ts`
+- `SUPER_ADMIN` should be allowed into teacher and director workflows through explicit admin-safe paths rather than weakened non-admin role checks
 - Mutations should call `revalidatePath()`
 - Year-scoped club data should attach to `ClubRosterYear`
 - Capacity-sensitive enrollment behavior should stay inside serializable transactions
@@ -45,7 +46,7 @@ These guardrails are especially important for AI-assisted implementation.
 
 | Model | Purpose | Key Fields | Relations |
 |---|---|---|---|
-| `User` | Login identity | email (unique), name, role, passwordHash | memberships, taughtOfferings, rosterMemberLinks |
+| `User` | Login identity | email (unique), name, role, passwordHash | memberships, taughtOfferings, rosterMemberLinks, eventsCreated |
 | `Club` | Conference club record | code (unique), name, type, city, state | rosterYears, registrations, monthlyReports, yearEndReports, nominations, tltApplications, complianceSyncRuns |
 | `ClubMembership` | User-to-club link | clubId, userId, title, isPrimary | Unique on (clubId, userId) |
 
@@ -70,7 +71,7 @@ These guardrails are especially important for AI-assisted implementation.
 
 | Model | Purpose | Key Fields | Relations |
 |---|---|---|---|
-| `Event` | Event master | name, slug (unique), startsAt, endsAt, registrationOpensAt/ClosesAt, basePrice, lateFeePrice, lateFeeStartsAt, locationName/Address | dynamicFields, registrations, classOfferings |
+| `Event` | Event master | name, slug (unique), startsAt, endsAt, registrationOpensAt/ClosesAt, basePrice, lateFeePrice, lateFeeStartsAt, locationName/Address, createdByUserId | dynamicFields, registrations, classOfferings, createdBy |
 | `EventTemplate` | Reusable event blueprint | name, description, isActive, snapshot (JSON), createdByUserId | Created events remain editable and independent after template apply |
 | `EventFormField` | Dynamic form question | eventId, parentFieldId, key, label, type, fieldScope (GLOBAL/ATTENDEE), options (JSON), isRequired, sortOrder | childFields, responses. Unique on (eventId, key) |
 | `EventRegistration` | Club registration | eventId, clubId, registrationCode (unique), status, totalDue, amountPaid, paymentStatus | attendees, formResponses. Unique on (eventId, clubId) |
@@ -92,8 +93,8 @@ These guardrails are especially important for AI-assisted implementation.
 
 | Model | Purpose | Key Fields | Relations |
 |---|---|---|---|
-| `MonthlyReport` | Monthly club metrics | clubId, reportMonth, meetingCount, averagePathfinderAttendance, averageStaffAttendance, uniformCompliance, pointsCalculated, status | Unique on (clubId, reportMonth) |
-| `YearEndReport` | Annual completions | clubId, reportYear, friendCompletions, companionCompletions, explorerCompletions, rangerCompletions, voyagerCompletions, guideCompletions, status | Unique on (clubId, reportYear) |
+| `MonthlyReport` | Monthly club metrics | clubId, reportMonth, meetingCount, averagePathfinderAttendance, averageStaffAttendance, uniformCompliance, pointsCalculated, status | Unique on (clubId, reportMonth). Submission should only proceed when the month is covered by a roster year |
+| `YearEndReport` | Annual completions | clubId, reportYear, friendCompletions, companionCompletions, explorerCompletions, rangerCompletions, voyagerCompletions, guideCompletions, status | Unique on (clubId, reportYear). Remains club/year keyed in this pass; no direct roster-year FK yet |
 
 ### Compliance & System
 
@@ -305,6 +306,8 @@ Every server action calls `auth()` and checks `session.user.role` before proceed
 - CLUB_DIRECTOR: scoped to primary club via `getManagedClubContext()` (in `lib/club-management.ts`)
 - STAFF_TEACHER: scoped to assigned class offerings
 - STUDENT_PARENT: scoped to linked roster members via `UserRosterMemberLink`
+
+Teacher and director surfaces preserve their existing non-admin restrictions while allowing `SUPER_ADMIN` to enter those workflows explicitly. Director workflows remain club-scoped through selected `clubId` context, and teacher workflows allow administrative oversight without pretending the admin is the assigned teacher.
 
 ### 5.2 Year-Scoped Data
 All member data is scoped to `ClubRosterYear`, not directly to `Club`. This preserves historical data across yearly rollovers. New features must follow this pattern.

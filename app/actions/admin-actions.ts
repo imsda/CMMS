@@ -667,6 +667,10 @@ export async function importMasterCatalogCsv(formData: FormData) {
     revalidatePath("/admin/catalog");
     redirect(`/admin/catalog?importStatus=success&importMessage=${encodeURIComponent(`Imported ${rows.length} catalog item(s).`)}`);
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
     const message = error instanceof Error ? error.message : "Catalog import failed.";
     redirect(`/admin/catalog?importStatus=error&importMessage=${encodeURIComponent(message)}`);
   }

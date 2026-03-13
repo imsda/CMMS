@@ -1,12 +1,9 @@
 "use server";
-
-import { RolloverStatus } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "../../auth";
 import { safeWriteAuditLog } from "../../lib/audit-log";
-import { bytesToMegabytes, deleteLocalFile } from "../../lib/local-storage";
-import { prisma } from "../../lib/prisma";
+import { purgeInactiveInsuranceCardFiles } from "../../lib/storage-cleanup";
 
 export type PurgeStorageResult = {
   success: boolean;
@@ -26,61 +23,22 @@ export async function purgeInactiveInsuranceCards(): Promise<void> {
     throw new Error("Only super admins can purge storage.");
   }
 
-  const members = await prisma.rosterMember.findMany({
-    where: {
-      rolloverStatus: {
-        in: [RolloverStatus.ARCHIVED, RolloverStatus.GRADUATED],
-      },
-      insuranceCardFilename: {
-        not: null,
-      },
-    },
-    select: {
-      id: true,
-      insuranceCardFilename: true,
-    },
-  });
-
-  let filesDeleted = 0;
-  let bytesFreed = 0;
-
-  for (const member of members) {
-    if (!member.insuranceCardFilename) {
-      continue;
-    }
-
-    const deletionResult = await deleteLocalFile(member.insuranceCardFilename);
-
-    if (deletionResult.deleted) {
-      filesDeleted += 1;
-      bytesFreed += deletionResult.bytesFreed;
-    }
-
-    await prisma.rosterMember.update({
-      where: {
-        id: member.id,
-      },
-      data: {
-        insuranceCardFilename: null,
-      },
-    });
-  }
-
-  const megabytesFreed = bytesToMegabytes(bytesFreed);
+  const result = await purgeInactiveInsuranceCardFiles();
 
   await safeWriteAuditLog({
     actorUserId: session.user.id,
     actorRole: session.user.role,
     action: "storage.purge_insurance_cards",
     targetType: "RosterMember",
-    summary: `Purged ${filesDeleted} inactive insurance card file(s).`,
+    summary: `Purged ${result.filesDeleted} inactive insurance card file(s).`,
     metadata: {
-      filesDeleted,
-      megabytesFreed,
+      filesDeleted: result.filesDeleted,
+      megabytesFreed: result.megabytesFreed,
+      clearedMemberCount: result.clearedMemberCount,
     },
   });
 
   revalidatePath("/admin/storage");
 
-  void formatMegabytes(megabytesFreed);
+  void formatMegabytes(result.megabytesFreed);
 }

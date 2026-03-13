@@ -149,6 +149,7 @@ model User {
   appliedComplianceSyncRuns ComplianceSyncRun[] @relation("ComplianceSyncRunAppliedBy")
   rosterMemberLinks     UserRosterMemberLink[]
   eventTemplatesCreated EventTemplate[]
+  eventsCreated         Event[]              @relation("EventCreatedBy")
   camporeeScoresCreated CamporeeScore[]
   auditLogs             AuditLog[]
 }
@@ -370,10 +371,13 @@ model Event {
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
 
+  createdBy      User?                @relation("EventCreatedBy", fields: [createdByUserId], references: [id], onDelete: SetNull)
   dynamicFields  EventFormField[]
   registrations  EventRegistration[]
   classOfferings EventClassOffering[]
   camporeeScores CamporeeScore[]
+
+  @@index([createdByUserId, createdAt])
 }
 
 model EventTemplate {

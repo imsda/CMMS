@@ -1,10 +1,10 @@
-import { RolloverStatus, type Prisma } from "@prisma/client";
+import { type Prisma } from "@prisma/client";
 
 import { buildExpiredAuthRateLimitBucketWhere } from "./auth-rate-limit";
 import { safeWriteAuditLog } from "./audit-log";
-import { bytesToMegabytes, deleteLocalFile } from "./local-storage";
 import { prisma } from "./prisma";
 import { sendDirectorReadinessReminderEmail } from "./email/resend";
+import { purgeInactiveInsuranceCardFiles } from "./storage-cleanup";
 
 export type ScheduledJobKey =
   | "auth-rate-limit-cleanup"
@@ -250,52 +250,15 @@ export async function runInactiveInsuranceCardCleanupJob(runDate = new Date()): 
   }
 
   const jobResult = await runClaimedJob(claimedRun.id, "inactive-insurance-card-cleanup", async () => {
-    const members = await prisma.rosterMember.findMany({
-      where: {
-        rolloverStatus: {
-          in: [RolloverStatus.ARCHIVED, RolloverStatus.GRADUATED],
-        },
-        insuranceCardFilename: {
-          not: null,
-        },
-      },
-      select: {
-        id: true,
-        insuranceCardFilename: true,
-      },
-    });
-
-    let filesDeleted = 0;
-    let bytesFreed = 0;
-
-    for (const member of members) {
-      if (!member.insuranceCardFilename) {
-        continue;
-      }
-
-      const deletionResult = await deleteLocalFile(member.insuranceCardFilename);
-
-      if (deletionResult.deleted) {
-        filesDeleted += 1;
-        bytesFreed += deletionResult.bytesFreed;
-      }
-
-      await prisma.rosterMember.update({
-        where: {
-          id: member.id,
-        },
-        data: {
-          insuranceCardFilename: null,
-        },
-      });
-    }
+    const result = await purgeInactiveInsuranceCardFiles();
 
     return {
       status: "completed",
-      summary: `Purged ${filesDeleted} inactive insurance card file(s).`,
+      summary: `Purged ${result.filesDeleted} inactive insurance card file(s).`,
       metadata: {
-        filesDeleted,
-        megabytesFreed: bytesToMegabytes(bytesFreed),
+        filesDeleted: result.filesDeleted,
+        megabytesFreed: result.megabytesFreed,
+        clearedMemberCount: result.clearedMemberCount,
       },
     };
   });

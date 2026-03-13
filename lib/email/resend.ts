@@ -1,5 +1,6 @@
 import { buildRegistrationReceiptHtml } from "./templates/registration-receipt";
 import { buildAccountCredentialHtml } from "./templates/account-credentials";
+import { buildDirectorReadinessReminderHtml } from "./templates/director-readiness-reminder";
 
 type SendRegistrationReceiptInput = {
   to: string;
@@ -154,11 +155,7 @@ export async function sendDirectorReadinessReminderEmail(input: SendDirectorRead
       from: config.from,
       to: [input.to],
       subject: `${input.clubName} readiness reminder`,
-      html: `
-        <h1>${input.clubName} readiness reminder</h1>
-        <p>Here are the current items needing attention for ${input.monthLabel}:</p>
-        <ul>${input.items.map((item) => `<li>${item}</li>`).join("")}</ul>
-      `,
+      html: buildDirectorReadinessReminderHtml(input),
     }),
   });
 

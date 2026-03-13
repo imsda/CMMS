@@ -38,6 +38,12 @@ export default async function HomePage() {
       >
         Sign in
       </Link>
+      <Link
+        href="/previews"
+        className="btn-secondary mt-3 inline-flex"
+      >
+        Browse UI previews
+      </Link>
     </section>
   );
 }

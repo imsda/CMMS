@@ -1,11 +1,12 @@
 "use server";
 
-import { RequirementType, type Prisma } from "@prisma/client";
+import { RequirementType, UserRole, type Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { auth } from "../../auth";
 import { buildClassAttendanceUpdate } from "../../lib/class-model";
 import { prisma } from "../../lib/prisma";
+import { requireTeacherPortalSession } from "../../lib/teacher-portal";
 
 type MarkAttendanceInput = {
   offeringId: string;
@@ -36,15 +37,16 @@ type CompletedHonorMetadata = {
 
 async function assertTeacherAccessToOffering(offeringId: string) {
   const session = await auth();
-
-  if (!session?.user || session.user.role !== "STAFF_TEACHER") {
-    throw new Error("Only teaching staff can perform this action.");
-  }
+  const access = requireTeacherPortalSession(session);
 
   const offering = await prisma.eventClassOffering.findFirst({
     where: {
       id: offeringId,
-      teacherUserId: session.user.id,
+      ...(access.isSuperAdmin
+        ? {}
+        : {
+            teacherUserId: access.userId,
+          }),
     },
     select: {
       id: true,
@@ -63,7 +65,8 @@ async function assertTeacherAccessToOffering(offeringId: string) {
   }
 
   return {
-    teacherUserId: session.user.id,
+    teacherUserId: access.userId,
+    isSuperAdmin: access.isSuperAdmin,
     offering,
   };
 }
@@ -169,7 +172,7 @@ export async function signOffRequirementsForStudents(input: SignOffRequirementsI
     throw new Error("Select at least one student to sign off requirements.");
   }
 
-  const { offering, teacherUserId } = await assertTeacherAccessToOffering(input.offeringId);
+  const { offering, teacherUserId, isSuperAdmin } = await assertTeacherAccessToOffering(input.offeringId);
 
   const enrollments = await prisma.classEnrollment.findMany({
     where: {
@@ -239,6 +242,7 @@ export async function signOffRequirementsForStudents(input: SignOffRequirementsI
           classTitle: offering.classCatalog.title,
           teacherUserId,
           eventClassOfferingId: input.offeringId,
+          signedOffByRole: isSuperAdmin ? UserRole.SUPER_ADMIN : UserRole.STAFF_TEACHER,
           notes: input.notes?.trim() || `Completed in class: ${offering.classCatalog.title}`,
         },
       })),

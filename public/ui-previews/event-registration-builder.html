@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Event Registration Builder Preview</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell stack">
+      <header class="topbar">
+        <div class="brand">
+          <div class="hero-kicker">Preview Only</div>
+          <h1 style="margin:6px 0 0;font-size:24px;">Event Registration Builder</h1>
+        </div>
+        <div class="page-links">
+          <a class="btn-secondary" href="./index.html">All Previews</a>
+          <a class="btn-primary" href="./event-registration.html">Registration Preview</a>
+        </div>
+      </header>
+
+      <div class="app-grid">
+        <aside class="app-sidebar">
+          <div class="glass-card-soft">
+            <div class="hero-kicker">Event Setup</div>
+            <h2 style="margin:10px 0 0;">Builder Menu</h2>
+            <p class="hero-copy" style="margin-top:8px;">Fake admin-side event setup shell for static UI review.</p>
+          </div>
+
+          <div class="sidebar-section">
+            <div class="sidebar-label">Builder</div>
+            <nav class="sidebar-nav">
+              <a class="sidebar-link active" href="./event-registration-builder.html">Registration Builder</a>
+              <a class="sidebar-link" href="./admin-events.html">Event Index</a>
+              <a class="sidebar-link" href="./admin-catalog.html">Class Catalog</a>
+              <a class="sidebar-link" href="./admin-operations.html">Operations</a>
+            </nav>
+          </div>
+        </aside>
+
+        <div class="stack">
+          <section class="glass-panel">
+            <div class="hero-kicker">Dynamic Form Setup</div>
+            <h1 class="hero-title">Spring Camporee 2026 Builder</h1>
+            <p class="hero-copy">
+              Static fake builder view showing event details, registration modules, custom questions, and a live preview
+              of the resulting registration experience.
+            </p>
+          </section>
+
+          <section class="grid cards-4">
+            <article class="glass-card-soft">
+              <div class="hero-kicker">Registration opens</div>
+              <div class="metric">Mar 1</div>
+              <div class="muted">8:00 AM Central</div>
+            </article>
+            <article class="glass-card-soft">
+              <div class="hero-kicker">Registration closes</div>
+              <div class="metric">Apr 1</div>
+              <div class="muted">11:59 PM Central</div>
+            </article>
+            <article class="glass-card-soft">
+              <div class="hero-kicker">Base price</div>
+              <div class="metric">$35</div>
+              <div class="muted">Late fee becomes $45</div>
+            </article>
+            <article class="glass-card-soft">
+              <div class="hero-kicker">Dynamic fields</div>
+              <div class="metric">9</div>
+              <div class="muted">4 global • 5 attendee</div>
+            </article>
+          </section>
+
+          <section class="grid split">
+            <article class="glass-panel stack">
+              <div class="hero-kicker">Event Details</div>
+              <h2 style="margin:10px 0 0;">Core configuration</h2>
+              <div class="kv-grid">
+                <div class="kv-item"><div class="kv-label">Event name</div><div class="kv-value">Spring Camporee 2026</div></div>
+                <div class="kv-item"><div class="kv-label">Slug</div><div class="kv-value">spring-camporee-2026</div></div>
+                <div class="kv-item"><div class="kv-label">Location</div><div class="kv-value">Lake Wapello Campgrounds</div></div>
+                <div class="kv-item"><div class="kv-label">Template source</div><div class="kv-value">Camporee Base Template</div></div>
+              </div>
+            </article>
+
+            <article class="glass-panel stack">
+              <div class="hero-kicker">Modules</div>
+              <h2 style="margin:10px 0 0;">Fake registration sections</h2>
+              <div class="list">
+                <div class="glass-card-soft row"><span>Core club registration</span><span class="pill success">Enabled</span></div>
+                <div class="glass-card-soft row"><span>Campsite preferences</span><span class="pill success">Enabled</span></div>
+                <div class="glass-card-soft row"><span>Camporee modules</span><span class="pill success">Enabled</span></div>
+                <div class="glass-card-soft row"><span>Patch order notes</span><span class="pill warn">Optional</span></div>
+              </div>
+            </article>
+          </section>
+
+          <section class="grid split">
+            <article class="glass-panel stack">
+              <div class="hero-kicker">Question Builder</div>
+              <h2 style="margin:10px 0 0;">Fake dynamic field stack</h2>
+              <div class="list">
+                <div class="glass-card-soft">
+                  <strong>Needs electrical hookup?</strong>
+                  <div class="muted">Global • Single select • Required</div>
+                </div>
+                <div class="glass-card-soft">
+                  <strong>Power notes</strong>
+                  <div class="muted">Global • Long text • Shows only when electrical hookup = Yes</div>
+                </div>
+                <div class="glass-card-soft">
+                  <strong>Preferred campsite zone</strong>
+                  <div class="muted">Global • Single select • Optional</div>
+                </div>
+                <div class="glass-card-soft">
+                  <strong>Camporee module selections</strong>
+                  <div class="muted">Attendee • Multi select • Required</div>
+                </div>
+                <div class="glass-card-soft">
+                  <strong>Uniform inspection notes</strong>
+                  <div class="muted">Attendee • Long text • Optional</div>
+                </div>
+              </div>
+            </article>
+
+            <article class="glass-panel stack">
+              <div class="hero-kicker">Field Palette</div>
+              <h2 style="margin:10px 0 0;">Available question types</h2>
+              <div class="kv-grid">
+                <div class="kv-item"><div class="kv-label">Short text</div><div class="kv-value">Camp name</div></div>
+                <div class="kv-item"><div class="kv-label">Long text</div><div class="kv-value">Notes</div></div>
+                <div class="kv-item"><div class="kv-label">Single select</div><div class="kv-value">Yes / No</div></div>
+                <div class="kv-item"><div class="kv-label">Multi select</div><div class="kv-value">Module choices</div></div>
+                <div class="kv-item"><div class="kv-label">Roster select</div><div class="kv-value">Attendee reference</div></div>
+                <div class="kv-item"><div class="kv-label">Field group</div><div class="kv-value">Section wrapper</div></div>
+              </div>
+            </article>
+          </section>
+
+          <section class="glass-panel stack">
+            <div class="hero-kicker">Live Preview</div>
+            <h2 style="margin:10px 0 0;">Sample registration experience</h2>
+            <div class="grid split">
+              <div class="stack">
+                <div class="glass-card-soft">
+                  <strong>Step 1: Club Setup</strong>
+                  <div class="muted">Choose attendees, review pricing, confirm staff readiness.</div>
+                </div>
+                <div class="glass-card-soft">
+                  <strong>Step 2: Global Questions</strong>
+                  <div class="muted">Electrical hookup, campsite zone, patch counts, bus parking.</div>
+                </div>
+                <div class="glass-card-soft">
+                  <strong>Step 3: Attendee Questions</strong>
+                  <div class="muted">Modules, dietary notes, unit assignment, special participation flags.</div>
+                </div>
+                <div class="glass-card-soft">
+                  <strong>Step 4: Review & Submit</strong>
+                  <div class="muted">Totals, completeness warnings, and readiness checks.</div>
+                </div>
+              </div>
+
+              <div class="stack">
+                <div class="glass-card-soft row"><span>Club total</span><strong>$140</strong></div>
+                <div class="glass-card-soft row"><span>Attendees selected</span><strong>4</strong></div>
+                <div class="glass-card-soft row"><span>Required fields completed</span><strong>12 / 14</strong></div>
+                <div class="glass-card-soft row"><span>Submission status</span><span class="pill warn">Draft</span></div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </main>
+  </body>
+</html>

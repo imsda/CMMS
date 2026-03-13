@@ -23,10 +23,11 @@ Current scheduled jobs:
 ## Required Environment
 
 - `DATABASE_URL`
-- `CRON_SECRET` for `POST /api/jobs/run`
+- `CRON_SECRET` for `POST /api/jobs/run` (required for any remote cron trigger)
 - `RESEND_API_KEY` and `RESEND_FROM_EMAIL` for reminder emails
 
 If email configuration is missing, the reminder job records a skipped result instead of failing the rest of the system.
+If `CRON_SECRET` is unset or empty, `POST /api/jobs/run` responds with `401 Unauthorized`.
 
 ## Manual Usage
 
@@ -60,6 +61,7 @@ curl -X POST \
   http://localhost:3000/api/jobs/run
 ```
 
+The route expects the header exactly as `Authorization: Bearer <CRON_SECRET>`.
 `job` query parameters are also supported for simple cron integrations.
 
 ## Safety Rules

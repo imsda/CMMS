@@ -108,6 +108,12 @@ export async function createMonthlyReport(formData: FormData) {
 
   const reportMonth = requireMonthStart(formData.get("reportMonth"));
   const clubId = managedClub.clubId;
+  const rosterYear = await findRosterYearForClubDate(clubId, reportMonth);
+
+  if (!rosterYear) {
+    throw new Error("No roster year covers the selected report month.");
+  }
+
   const pointsCalculated = calculateMonthlyPoints(
     meetingCount,
     averagePathfinderAttendance,
@@ -152,6 +158,8 @@ export async function createMonthlyReport(formData: FormData) {
     clubId,
     summary: `Submitted monthly report for ${reportMonth.toISOString().slice(0, 7)}.`,
     metadata: {
+      rosterYearId: rosterYear.id,
+      rosterYearLabel: rosterYear.yearLabel,
       meetingCount,
       averagePathfinderAttendance,
       averageStaffAttendance,

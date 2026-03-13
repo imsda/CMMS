@@ -1,16 +1,10 @@
+import { escapeHtml } from "../html";
+
 export type RegistrationReceiptTemplateProps = {
   clubName: string;
   eventName: string;
   attendeeCount: number;
 };
-
-function escapeHtml(value: string) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;");
-}
 
 export function buildRegistrationReceiptHtml({
   clubName,

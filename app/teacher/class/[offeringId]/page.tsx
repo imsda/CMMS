@@ -1,7 +1,9 @@
 import { notFound, redirect } from "next/navigation";
+import { UserRole } from "@prisma/client";
 
 import { auth } from "../../../../auth";
 import { prisma } from "../../../../lib/prisma";
+import { canAccessTeacherPortal } from "../../../../lib/teacher-portal";
 import { ClassRosterManager } from "./_components/class-roster-manager";
 
 function formatDateRange(startsAt: Date, endsAt: Date) {
@@ -25,7 +27,7 @@ export default async function TeacherClassRosterPage({
 }) {
   const session = await auth();
 
-  if (!session?.user || session.user.role !== "STAFF_TEACHER") {
+  if (!session?.user || !canAccessTeacherPortal(session.user.role)) {
     redirect("/login");
   }
 
@@ -34,7 +36,11 @@ export default async function TeacherClassRosterPage({
   const offering = await prisma.eventClassOffering.findFirst({
     where: {
       id: offeringId,
-      teacherUserId: session.user.id,
+      ...(session.user.role === UserRole.SUPER_ADMIN
+        ? {}
+        : {
+            teacherUserId: session.user.id,
+          }),
     },
     select: {
       id: true,
@@ -57,6 +63,12 @@ export default async function TeacherClassRosterPage({
       _count: {
         select: {
           enrollments: true,
+        },
+      },
+      teacher: {
+        select: {
+          name: true,
+          email: true,
         },
       },
     },
@@ -115,6 +127,11 @@ export default async function TeacherClassRosterPage({
           {formatDateRange(offering.event.startsAt, offering.event.endsAt)}
         </p>
         <p className="text-sm text-slate-500">{offering.event.locationName ?? "Location TBD"}</p>
+        {session.user.role === UserRole.SUPER_ADMIN ? (
+          <p className="mt-2 text-sm text-slate-500">
+            Assigned teacher: {offering.teacher?.name ?? offering.teacher?.email ?? "Unassigned"}
+          </p>
+        ) : null}
       </header>
 
       <article className="glass-card">
