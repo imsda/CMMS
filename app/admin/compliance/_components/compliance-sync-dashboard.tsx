@@ -55,21 +55,21 @@ export function ComplianceSyncDashboard({ rosterYears }: ComplianceSyncDashboard
         <p className="hero-kicker">Super Admin Dashboard</p>
         <h1 className="hero-title mt-3">Compliance Sync Engine</h1>
         <p className="hero-copy">
-          Preview Sterling Volunteers CSV matches within a selected club roster year before applying updates.
+          Preview Sterling Volunteers CSV matches within a selected roster year or across the entire system before applying updates.
         </p>
       </header>
 
       <form action={previewAction} className="glass-panel space-y-5">
         <label className="block space-y-1 text-sm text-slate-700">
-          <span>Club roster year scope</span>
+          <span>Sync scope</span>
           <select
             name="clubRosterYearId"
             required
-            defaultValue=""
+            defaultValue="SYSTEM_WIDE"
             className="select-glass"
           >
-            <option value="" disabled>
-              Select roster year
+            <option value="SYSTEM_WIDE">
+              Entire system (all clubs and roster years)
             </option>
             {rosterYears.map((rosterYear) => (
               <option key={rosterYear.id} value={rosterYear.id}>

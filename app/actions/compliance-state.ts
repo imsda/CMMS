@@ -42,7 +42,7 @@ type ComplianceSyncRowPreview = {
 export const initialComplianceSyncState: ComplianceSyncState = {
   status: "idle",
   phase: "idle",
-  message: "Upload a Sterling Volunteers CSV and preview the roster-year scoped matches before applying any updates.",
+  message: "Upload a Sterling Volunteers CSV and preview the selected sync scope before applying any updates.",
   runId: null,
   fileName: null,
   scopeLabel: null,

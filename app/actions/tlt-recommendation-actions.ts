@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { auth } from "../../auth";
+import { getResendConfig } from "../../lib/email/resend";
 import { prisma } from "../../lib/prisma";
 
 export type RecommendationInviteActionState = {
@@ -71,21 +72,20 @@ async function getDirectorClubId() {
 }
 
 async function sendRecommendationInviteEmail(input: { to: string; applicantName: string; recommendationUrl: string }) {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM_EMAIL;
+  const config = getResendConfig();
 
-  if (!apiKey || !from) {
+  if (!config) {
     return;
   }
 
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      Authorization: `Bearer ${config.apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from,
+      from: config.from,
       to: [input.to],
       subject: `TLT Recommendation Request for ${input.applicantName}`,
       html: `<p>Hello,</p><p>You have been requested to submit a TLT recommendation for <strong>${input.applicantName}</strong>.</p><p>Please complete the secure form using this one-time link:</p><p><a href="${input.recommendationUrl}">${input.recommendationUrl}</a></p><p>Thank you for supporting this applicant.</p>`,
@@ -144,7 +144,7 @@ export async function generateTltRecommendationLinks(
       throw new Error("Each recommendation email must be a valid email address.");
     }
 
-    if (shouldEmail && (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL)) {
+    if (shouldEmail && !getResendConfig()) {
       redirect(`/director/tlt/${tltApplicationId}/recommendations?error=email_not_configured`);
     }
 
@@ -302,7 +302,7 @@ export async function retryTltRecommendationInviteEmail(formData: FormData) {
   const tltApplicationId = parseRequiredString(formData.get("tltApplicationId"), "TLT application");
   const recommendationId = parseRequiredString(formData.get("recommendationId"), "Recommendation");
 
-  if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
+  if (!getResendConfig()) {
     redirect(`/director/tlt/${tltApplicationId}/recommendations?retry=error&reason=email_not_configured`);
   }
 
@@ -383,7 +383,7 @@ export async function retryFailedTltRecommendationInviteEmails(formData: FormDat
   const clubId = await getDirectorClubId();
   const tltApplicationId = parseRequiredString(formData.get("tltApplicationId"), "TLT application");
 
-  if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL) {
+  if (!getResendConfig()) {
     redirect(`/director/tlt/${tltApplicationId}/recommendations?retry=error&reason=email_not_configured`);
   }
 

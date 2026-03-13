@@ -16,9 +16,30 @@ type SendAccountCredentialInput = {
   loginUrl: string;
 };
 
-function getResendConfig() {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM_EMAIL;
+function normalizeEnvValue(value: string | undefined) {
+  if (!value) {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return null;
+  }
+
+  if (
+    (trimmed.startsWith("\"") && trimmed.endsWith("\"")) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    const unquoted = trimmed.slice(1, -1).trim();
+    return unquoted.length > 0 ? unquoted : null;
+  }
+
+  return trimmed;
+}
+
+export function getResendConfig() {
+  const apiKey = normalizeEnvValue(process.env.RESEND_API_KEY);
+  const from = normalizeEnvValue(process.env.RESEND_FROM_EMAIL);
 
   if (!apiKey || !from) {
     return null;

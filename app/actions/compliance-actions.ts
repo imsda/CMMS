@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { ComplianceSyncScope } from "@prisma/client";
 
 import { initialComplianceSyncState, type ComplianceSyncState } from "./compliance-state";
 import { auth } from "../../auth";
@@ -64,6 +65,7 @@ export async function applyComplianceSyncRun(runId: string, appliedByUserId: str
       skippedCount: true,
       ambiguousCount: true,
       rowResults: true,
+      scope: true,
       club: {
         select: {
           name: true,
@@ -107,7 +109,6 @@ export async function applyComplianceSyncRun(runId: string, appliedByUserId: str
       const rosterMember = await tx.rosterMember.findFirst({
         where: {
           id: row.matchedRosterMemberId ?? undefined,
-          clubRosterYearId: run.clubRosterYear.id,
           memberRole: {
             in: ADULT_ROLES,
           },
@@ -202,6 +203,26 @@ function buildScopeLabel(clubName: string, yearLabel: string) {
   return `${clubName} — ${yearLabel}`;
 }
 
+function buildSystemWideScopeLabel() {
+  return "Entire system";
+}
+
+function buildRunScopeLabel(run: {
+  scope: ComplianceSyncScope;
+  club: { name: string } | null;
+  clubRosterYear: { yearLabel: string } | null;
+}) {
+  if (run.scope === ComplianceSyncScope.SYSTEM_WIDE) {
+    return buildSystemWideScopeLabel();
+  }
+
+  if (run.club && run.clubRosterYear) {
+    return buildScopeLabel(run.club.name, run.clubRosterYear.yearLabel);
+  }
+
+  return "Selected roster year";
+}
+
 function toStateFromPreview(input: {
   message: string;
   status: "success" | "error";
@@ -244,12 +265,15 @@ export async function previewSterlingBackgroundChecks(
     const uploadedByUserId = await requireSuperAdmin();
     const clubRosterYearIdEntry = formData.get("clubRosterYearId");
     const file = formData.get("sterlingCsv");
+    const scopeSelection =
+      typeof clubRosterYearIdEntry === "string" ? clubRosterYearIdEntry.trim() : "";
+    const isSystemWide = scopeSelection === "SYSTEM_WIDE";
 
-    if (typeof clubRosterYearIdEntry !== "string" || clubRosterYearIdEntry.trim().length === 0) {
+    if (!isSystemWide && scopeSelection.length === 0) {
       return {
         ...initialComplianceSyncState,
         status: "error",
-        message: "Select a club roster year before previewing the CSV.",
+        message: "Select a sync scope before previewing the CSV.",
       };
     }
 
@@ -269,38 +293,25 @@ export async function previewSterlingBackgroundChecks(
       };
     }
 
-    const rosterYear = await prisma.clubRosterYear.findUnique({
-      where: {
-        id: clubRosterYearIdEntry.trim(),
-      },
-      select: {
-        id: true,
-        yearLabel: true,
-        clubId: true,
-        club: {
-          select: {
-            name: true,
-          },
-        },
-        members: {
+    const rosterYear = isSystemWide
+      ? null
+      : await prisma.clubRosterYear.findUnique({
           where: {
-            memberRole: {
-              in: ADULT_ROLES,
-            },
+            id: scopeSelection,
           },
           select: {
             id: true,
-            firstName: true,
-            lastName: true,
-            memberRole: true,
-            dateOfBirth: true,
-            backgroundCheckCleared: true,
+            yearLabel: true,
+            clubId: true,
+            club: {
+              select: {
+                name: true,
+              },
+            },
           },
-        },
-      },
-    });
+        });
 
-    if (!rosterYear) {
+    if (!isSystemWide && !rosterYear) {
       return {
         ...initialComplianceSyncState,
         status: "error",
@@ -308,15 +319,36 @@ export async function previewSterlingBackgroundChecks(
       };
     }
 
+    const candidates = await prisma.rosterMember.findMany({
+      where: {
+        memberRole: {
+          in: ADULT_ROLES,
+        },
+        ...(isSystemWide
+          ? {}
+          : {
+              clubRosterYearId: rosterYear?.id,
+            }),
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        memberRole: true,
+        dateOfBirth: true,
+        backgroundCheckCleared: true,
+      },
+    });
+
     const csvText = await file.text();
     const records = parseSterlingCsv(csvText);
-    const preview = buildCompliancePreview(records, rosterYear.members);
+    const preview = buildCompliancePreview(records, candidates);
     const rows = preview.rowResults.map((row) => {
       if (row.action !== "UPDATE") {
         return row;
       }
 
-      const matchedMember = rosterYear.members.find((member) => member.id === row.matchedRosterMemberId);
+      const matchedMember = candidates.find((member) => member.id === row.matchedRosterMemberId);
 
       if (matchedMember?.backgroundCheckCleared) {
         return {
@@ -338,8 +370,9 @@ export async function previewSterlingBackgroundChecks(
     const run = await prisma.complianceSyncRun.create({
       data: {
         uploadedByUserId,
-        clubId: rosterYear.clubId,
-        clubRosterYearId: rosterYear.id,
+        scope: isSystemWide ? ComplianceSyncScope.SYSTEM_WIDE : ComplianceSyncScope.ROSTER_YEAR,
+        clubId: rosterYear?.clubId ?? null,
+        clubRosterYearId: rosterYear?.id ?? null,
         fileName: file.name,
         processedRows: preview.processedRows,
         passedRows: preview.passedRows,
@@ -361,7 +394,9 @@ export async function previewSterlingBackgroundChecks(
         : "Preview generated. No safe updates were found in this file.",
       runId: run.id,
       fileName: file.name,
-      scopeLabel: buildScopeLabel(rosterYear.club.name, rosterYear.yearLabel),
+      scopeLabel: isSystemWide
+        ? buildSystemWideScopeLabel()
+        : buildScopeLabel(rosterYear!.club.name, rosterYear!.yearLabel),
       processedRows: preview.processedRows,
       passedRows: preview.passedRows,
       updateCount,
@@ -405,7 +440,7 @@ export async function applySterlingBackgroundChecksPreview(
         message: "This preview run was already applied.",
         runId: result.run.id,
         fileName: result.run.fileName,
-        scopeLabel: buildScopeLabel(result.run.club.name, result.run.clubRosterYear.yearLabel),
+        scopeLabel: buildRunScopeLabel(result.run),
         processedRows: result.run.processedRows,
         passedRows: result.run.passedRows,
         updateCount: result.run.updateCount,
@@ -424,7 +459,7 @@ export async function applySterlingBackgroundChecksPreview(
       message: `Applied ${result.updatedCount} background-check update(s). Ambiguous rows were left unchanged for manual review.`,
       runId: result.run.id,
       fileName: result.run.fileName,
-      scopeLabel: buildScopeLabel(result.run.club.name, result.run.clubRosterYear.yearLabel),
+      scopeLabel: buildRunScopeLabel(result.run),
       processedRows: result.run.processedRows,
       passedRows: result.run.passedRows,
       updateCount: result.run.updateCount,

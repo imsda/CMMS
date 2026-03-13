@@ -218,26 +218,28 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
       </div>
 
       {modalState ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
-          <div className="glass-modal w-full max-w-3xl overflow-hidden">
-            <div className="flex items-center justify-between border-b border-white/50 px-6 py-4">
-              <h3 className="text-lg font-semibold text-slate-900">
-                {modalState.mode === "create" ? "Add roster member" : "Edit roster member"}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setModalState(null)}
-                className="btn-ghost rounded-xl px-2 py-1 text-slate-500"
-              >
-                ✕
-              </button>
-            </div>
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/40 p-4 sm:p-6">
+          <div className="flex min-h-full items-start justify-center py-4 sm:py-8">
+            <div className="glass-modal flex max-h-[calc(100vh-2rem)] w-full max-w-3xl flex-col overflow-hidden sm:max-h-[calc(100vh-4rem)]">
+              <div className="flex items-center justify-between border-b border-white/50 px-6 py-4">
+                <h3 className="text-lg font-semibold text-slate-900">
+                  {modalState.mode === "create" ? "Add roster member" : "Edit roster member"}
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setModalState(null)}
+                  className="btn-ghost rounded-xl px-2 py-1 text-slate-500"
+                >
+                  ✕
+                </button>
+              </div>
 
-            <form action={saveRosterMember} className="space-y-6 px-6 py-5">
-              <input type="hidden" name="clubRosterYearId" value={rosterYearId} />
-              {modalState.member ? <input type="hidden" name="memberId" value={modalState.member.id} /> : null}
+              <form action={saveRosterMember} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <input type="hidden" name="clubRosterYearId" value={rosterYearId} />
+                {modalState.member ? <input type="hidden" name="memberId" value={modalState.member.id} /> : null}
 
-              <div className="grid gap-4 md:grid-cols-2">
+                <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-5">
+                  <div className="grid gap-4 md:grid-cols-2">
                 <label className="space-y-1 text-sm font-medium text-slate-700">
                   First Name
                   <input
@@ -482,24 +484,26 @@ export function RosterTable({ rosterYearId, members }: RosterTableProps) {
                     </span>
                   </label>
                 </div>
-              </section>
+                  </section>
+                </div>
 
-              <div className="flex justify-end gap-2 border-t border-white/50 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setModalState(null)}
-                  className="btn-secondary"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="btn-primary"
-                >
-                  {modalState.mode === "create" ? "Create Member" : "Save Changes"}
-                </button>
-              </div>
-            </form>
+                <div className="flex justify-end gap-2 border-t border-white/50 px-6 py-4">
+                  <button
+                    type="button"
+                    onClick={() => setModalState(null)}
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn-primary"
+                  >
+                    {modalState.mode === "create" ? "Create Member" : "Save Changes"}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         </div>
       ) : null}

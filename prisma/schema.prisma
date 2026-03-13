@@ -123,6 +123,11 @@ enum ComplianceSyncRunStatus {
   APPLIED
 }
 
+enum ComplianceSyncScope {
+  ROSTER_YEAR
+  SYSTEM_WIDE
+}
+
 enum AuthRateLimitScope {
   EMAIL_IP
   IP
@@ -485,8 +490,9 @@ model ComplianceSyncRun {
   id               String                  @id @default(cuid())
   uploadedByUserId String
   appliedByUserId  String?
-  clubId           String
-  clubRosterYearId String
+  scope            ComplianceSyncScope     @default(ROSTER_YEAR)
+  clubId           String?
+  clubRosterYearId String?
   fileName         String
   status           ComplianceSyncRunStatus @default(PREVIEW)
   processedRows    Int
@@ -500,11 +506,12 @@ model ComplianceSyncRun {
 
   uploadedBy      User            @relation(fields: [uploadedByUserId], references: [id], onDelete: Cascade)
   appliedBy       User?           @relation("ComplianceSyncRunAppliedBy", fields: [appliedByUserId], references: [id], onDelete: SetNull)
-  club            Club            @relation(fields: [clubId], references: [id], onDelete: Cascade)
-  clubRosterYear  ClubRosterYear  @relation(fields: [clubRosterYearId], references: [id], onDelete: Cascade)
+  club            Club?           @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  clubRosterYear  ClubRosterYear? @relation(fields: [clubRosterYearId], references: [id], onDelete: Cascade)
 
   @@index([clubId, createdAt])
   @@index([clubRosterYearId, createdAt])
+  @@index([scope, createdAt])
   @@index([uploadedByUserId, createdAt])
   @@index([appliedByUserId, createdAt])
 }

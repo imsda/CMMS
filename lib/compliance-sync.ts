@@ -226,8 +226,8 @@ export function buildCompliancePreview(
         ...record,
         action: "UPDATE",
         reason: record.dateOfBirth
-          ? "Matched by selected roster year scope, name, and DOB."
-          : "Matched by selected roster year scope and unique name.",
+          ? "Matched by selected scope, name, and DOB."
+          : "Matched by selected scope and unique name.",
         matchedRosterMemberId: match.id,
         matchedDisplayName: `${match.firstName} ${match.lastName} (${match.memberRole})`,
       };
@@ -237,7 +237,7 @@ export function buildCompliancePreview(
       return {
         ...record,
         action: "AMBIGUOUS",
-        reason: "Multiple roster members match this row within the selected roster year.",
+        reason: "Multiple roster members match this row within the selected scope.",
         matchedRosterMemberId: null,
         matchedDisplayName: null,
       };
@@ -256,7 +256,7 @@ export function buildCompliancePreview(
     return {
       ...record,
       action: "SKIP",
-      reason: "No confident roster-member match was found within the selected roster year.",
+      reason: "No confident roster-member match was found within the selected scope.",
       matchedRosterMemberId: null,
       matchedDisplayName: null,
     };
