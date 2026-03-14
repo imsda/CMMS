@@ -572,6 +572,12 @@ export function AdminCreateEventClient({
         {currentStep === 2 ? (
           <div className="space-y-6">
             <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="mb-4">
+                <h2 className="text-xl font-semibold text-slate-900">Registration Form</h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  Build the questions directors will answer when they register for this event.
+                </p>
+              </div>
               {selectedModeConfig ? (
                 <div className="mb-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-700">
                   <p className="font-semibold text-slate-900">{selectedModeConfig.label}</p>

@@ -41,9 +41,9 @@ export function EventDynamicFieldsEditor({
       <input type="hidden" name="dynamicFieldsJson" value={serializedFields} readOnly />
 
       <div>
-        <h2 className="text-xl font-semibold text-slate-900">Edit Dynamic Registration Questions</h2>
+        <h2 className="text-xl font-semibold text-slate-900">Registration Form Builder</h2>
         <p className="mt-1 text-sm text-slate-600">
-          Update custom registration questions used by club directors for this event.
+          Shape the registration form the way an admin would think about it: questions, attendee prompts, and sections.
         </p>
       </div>
 
@@ -52,22 +52,22 @@ export function EventDynamicFieldsEditor({
         <p className="mt-1">{eventModeDescription}</p>
         {eventMode === EventMode.BASIC_FORM ? (
           <p className="mt-2 text-xs text-slate-600">
-            Keep questions club-scoped for this mode. Attendee-scoped and roster-selection questions are blocked.
+            Keep questions club-focused for this mode. Attendee questions and roster pickers are still blocked.
           </p>
         ) : eventMode === EventMode.CLASS_ASSIGNMENT ? (
           <p className="mt-2 text-xs text-slate-600">
-            This mode supports roster attendees now and class assignment after registration.
+            This mode supports attendee pickers now and class assignment after registration.
           </p>
         ) : (
           <p className="mt-2 text-xs text-slate-600">
-            This mode supports normal roster attendee selection and dynamic registration prompts.
+            This mode supports both club-level questions and attendee-specific prompts.
           </p>
         )}
       </div>
 
       {hasResponses ? (
         <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          Dynamic questions are locked because registration responses already exist for this event.
+          This form is locked because registrations already exist for the event.
         </p>
       ) : null}
 
@@ -92,7 +92,7 @@ export function EventDynamicFieldsEditor({
         disabled={hasResponses}
         className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-50"
       >
-        Save Dynamic Questions
+        Save Form Layout
       </button>
     </form>
   );

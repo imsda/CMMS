@@ -228,6 +228,12 @@ export function EventTemplateEditor({ template }: EventTemplateEditorProps) {
 
       <div className={isSystemTemplate ? "pointer-events-none opacity-60" : ""}>
         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="mb-4">
+            <h2 className="text-xl font-semibold text-slate-900">Template Form Builder</h2>
+            <p className="mt-1 text-sm text-slate-600">
+              Shape the reusable registration form that new events will start with.
+            </p>
+          </div>
           <DynamicFormBuilder fields={fields} onChange={setFields} />
         </div>
       </div>
