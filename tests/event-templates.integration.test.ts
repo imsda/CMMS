@@ -156,6 +156,144 @@ test("events created from a stored template snapshot reuse the existing event an
   assert.equal((refreshedTemplate.snapshot as { name?: string }).name, "Camporee Template");
 });
 
+test("events created from a stored template snapshot preserve grouped child field types", { skip: !hasIntegrationDatabase }, async () => {
+  await resetIntegrationDatabase();
+
+  const admin = await prisma.user.create({
+    data: {
+      email: "grouped-admin@example.org",
+      name: "Grouped Admin",
+      role: UserRole.SUPER_ADMIN,
+    },
+  });
+
+  const templateSnapshot = buildEventTemplateSnapshot({
+    eventMode: EventMode.CLUB_REGISTRATION,
+    name: "Grouped Template",
+    description: "Grouped dynamic fields",
+    startsAt: new Date("2026-04-10T12:00:00.000Z"),
+    endsAt: new Date("2026-04-12T18:00:00.000Z"),
+    registrationOpensAt: new Date("2026-03-01T00:00:00.000Z"),
+    registrationClosesAt: new Date("2026-04-01T00:00:00.000Z"),
+    basePrice: 35,
+    lateFeePrice: 45,
+    lateFeeStartsAt: new Date("2026-03-20T00:00:00.000Z"),
+    locationName: "Camp",
+    locationAddress: "123 Road",
+    dynamicFields: [
+      {
+        id: "group-1",
+        parentFieldId: null,
+        key: "travel_group",
+        label: "Travel Group",
+        description: "",
+        type: FormFieldType.FIELD_GROUP,
+        fieldScope: FormFieldScope.GLOBAL,
+        isRequired: false,
+        options: null,
+      },
+      {
+        id: "field-1",
+        parentFieldId: "group-1",
+        key: "arrival_date",
+        label: "Arrival Date",
+        description: "",
+        type: FormFieldType.DATE,
+        fieldScope: FormFieldScope.GLOBAL,
+        isRequired: true,
+        options: null,
+      },
+      {
+        id: "field-2",
+        parentFieldId: "group-1",
+        key: "lodging_type",
+        label: "Lodging Type",
+        description: "",
+        type: FormFieldType.SINGLE_SELECT,
+        fieldScope: FormFieldScope.GLOBAL,
+        isRequired: false,
+        options: ["Cabin", "Tent"],
+      },
+      {
+        id: "field-3",
+        parentFieldId: "group-1",
+        key: "share_roster",
+        label: "Share roster",
+        description: "",
+        type: FormFieldType.ROSTER_MULTI_SELECT,
+        fieldScope: FormFieldScope.ATTENDEE,
+        isRequired: false,
+        options: null,
+      },
+    ],
+  });
+
+  const parsedSnapshot = parseEventTemplateSnapshot(templateSnapshot);
+
+  await prisma.$transaction(async (tx) => {
+    await createEventFromInput(
+      tx,
+      {
+        eventMode: parsedSnapshot.eventMode,
+        name: "Grouped Event 2027",
+        description: parsedSnapshot.description,
+        startsAt: new Date("2027-04-09T12:00:00.000Z"),
+        endsAt: new Date("2027-04-11T18:00:00.000Z"),
+        registrationOpensAt: new Date("2027-03-01T00:00:00.000Z"),
+        registrationClosesAt: new Date("2027-04-01T00:00:00.000Z"),
+        basePrice: parsedSnapshot.basePrice,
+        lateFeePrice: parsedSnapshot.lateFeePrice,
+        lateFeeStartsAt: new Date("2027-03-20T00:00:00.000Z"),
+        locationName: parsedSnapshot.locationName,
+        locationAddress: parsedSnapshot.locationAddress,
+        dynamicFields: parsedSnapshot.dynamicFields.map((field, index) => ({
+          ...field,
+          description: field.description || null,
+          options: buildStoredEventFieldOptions({
+            optionValues: field.options,
+            conditional:
+              field.conditionalFieldKey.length > 0 && field.conditionalOperator
+                ? {
+                    fieldKey: field.conditionalFieldKey,
+                    operator: field.conditionalOperator,
+                    value: field.conditionalValue,
+                  }
+                : null,
+          }),
+          sortOrder: index,
+        })),
+      },
+      admin.id,
+      "grouped-event-2027",
+    );
+  });
+
+  const createdEvent = await prisma.event.findUniqueOrThrow({
+    where: {
+      slug: "grouped-event-2027",
+    },
+    include: {
+      dynamicFields: {
+        orderBy: {
+          sortOrder: "asc",
+        },
+      },
+    },
+  });
+
+  assert.equal(createdEvent.dynamicFields.length, 4);
+
+  const group = createdEvent.dynamicFields.find((field) => field.type === FormFieldType.FIELD_GROUP);
+  assert.ok(group);
+
+  const children = createdEvent.dynamicFields.filter((field) => field.parentFieldId === group.id);
+  assert.deepEqual(
+    children.map((field) => field.type),
+    [FormFieldType.DATE, FormFieldType.SINGLE_SELECT, FormFieldType.ROSTER_MULTI_SELECT],
+  );
+  assert.deepEqual(children[1]?.options, ["Cabin", "Tent"]);
+});
+
 test.after(async () => {
   await disconnectIntegrationPrisma();
 });

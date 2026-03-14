@@ -108,6 +108,91 @@ test("event template snapshot preserves conditional registration logic for secti
   assert.equal(snapshot.dynamicFields[1]?.conditionalValue, "Yes");
 });
 
+test("event template snapshot preserves grouped child fields with mixed supported types", () => {
+  const snapshot = buildEventTemplateSnapshot({
+    eventMode: EventMode.CLUB_REGISTRATION,
+    name: "Camporee Grouped Template",
+    description: "Grouped fields stay typed",
+    startsAt: new Date("2026-04-10T12:00:00.000Z"),
+    endsAt: new Date("2026-04-12T18:00:00.000Z"),
+    registrationOpensAt: new Date("2026-03-01T00:00:00.000Z"),
+    registrationClosesAt: new Date("2026-04-01T00:00:00.000Z"),
+    basePrice: 35,
+    lateFeePrice: 45,
+    lateFeeStartsAt: new Date("2026-03-20T00:00:00.000Z"),
+    locationName: "Indian Creek Camp",
+    locationAddress: "123 Camp Rd",
+    dynamicFields: [
+      {
+        id: "group-1",
+        parentFieldId: null,
+        key: "grouped_profile",
+        label: "Grouped Profile",
+        description: "A section wrapper",
+        type: FormFieldType.FIELD_GROUP,
+        fieldScope: FormFieldScope.GLOBAL,
+        isRequired: false,
+        options: null,
+      },
+      {
+        id: "field-1",
+        parentFieldId: "group-1",
+        key: "arrival_date",
+        label: "Arrival date",
+        description: "",
+        type: FormFieldType.DATE,
+        fieldScope: FormFieldScope.GLOBAL,
+        isRequired: true,
+        options: null,
+      },
+      {
+        id: "field-2",
+        parentFieldId: "group-1",
+        key: "meal_pref",
+        label: "Meal preference",
+        description: "",
+        type: FormFieldType.SINGLE_SELECT,
+        fieldScope: FormFieldScope.GLOBAL,
+        isRequired: false,
+        options: ["Vegetarian", "Standard"],
+      },
+      {
+        id: "field-3",
+        parentFieldId: "group-1",
+        key: "needs_gear",
+        label: "Needs gear?",
+        description: "",
+        type: FormFieldType.BOOLEAN,
+        fieldScope: FormFieldScope.ATTENDEE,
+        isRequired: false,
+        options: null,
+      },
+      {
+        id: "field-4",
+        parentFieldId: "group-1",
+        key: "roster_pick",
+        label: "Roster picks",
+        description: "",
+        type: FormFieldType.ROSTER_MULTI_SELECT,
+        fieldScope: FormFieldScope.ATTENDEE,
+        isRequired: false,
+        options: null,
+      },
+    ],
+  });
+
+  const parsed = parseEventTemplateSnapshot(snapshot as never);
+
+  assert.equal(parsed.dynamicFields.length, 5);
+  assert.equal(parsed.dynamicFields[0]?.type, FormFieldType.FIELD_GROUP);
+  assert.equal(parsed.dynamicFields[1]?.type, FormFieldType.DATE);
+  assert.equal(parsed.dynamicFields[1]?.parentFieldId, "group-1");
+  assert.equal(parsed.dynamicFields[2]?.type, FormFieldType.SINGLE_SELECT);
+  assert.deepEqual(parsed.dynamicFields[2]?.options, ["Vegetarian", "Standard"]);
+  assert.equal(parsed.dynamicFields[3]?.type, FormFieldType.BOOLEAN);
+  assert.equal(parsed.dynamicFields[4]?.type, FormFieldType.ROSTER_MULTI_SELECT);
+});
+
 test("event template snapshot parsing validates stored template payloads", () => {
   const parsed = parseEventTemplateSnapshot({
     eventMode: EventMode.BASIC_FORM,

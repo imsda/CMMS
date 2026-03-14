@@ -4,6 +4,10 @@ import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
 import { type EventFieldConditionalOperator } from "../../../../../lib/event-form-config";
+import {
+  getAllowedDynamicFieldTypes,
+  typeAllowsOptions,
+} from "../../../../../lib/event-form-fields";
 
 export type SupportedFormFieldType =
   | "SHORT_TEXT"
@@ -57,10 +61,6 @@ function createEmptyField(
     conditionalOperator: "",
     conditionalValue: "",
   };
-}
-
-function typeAllowsOptions(type: SupportedFormFieldType) {
-  return type === "SINGLE_SELECT" || type === "MULTI_SELECT";
 }
 
 function toSuggestedKey(label: string) {
@@ -191,6 +191,7 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
   function renderFieldCard(field: DynamicFieldDraft, indexLabel: string) {
     const isGroup = field.type === "FIELD_GROUP";
     const hasConditionalVisibility = field.conditionalFieldKey.length > 0 || field.conditionalOperator.length > 0;
+    const allowedTypes = getAllowedDynamicFieldTypes(field.parentFieldId);
 
     return (
       <article key={field.id} className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
@@ -283,18 +284,12 @@ export function DynamicFormBuilder({ fields, onChange }: DynamicFormBuilderProps
                 });
               }}
               className="w-full rounded-lg border border-slate-300 px-3 py-2"
-              disabled={field.parentFieldId !== null}
             >
-              <option value="SHORT_TEXT">{t("pages.dynamicBuilder.typeOptions.SHORT_TEXT")}</option>
-              <option value="LONG_TEXT">{t("pages.dynamicBuilder.typeOptions.LONG_TEXT")}</option>
-              <option value="DATE">{t("pages.dynamicBuilder.typeOptions.DATE")}</option>
-              <option value="SINGLE_SELECT">{t("pages.dynamicBuilder.typeOptions.SINGLE_SELECT")}</option>
-              <option value="NUMBER">{t("pages.dynamicBuilder.typeOptions.NUMBER")}</option>
-              <option value="MULTI_SELECT">{t("pages.dynamicBuilder.typeOptions.MULTI_SELECT")}</option>
-              <option value="BOOLEAN">{t("pages.dynamicBuilder.typeOptions.BOOLEAN")}</option>
-              <option value="ROSTER_SELECT">{t("pages.dynamicBuilder.typeOptions.ROSTER_SELECT")}</option>
-              <option value="ROSTER_MULTI_SELECT">{t("pages.dynamicBuilder.typeOptions.ROSTER_MULTI_SELECT")}</option>
-              {field.parentFieldId === null ? <option value="FIELD_GROUP">{t("pages.dynamicBuilder.typeOptions.FIELD_GROUP")}</option> : null}
+              {allowedTypes.map((type) => (
+                <option key={`${field.id}-${type}`} value={type}>
+                  {t(`pages.dynamicBuilder.typeOptions.${type}`)}
+                </option>
+              ))}
             </select>
           </label>
 

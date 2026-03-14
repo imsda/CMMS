@@ -28,6 +28,7 @@ import {
   readEventFieldConfig,
   type EventFieldConditionalOperator,
 } from "../../lib/event-form-config";
+import { EVENT_FORM_FIELD_TYPES } from "../../lib/event-form-fields";
 import { buildEventTemplateSnapshot } from "../../lib/event-templates";
 import { parseEventMode, validateDynamicFieldsForEventMode } from "../../lib/event-modes";
 import { prisma } from "../../lib/prisma";
@@ -292,18 +293,7 @@ function parseDynamicFields(value: FormDataEntryValue | null) {
     throw new Error("Dynamic fields payload must be an array.");
   }
 
-  const supportedTypes: FormFieldType[] = [
-    FormFieldType.SHORT_TEXT,
-    FormFieldType.LONG_TEXT,
-    FormFieldType.DATE,
-    FormFieldType.SINGLE_SELECT,
-    FormFieldType.MULTI_SELECT,
-    FormFieldType.BOOLEAN,
-    FormFieldType.NUMBER,
-    FormFieldType.ROSTER_SELECT,
-    FormFieldType.ROSTER_MULTI_SELECT,
-    FormFieldType.FIELD_GROUP,
-  ];
+  const supportedTypes = [...EVENT_FORM_FIELD_TYPES];
 
   const normalized = parsed.map((field, index) => {
     const candidate = field as IncomingDynamicField;
