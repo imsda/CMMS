@@ -43,6 +43,7 @@ export function getRegistrationLifecycleState({
   );
   const isLocked =
     registrationStatus === RegistrationStatus.SUBMITTED ||
+    registrationStatus === RegistrationStatus.REVIEWED ||
     registrationStatus === RegistrationStatus.APPROVED;
 
   if (isLocked) {

@@ -1,4 +1,4 @@
-import { EventMode, type FormFieldType, type FormFieldScope, type Prisma } from "@prisma/client";
+import { EventMode, EventWorkflowType, type FormFieldType, type FormFieldScope, type Prisma } from "@prisma/client";
 
 type DynamicFieldInput = {
   id: string;
@@ -15,6 +15,7 @@ type DynamicFieldInput = {
 
 export type EventMutationInput = {
   eventMode: EventMode;
+  workflowType?: EventWorkflowType;
   name: string;
   description: string | null;
   startsAt: Date;
@@ -106,6 +107,7 @@ export async function createEventFromInput(
     data: {
       name: input.name,
       eventMode: input.eventMode,
+      workflowType: input.workflowType ?? EventWorkflowType.STANDARD,
       description: input.description,
       slug,
       startsAt: input.startsAt,

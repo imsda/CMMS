@@ -1,6 +1,6 @@
 "use server";
 
-import { ReportStatus, UserRole } from "@prisma/client";
+import { MonthlyReportStatus, ReportStatus, UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { type Session } from "next-auth";
 
@@ -9,16 +9,17 @@ import { safeWriteAuditLog } from "../../lib/audit-log";
 import { parseMonthInput } from "../../lib/club-activity";
 import { getManagedClubContext } from "../../lib/club-management";
 import { getClubActivityMonthSnapshot, findRosterYearForClubDate } from "../../lib/data/club-activity";
+import {
+  buildMonthlyReportScoreLineItems,
+  calculateMonthlyReportTotalScore,
+  type MonthlyReportScoringInput,
+} from "../../lib/monthly-report";
 import { readManagedClubId } from "../../lib/director-path";
 import { prisma } from "../../lib/prisma";
+import { normalizeReviewerText, requireRevisionReason } from "../../lib/review-feedback";
 
 type SortField = "club" | "month";
 type SortDirection = "asc" | "desc";
-
-const POINTS_PER_MEETING = 25;
-const POINTS_PER_PATHFINDER_ATTENDEE = 2;
-const POINTS_PER_STAFF_ATTENDEE = 1;
-const MAX_UNIFORM_POINTS = 100;
 
 function requireNumber(value: FormDataEntryValue | null, label: string) {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -28,6 +29,19 @@ function requireNumber(value: FormDataEntryValue | null, label: string) {
   const parsed = Number.parseInt(value, 10);
   if (Number.isNaN(parsed) || parsed < 0) {
     throw new Error(`${label} must be a non-negative whole number.`);
+  }
+
+  return parsed;
+}
+
+function optionalNumber(value: FormDataEntryValue | null) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return 0;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+  if (Number.isNaN(parsed) || parsed < 0) {
+    throw new Error("Numeric values must be non-negative whole numbers.");
   }
 
   return parsed;
@@ -67,55 +81,91 @@ function requireText(value: FormDataEntryValue | null, label: string) {
   return value.trim();
 }
 
+function optionalText(value: FormDataEntryValue | null) {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
+}
+
+function readBoolean(value: FormDataEntryValue | null) {
+  return value === "on" || value === "true" || value === "1";
+}
+
 function ensureRole(session: Session | null, role: UserRole, message: string) {
   if (!session?.user || session.user.role !== role) {
     throw new Error(message);
   }
 }
 
-function calculateMonthlyPoints(
-  meetingCount: number,
-  averagePathfinderAttendance: number,
-  averageStaffAttendance: number,
-  uniformCompliance: number,
-) {
-  const uniformPoints = Math.round((Math.min(uniformCompliance, 100) / 100) * MAX_UNIFORM_POINTS);
-
-  return (
-    meetingCount * POINTS_PER_MEETING +
-    averagePathfinderAttendance * POINTS_PER_PATHFINDER_ATTENDEE +
-    averageStaffAttendance * POINTS_PER_STAFF_ATTENDEE +
-    uniformPoints
-  );
-}
-
-export async function createMonthlyReport(formData: FormData) {
-  const managedClub = await getManagedClubContext(readManagedClubId(formData.get("clubId")));
-  const meetingCount = requireNumber(formData.get("meetingCount"), "Meeting count");
+function buildMonthlyReportInput(formData: FormData): MonthlyReportScoringInput & {
+  meetingDay: string | null;
+  meetingTime: string | null;
+  meetingLocation: string | null;
+  averagePathfinderAttendance: number;
+  averageTltAttendance: number;
+  averageStaffAttendance: number;
+  uniformNotes: string | null;
+  submittedByName: string;
+} {
+  const averageAttendance = requireNumber(formData.get("averageAttendance"), "Average attendance");
   const averagePathfinderAttendance = requireNumber(
     formData.get("averagePathfinderAttendance"),
     "Average Pathfinder attendance",
   );
+  const averageTltAttendance = optionalNumber(formData.get("averageTltAttendance"));
   const averageStaffAttendance = requireNumber(
     formData.get("averageStaffAttendance"),
     "Average staff attendance",
   );
+  const pathfinderCount = requireNumber(formData.get("pathfinderCount"), "Pathfinder count");
+  const tltCount = optionalNumber(formData.get("tltCount"));
+  const staffCount = requireNumber(formData.get("staffCount"), "Staff count");
+  const meetingOutingCount = requireNumber(formData.get("meetingOutingCount"), "Meetings and outings count");
+  const guestHelperCount = optionalNumber(formData.get("guestHelperCount"));
   const uniformCompliance = requireNumber(formData.get("uniformCompliance"), "Uniform compliance");
+  const honorParticipantCount = optionalNumber(formData.get("honorParticipantCount"));
 
   if (uniformCompliance > 100) {
     throw new Error("Uniform compliance must be between 0 and 100.");
   }
 
-  const reportMonth = requireMonthStart(formData.get("reportMonth"));
-  const clubId = managedClub.clubId;
-  const pointsCalculated = calculateMonthlyPoints(
-    meetingCount,
+  return {
+    meetingDay: optionalText(formData.get("meetingDay")),
+    meetingTime: optionalText(formData.get("meetingTime")),
+    meetingLocation: optionalText(formData.get("meetingLocation")),
+    averageAttendance,
     averagePathfinderAttendance,
+    averageTltAttendance,
     averageStaffAttendance,
+    pathfinderCount,
+    tltCount,
+    staffCount,
+    staffMeetingHeld: readBoolean(formData.get("staffMeetingHeld")),
+    meetingOutingCount,
+    devotionsEmphasis: optionalText(formData.get("devotionsEmphasis")),
+    exercisePromotion: optionalText(formData.get("exercisePromotion")),
+    outreachActivities: optionalText(formData.get("outreachActivities")),
+    guestHelperCount,
     uniformCompliance,
-  );
+    uniformNotes: optionalText(formData.get("uniformNotes")),
+    honorWorkSummary: optionalText(formData.get("honorWorkSummary")),
+    honorParticipantCount,
+    bonusNotes: optionalText(formData.get("bonusNotes")),
+    submittedByName: requireText(formData.get("submittedByName"), "Submitted by"),
+  };
+}
 
-  await prisma.monthlyReport.upsert({
+async function upsertMonthlyReport(
+  clubId: string,
+  userId: string,
+  reportMonth: Date,
+  input: ReturnType<typeof buildMonthlyReportInput>,
+  status: MonthlyReportStatus,
+) {
+  const rosterYear = await findRosterYearForClubDate(clubId, reportMonth);
+  const now = new Date();
+  const lineItems = buildMonthlyReportScoreLineItems(input);
+  const totalScore = calculateMonthlyReportTotalScore(input);
+
+  const report = await prisma.monthlyReport.upsert({
     where: {
       clubId_reportMonth: {
         clubId,
@@ -123,46 +173,249 @@ export async function createMonthlyReport(formData: FormData) {
       },
     },
     update: {
-      meetingCount,
-      averagePathfinderAttendance,
-      averageStaffAttendance,
-      uniformCompliance,
-      pointsCalculated,
-      status: ReportStatus.SUBMITTED,
-      submittedAt: new Date(),
+      clubRosterYearId: rosterYear?.id ?? null,
+      meetingDay: input.meetingDay,
+      meetingTime: input.meetingTime,
+      meetingLocation: input.meetingLocation,
+      averageAttendance: input.averageAttendance,
+      averagePathfinderAttendance: input.averagePathfinderAttendance,
+      averageTltAttendance: input.averageTltAttendance,
+      averageStaffAttendance: input.averageStaffAttendance,
+      pathfinderCount: input.pathfinderCount,
+      tltCount: input.tltCount,
+      staffCount: input.staffCount,
+      staffMeetingHeld: input.staffMeetingHeld,
+      meetingOutingCount: input.meetingOutingCount,
+      devotionsEmphasis: input.devotionsEmphasis,
+      exercisePromotion: input.exercisePromotion,
+      outreachActivities: input.outreachActivities,
+      guestHelperCount: input.guestHelperCount,
+      uniformCompliance: input.uniformCompliance,
+      uniformNotes: input.uniformNotes,
+      honorWorkSummary: input.honorWorkSummary,
+      honorParticipantCount: input.honorParticipantCount,
+      bonusNotes: input.bonusNotes,
+      submittedByName: input.submittedByName,
+      submittedByUserId: userId,
+      signedAt: status === MonthlyReportStatus.DRAFT ? null : now,
+      submittedAt: status === MonthlyReportStatus.DRAFT ? null : now,
+      status,
+      totalScore,
+      scoreLineItems: {
+        deleteMany: {},
+        createMany: {
+          data: lineItems.map((item) => ({
+            key: item.key,
+            label: item.label,
+            points: item.points,
+            maxPoints: item.maxPoints,
+            sortOrder: item.sortOrder,
+            notes: item.notes ?? null,
+          })),
+        },
+      },
     },
     create: {
       clubId,
+      clubRosterYearId: rosterYear?.id ?? null,
       reportMonth,
-      meetingCount,
-      averagePathfinderAttendance,
-      averageStaffAttendance,
-      uniformCompliance,
-      pointsCalculated,
-      status: ReportStatus.SUBMITTED,
-      submittedAt: new Date(),
+      meetingDay: input.meetingDay,
+      meetingTime: input.meetingTime,
+      meetingLocation: input.meetingLocation,
+      averageAttendance: input.averageAttendance,
+      averagePathfinderAttendance: input.averagePathfinderAttendance,
+      averageTltAttendance: input.averageTltAttendance,
+      averageStaffAttendance: input.averageStaffAttendance,
+      pathfinderCount: input.pathfinderCount,
+      tltCount: input.tltCount,
+      staffCount: input.staffCount,
+      staffMeetingHeld: input.staffMeetingHeld,
+      meetingOutingCount: input.meetingOutingCount,
+      devotionsEmphasis: input.devotionsEmphasis,
+      exercisePromotion: input.exercisePromotion,
+      outreachActivities: input.outreachActivities,
+      guestHelperCount: input.guestHelperCount,
+      uniformCompliance: input.uniformCompliance,
+      uniformNotes: input.uniformNotes,
+      honorWorkSummary: input.honorWorkSummary,
+      honorParticipantCount: input.honorParticipantCount,
+      bonusNotes: input.bonusNotes,
+      submittedByName: input.submittedByName,
+      submittedByUserId: userId,
+      signedAt: status === MonthlyReportStatus.DRAFT ? null : now,
+      submittedAt: status === MonthlyReportStatus.DRAFT ? null : now,
+      status,
+      totalScore,
+      scoreLineItems: {
+        createMany: {
+          data: lineItems.map((item) => ({
+            key: item.key,
+            label: item.label,
+            points: item.points,
+            maxPoints: item.maxPoints,
+            sortOrder: item.sortOrder,
+            notes: item.notes ?? null,
+          })),
+        },
+      },
+    },
+    include: {
+      scoreLineItems: {
+        orderBy: {
+          sortOrder: "asc",
+        },
+      },
     },
   });
 
+  return {
+    report,
+    lineItems,
+    totalScore,
+  };
+}
+
+export async function saveMonthlyReportDraft(formData: FormData) {
+  const managedClub = await getManagedClubContext(readManagedClubId(formData.get("clubId")));
+  const reportMonth = requireMonthStart(formData.get("reportMonth"));
+  const input = buildMonthlyReportInput(formData);
+
+  const result = await upsertMonthlyReport(
+    managedClub.clubId,
+    managedClub.userId,
+    reportMonth,
+    input,
+    MonthlyReportStatus.DRAFT,
+  );
+
   await safeWriteAuditLog({
     actorUserId: managedClub.userId,
-    action: "monthly_report.submit",
+    action: "monthly_report.save_draft",
     targetType: "MonthlyReport",
-    targetId: `${clubId}:${reportMonth.toISOString()}`,
-    clubId,
-    summary: `Submitted monthly report for ${reportMonth.toISOString().slice(0, 7)}.`,
+    targetId: result.report.id,
+    clubId: managedClub.clubId,
+    summary: `Saved monthly report draft for ${reportMonth.toISOString().slice(0, 7)}.`,
     metadata: {
-      meetingCount,
-      averagePathfinderAttendance,
-      averageStaffAttendance,
-      uniformCompliance,
-      pointsCalculated,
+      totalScore: result.totalScore,
+      meetingOutingCount: input.meetingOutingCount,
+      uniformCompliance: input.uniformCompliance,
     },
   });
 
   revalidatePath("/director/reports");
   revalidatePath("/director/dashboard");
   revalidatePath("/admin/reports");
+}
+
+export async function submitMonthlyReport(formData: FormData) {
+  const managedClub = await getManagedClubContext(readManagedClubId(formData.get("clubId")));
+  const reportMonth = requireMonthStart(formData.get("reportMonth"));
+  const input = buildMonthlyReportInput(formData);
+
+  const result = await upsertMonthlyReport(
+    managedClub.clubId,
+    managedClub.userId,
+    reportMonth,
+    input,
+    MonthlyReportStatus.SUBMITTED,
+  );
+
+  await safeWriteAuditLog({
+    actorUserId: managedClub.userId,
+    action: "monthly_report.submit",
+    targetType: "MonthlyReport",
+    targetId: result.report.id,
+    clubId: managedClub.clubId,
+    summary: `Submitted monthly report for ${reportMonth.toISOString().slice(0, 7)}.`,
+    metadata: {
+      totalScore: result.totalScore,
+      lineItems: result.lineItems,
+    },
+  });
+
+  revalidatePath("/director/reports");
+  revalidatePath("/director/dashboard");
+  revalidatePath("/admin/reports");
+}
+
+export async function createMonthlyReport(formData: FormData) {
+  await submitMonthlyReport(formData);
+}
+
+export async function reviewMonthlyReport(formData: FormData) {
+  const session = await auth();
+  ensureRole(session, UserRole.SUPER_ADMIN, "Only super admins can review monthly reports.");
+
+  const reportId = requireText(formData.get("reportId"), "Monthly report");
+  const nextStatusRaw = requireText(formData.get("status"), "Status");
+  const reviewerNotes = normalizeReviewerText(formData.get("reviewerNotes"));
+  const revisionRequestedReason =
+    nextStatusRaw === MonthlyReportStatus.REVISION_REQUESTED
+      ? requireRevisionReason(formData.get("revisionRequestedReason"))
+      : normalizeReviewerText(formData.get("revisionRequestedReason"));
+
+  if (
+    nextStatusRaw !== MonthlyReportStatus.UNDER_REVIEW &&
+    nextStatusRaw !== MonthlyReportStatus.APPROVED &&
+    nextStatusRaw !== MonthlyReportStatus.REVISION_REQUESTED
+  ) {
+    throw new Error("Invalid monthly report review status.");
+  }
+
+  const report = await prisma.monthlyReport.findUnique({
+    where: {
+      id: reportId,
+    },
+    select: {
+      id: true,
+      clubId: true,
+      status: true,
+      reportMonth: true,
+    },
+  });
+
+  if (!report) {
+    throw new Error("Monthly report not found.");
+  }
+
+  const nextStatus = nextStatusRaw as MonthlyReportStatus;
+
+  if (report.status === MonthlyReportStatus.DRAFT) {
+    throw new Error("Draft reports must be submitted before admin review.");
+  }
+
+  await prisma.monthlyReport.update({
+    where: {
+      id: reportId,
+    },
+    data: {
+      status: nextStatus,
+      adminComments: reviewerNotes,
+      revisionRequestedReason: nextStatus === MonthlyReportStatus.REVISION_REQUESTED ? revisionRequestedReason : null,
+      reviewedAt: new Date(),
+      reviewedByUserId: session.user.id,
+    },
+  });
+
+  await safeWriteAuditLog({
+    actorUserId: session.user.id,
+    action: "monthly_report.review",
+    targetType: "MonthlyReport",
+    targetId: reportId,
+    clubId: report.clubId,
+    summary: `Updated monthly report ${report.reportMonth.toISOString().slice(0, 7)} to ${nextStatus}.`,
+    metadata: {
+      previousStatus: report.status,
+      nextStatus,
+      reviewerNotes,
+      revisionRequestedReason,
+    },
+  });
+
+  revalidatePath("/admin/reports");
+  revalidatePath(`/admin/reports/monthly/${reportId}`);
+  revalidatePath("/director/reports");
+  revalidatePath("/director/dashboard");
 }
 
 export async function saveClubActivity(formData: FormData) {
@@ -278,6 +531,28 @@ export async function getDirectorReportsDashboardData(clubIdOverride?: string | 
       },
       select: {
         name: true,
+        code: true,
+        rosterYears: {
+          where: {
+            isActive: true,
+          },
+          orderBy: {
+            startsOn: "desc",
+          },
+          take: 1,
+          select: {
+            id: true,
+            yearLabel: true,
+            members: {
+              where: {
+                isActive: true,
+              },
+              select: {
+                memberRole: true,
+              },
+            },
+          },
+        },
       },
     }),
     prisma.monthlyReport.findMany({
@@ -287,33 +562,68 @@ export async function getDirectorReportsDashboardData(clubIdOverride?: string | 
       orderBy: {
         reportMonth: "desc",
       },
-      take: 6,
+      take: 12,
+      include: {
+        scoreLineItems: {
+          orderBy: {
+            sortOrder: "asc",
+          },
+        },
+      },
     }),
     getClubActivityMonthSnapshot(clubId, selectedMonth),
   ]);
 
+  const activeRoster = club?.rosterYears[0] ?? null;
+  const rosterMembers = activeRoster?.members ?? [];
+  const rosterCounts = rosterMembers.reduce(
+    (counts, member) => {
+      if (member.memberRole === "PATHFINDER") {
+        counts.pathfinderCount += 1;
+      } else if (member.memberRole === "TLT") {
+        counts.tltCount += 1;
+      } else if (member.memberRole === "STAFF" || member.memberRole === "DIRECTOR" || member.memberRole === "COUNSELOR") {
+        counts.staffCount += 1;
+      }
+      return counts;
+    },
+    {
+      pathfinderCount: 0,
+      tltCount: 0,
+      staffCount: 0,
+    },
+  );
+
+  const selectedMonthFormValues = {
+    ...monthSnapshot.formValues,
+    pathfinderCount: monthSnapshot.existingReport ? monthSnapshot.formValues.pathfinderCount : rosterCounts.pathfinderCount,
+    tltCount: monthSnapshot.existingReport ? monthSnapshot.formValues.tltCount : rosterCounts.tltCount,
+    staffCount: monthSnapshot.existingReport ? monthSnapshot.formValues.staffCount : rosterCounts.staffCount,
+    submittedByName: monthSnapshot.formValues.submittedByName || managedClub.userEmail || "",
+  };
+
+  const selectedMonthScorePreview = buildMonthlyReportScoreLineItems(selectedMonthFormValues);
+
   return {
     clubName: club?.name ?? "Your Club",
+    clubCode: club?.code ?? "",
     recentReports,
     selectedMonthInput: monthSnapshot.selectedMonthInput,
-    selectedMonth: selectedMonth,
+    selectedMonth,
     selectedRosterYear: monthSnapshot.rosterYear,
     selectedMonthActivities: monthSnapshot.activities,
     selectedMonthAutoFill: monthSnapshot.autoFill,
     selectedMonthExistingReport: monthSnapshot.existingReport,
-    selectedMonthFormValues: monthSnapshot.formValues,
-    rubric: {
-      pointsPerMeeting: POINTS_PER_MEETING,
-      pointsPerPathfinderAttendance: POINTS_PER_PATHFINDER_ATTENDEE,
-      pointsPerStaffAttendance: POINTS_PER_STAFF_ATTENDEE,
-      maxUniformPoints: MAX_UNIFORM_POINTS,
-    },
+    selectedMonthFormValues,
+    selectedMonthScorePreview,
+    selectedMonthTotalScore: selectedMonthScorePreview.reduce((total, item) => total + item.points, 0),
   };
 }
 
 export async function getAdminReportsData(sortBy: SortField = "month", direction: SortDirection = "desc") {
   const session = await auth();
   ensureRole(session, UserRole.SUPER_ADMIN, "Only super admins can view conference reports.");
+  const currentMonth = parseMonthInput();
 
   const monthlyOrderBy =
     sortBy === "club"
@@ -327,15 +637,17 @@ export async function getAdminReportsData(sortBy: SortField = "month", direction
 
   const [monthlyReports, yearEndReports] = await Promise.all([
     prisma.monthlyReport.findMany({
-      where: {
-        status: ReportStatus.SUBMITTED,
-      },
       orderBy: monthlyOrderBy,
       include: {
         club: {
           select: {
             name: true,
             code: true,
+          },
+        },
+        scoreLineItems: {
+          orderBy: {
+            sortOrder: "asc",
           },
         },
       },
@@ -358,6 +670,94 @@ export async function getAdminReportsData(sortBy: SortField = "month", direction
 
   return {
     monthlyReports,
+    monthlySummary: {
+      submitted: monthlyReports.filter((report) => report.status === MonthlyReportStatus.SUBMITTED).length,
+      underReview: monthlyReports.filter((report) => report.status === MonthlyReportStatus.UNDER_REVIEW).length,
+      approved: monthlyReports.filter((report) => report.status === MonthlyReportStatus.APPROVED).length,
+      revisionRequested: monthlyReports.filter((report) => report.status === MonthlyReportStatus.REVISION_REQUESTED).length,
+    },
     yearEndReports,
+    missingCurrentMonthReports: (await prisma.club.findMany({
+      orderBy: {
+        name: "asc",
+      },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        type: true,
+        monthlyReports: {
+          where: {
+            reportMonth: currentMonth,
+          },
+          take: 1,
+          select: {
+            status: true,
+          },
+        },
+      },
+    })).flatMap((club) => {
+      const currentReport = club.monthlyReports[0] ?? null;
+      if (!currentReport || currentReport.status === MonthlyReportStatus.DRAFT || currentReport.status === MonthlyReportStatus.REVISION_REQUESTED) {
+        return [{
+          id: club.id,
+          name: club.name,
+          code: club.code,
+          type: club.type,
+          status: currentReport?.status ?? null,
+        }];
+      }
+
+      return [];
+    }),
+    currentMonth,
   };
+}
+
+export async function getAdminMonthlyReportDetail(reportId: string) {
+  const session = await auth();
+  ensureRole(session, UserRole.SUPER_ADMIN, "Only super admins can view monthly report details.");
+
+  const report = await prisma.monthlyReport.findUnique({
+    where: {
+      id: reportId,
+    },
+    include: {
+      club: {
+        select: {
+          name: true,
+          code: true,
+          type: true,
+        },
+      },
+      clubRosterYear: {
+        select: {
+          yearLabel: true,
+        },
+      },
+      scoreLineItems: {
+        orderBy: {
+          sortOrder: "asc",
+        },
+      },
+      submittedByUser: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
+      reviewedByUser: {
+        select: {
+          name: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  if (!report) {
+    throw new Error("Monthly report not found.");
+  }
+
+  return report;
 }

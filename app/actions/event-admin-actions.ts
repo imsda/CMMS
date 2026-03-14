@@ -1,6 +1,14 @@
 "use server";
 
-import { EventMode, FormFieldScope, FormFieldType, type Prisma } from "@prisma/client";
+import {
+  EventMode,
+  EventWorkflowType,
+  EventTemplateCategory,
+  EventTemplateSource,
+  FormFieldScope,
+  FormFieldType,
+  type Prisma,
+} from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -86,6 +94,18 @@ function parseRequiredFloat(value: FormDataEntryValue | null, fieldLabel: string
   }
 
   return parsed;
+}
+
+function parseTemplateCategory(value: FormDataEntryValue | null) {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return EventTemplateCategory.BASIC_EVENTS;
+  }
+
+  if (!Object.values(EventTemplateCategory).includes(value.trim() as EventTemplateCategory)) {
+    throw new Error("Template category is invalid.");
+  }
+
+  return value.trim() as EventTemplateCategory;
 }
 
 function parseSelectOptions(raw: string, fieldKey: string) {
@@ -227,6 +247,32 @@ async function resolveEventMode(formData: FormData) {
   }
 
   return rawMode.trim() as EventMode;
+}
+
+async function resolveWorkflowType(formData: FormData) {
+  const templateId = optionalTrimmedString(formData.get("templateId"));
+
+  if (!templateId) {
+    return EventWorkflowType.STANDARD;
+  }
+
+  const template = await prisma.eventTemplate.findUnique({
+    where: {
+      id: templateId,
+    },
+    select: {
+      snapshot: true,
+    },
+  });
+
+  if (!template) {
+    throw new Error("Selected template was not found.");
+  }
+
+  const snapshot = template.snapshot as Record<string, unknown> | null;
+  return snapshot?.workflowType === EventWorkflowType.CAMPOREE
+    ? EventWorkflowType.CAMPOREE
+    : EventWorkflowType.STANDARD;
 }
 
 function parseDynamicFields(value: FormDataEntryValue | null) {
@@ -455,6 +501,7 @@ async function parseEventMutationInput(formData: FormData): Promise<EventMutatio
   const description = optionalTrimmedString(formData.get("description"));
   const dynamicFields = parseDynamicFields(formData.get("dynamicFieldsJson"));
   const eventMode = await resolveEventMode(formData);
+  const workflowType = await resolveWorkflowType(formData);
 
   validateEventTimeline({
     startsAt,
@@ -469,6 +516,7 @@ async function parseEventMutationInput(formData: FormData): Promise<EventMutatio
 
   return {
     eventMode,
+    workflowType,
     name,
     description,
     startsAt,
@@ -521,6 +569,7 @@ export async function saveEventTemplate(
     const templateId = optionalTrimmedString(formData.get("templateId"));
     const templateName = requireTrimmedString(formData.get("templateName"), "Template name");
     const templateDescription = optionalTrimmedString(formData.get("templateDescription"));
+    const templateCategory = parseTemplateCategory(formData.get("templateCategory"));
     const isActive = formData.get("templateIsActive") === "on";
     const input = await parseEventMutationInput(formData);
 
@@ -530,6 +579,23 @@ export async function saveEventTemplate(
     });
 
     if (templateId) {
+      const existingTemplate = await prisma.eventTemplate.findUnique({
+        where: {
+          id: templateId,
+        },
+        select: {
+          source: true,
+        },
+      });
+
+      if (!existingTemplate) {
+        throw new Error("Template not found.");
+      }
+
+      if (existingTemplate.source === EventTemplateSource.SYSTEM) {
+        throw new Error("System templates cannot be edited directly. Duplicate the template first.");
+      }
+
       await prisma.eventTemplate.update({
         where: {
           id: templateId,
@@ -537,7 +603,10 @@ export async function saveEventTemplate(
         data: {
           name: templateName,
           description: templateDescription,
+          eventMode: input.eventMode,
+          category: templateCategory,
           isActive,
+          archivedAt: null,
           snapshot,
         },
       });
@@ -546,6 +615,9 @@ export async function saveEventTemplate(
         data: {
           name: templateName,
           description: templateDescription,
+          eventMode: input.eventMode,
+          category: templateCategory,
+          source: EventTemplateSource.USER,
           isActive,
           snapshot,
           createdByUserId,
@@ -554,6 +626,7 @@ export async function saveEventTemplate(
     }
 
     revalidatePath("/admin/events/new");
+    revalidatePath("/admin/events/templates");
     return {
       status: "success",
       message: templateId ? "Event template updated." : "Event template saved.",
@@ -581,6 +654,74 @@ export async function toggleEventTemplateActive(formData: FormData) {
     },
   });
 
+  revalidatePath("/admin/events/new");
+  revalidatePath("/admin/events/templates");
+}
+
+export async function duplicateEventTemplate(formData: FormData) {
+  const createdByUserId = await requireSuperAdminUserId();
+  const templateId = requireTrimmedString(formData.get("templateId"), "Template");
+
+  const template = await prisma.eventTemplate.findUnique({
+    where: {
+      id: templateId,
+    },
+  });
+
+  if (!template) {
+    throw new Error("Template not found.");
+  }
+
+  await prisma.eventTemplate.create({
+    data: {
+      name: `${template.name} Copy`,
+      description: template.description,
+      eventMode: template.eventMode,
+      category: template.category,
+      source: EventTemplateSource.USER,
+      isActive: true,
+      archivedAt: null,
+      snapshot: template.snapshot,
+      createdByUserId,
+    },
+  });
+
+  revalidatePath("/admin/events/templates");
+  revalidatePath("/admin/events/new");
+}
+
+export async function archiveEventTemplate(formData: FormData) {
+  await requireSuperAdminUserId();
+  const templateId = requireTrimmedString(formData.get("templateId"), "Template");
+
+  const template = await prisma.eventTemplate.findUnique({
+    where: {
+      id: templateId,
+    },
+    select: {
+      source: true,
+    },
+  });
+
+  if (!template) {
+    throw new Error("Template not found.");
+  }
+
+  if (template.source === EventTemplateSource.SYSTEM) {
+    throw new Error("System templates cannot be archived.");
+  }
+
+  await prisma.eventTemplate.update({
+    where: {
+      id: templateId,
+    },
+    data: {
+      isActive: false,
+      archivedAt: new Date(),
+    },
+  });
+
+  revalidatePath("/admin/events/templates");
   revalidatePath("/admin/events/new");
 }
 

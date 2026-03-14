@@ -48,3 +48,23 @@ test("director dashboard health marks categories ready when source-of-truth data
   assert.equal(health.cards.every((card) => card.status === "ready"), true);
   assert.deepEqual(health.alerts, []);
 });
+
+test("director dashboard health treats monthly reports under review as current progress", () => {
+  const health = buildDirectorDashboardHealth({
+    hasActiveRoster: true,
+    activeMemberCount: 20,
+    missingConsentCount: 0,
+    adultCount: 4,
+    unclearedAdultCount: 0,
+    upcomingEventCount: 1,
+    draftRegistrationCount: 0,
+    submittedRegistrationCount: 1,
+    notStartedEventCount: 0,
+    currentMonthReportStatus: "UNDER_REVIEW",
+    latestMonthlyReportStatus: "UNDER_REVIEW",
+    currentMonthActivityCount: 2,
+    yearEndReportStatus: "SUBMITTED",
+  });
+
+  assert.equal(health.cards.find((card) => card.key === "reporting")?.status, "ready");
+});

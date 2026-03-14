@@ -10,13 +10,18 @@ export type HonorsUiAttendee = {
   memberRole: MemberRole;
   masterGuide: boolean;
   completedHonorCodes: string[];
-  enrolledOfferingIds: string[];
+  enrolledAssignments: Array<{
+    offeringId: string;
+    timeslotId: string | null;
+  }>;
 };
 
 export type HonorsUiOffering = {
   id: string;
   title: string;
   code: string;
+  timeslotId: string | null;
+  timeslotLabel: string | null;
   location: string | null;
   capacity: number | null;
   enrolledCount: number;
@@ -40,7 +45,7 @@ export function filterClassAssignmentAttendees(
       `${attendee.firstName} ${attendee.lastName}`.toLowerCase().includes(normalizedSearch) ||
       attendee.memberRole.toLowerCase().includes(normalizedSearch);
 
-    const assigned = attendee.enrolledOfferingIds.length > 0;
+    const assigned = attendee.enrolledAssignments.length > 0;
     const matchesStatus =
       status === "all" ||
       (status === "assigned" && assigned) ||
@@ -84,8 +89,14 @@ export function getAssignableSelectedAttendeeIds(
   return attendees
     .filter((attendee) => selectedSet.has(attendee.id))
     .filter((attendee) => {
-      const alreadyEnrolled = attendee.enrolledOfferingIds.includes(offering.id);
-      const hasOtherEnrollment = attendee.enrolledOfferingIds.some((enrollmentId) => enrollmentId !== offering.id);
+      const alreadyEnrolled = attendee.enrolledAssignments.some((enrollment) => enrollment.offeringId === offering.id);
+      const hasOtherEnrollment = attendee.enrolledAssignments.some(
+        (enrollment) =>
+          enrollment.offeringId !== offering.id &&
+          (enrollment.timeslotId === null ||
+            offering.timeslotId === null ||
+            enrollment.timeslotId === offering.timeslotId),
+      );
       const eligibility = evaluateClassRequirements(
         {
           ageAtStart: attendee.ageAtStart,
@@ -110,6 +121,6 @@ export function getRemovableSelectedAttendeeIds(
 
   return attendees
     .filter((attendee) => selectedSet.has(attendee.id))
-    .filter((attendee) => attendee.enrolledOfferingIds.includes(offeringId))
+    .filter((attendee) => attendee.enrolledAssignments.some((assignment) => assignment.offeringId === offeringId))
     .map((attendee) => attendee.id);
 }

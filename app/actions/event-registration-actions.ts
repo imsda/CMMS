@@ -9,6 +9,7 @@ import { isEventFieldVisible, readEventFieldConfig } from "../../lib/event-form-
 import { getFieldScope } from "../../lib/event-form-scope";
 import { getEventModeConfig } from "../../lib/event-modes";
 import { prisma } from "../../lib/prisma";
+import { generateRegistrationCode } from "../../lib/registration-code";
 import { assertRegistrationCanPersist } from "../../lib/registration-lifecycle";
 
 export type RegistrationActionState = {
@@ -34,10 +35,6 @@ type DynamicFieldRule = {
   isRequired: boolean;
   options: unknown;
 };
-
-function generateRegistrationCode() {
-  return `REG-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).slice(2, 8).toUpperCase()}`;
-}
 
 function parsePayload(rawPayload: FormDataEntryValue | null): RegistrationPayload {
   if (typeof rawPayload !== "string" || rawPayload.trim().length === 0) {

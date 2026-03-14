@@ -9,7 +9,6 @@ import { useFormState } from "react-dom";
 import {
   createEventWithDynamicFields,
   saveEventTemplate,
-  toggleEventTemplateActive,
 } from "../../../../actions/event-admin-actions";
 import {
   type CreateEventActionState,
@@ -23,6 +22,12 @@ import {
   type DynamicFieldDraft,
 } from "./dynamic-form-builder";
 import { getAllEventModes, getEventModeConfig } from "../../../../../lib/event-modes";
+import {
+  getTemplateCategoryLabel,
+  getTemplateCoverageSummary,
+  getTemplateSectionSummaries,
+  getTemplateSourceLabel,
+} from "../../../../../lib/template-library";
 
 const STEPS = [
   {
@@ -62,7 +67,7 @@ export function AdminCreateEventClient({
   const [currentStep, setCurrentStep] = useState(0);
   const selectedTemplate = templates.find((template) => template.id === selectedTemplateId) ?? null;
   const [creationSource, setCreationSource] = useState<CreationSource>(
-    selectedTemplate ? "template" : "blank",
+    "template",
   );
   const [blankEventMode, setBlankEventMode] = useState<EventMode>(EventMode.CLUB_REGISTRATION);
   const [dynamicFields, setDynamicFields] = useState<DynamicFieldDraft[]>(
@@ -139,6 +144,9 @@ export function AdminCreateEventClient({
         description={t("pages.createEvent.description")}
         secondaryActions={
           <>
+            <Link href="/admin/events/templates" className="btn-secondary">
+              Template Library
+            </Link>
             <Link href="/admin/events" className="btn-secondary">
               {t("actions.backToEvents")}
             </Link>
@@ -265,6 +273,8 @@ export function AdminCreateEventClient({
           <div className="mt-4 grid gap-3 lg:grid-cols-2">
             {templates.map((template) => {
               const isSelected = template.id === selectedTemplateId;
+              const sections = getTemplateSectionSummaries(template.snapshot);
+              const coverage = getTemplateCoverageSummary(template.snapshot);
 
               return (
                 <article key={template.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -273,8 +283,9 @@ export function AdminCreateEventClient({
                       <h3 className="text-sm font-semibold text-slate-900">{template.name}</h3>
                       <p className="mt-1 text-xs text-slate-500">
                         {getEventModeConfig(template.snapshot.eventMode).label} •{" "}
-                        {template.description || t("pages.createEvent.noDescription")} •{" "}
-                        {t("pages.createEvent.dynamicFieldCount", { count: template.snapshot.dynamicFields.length })}
+                        {getTemplateCategoryLabel(template.category)} •{" "}
+                        {getTemplateSourceLabel(template.source)} •{" "}
+                        {template.description || t("pages.createEvent.noDescription")}
                       </p>
                     </div>
                     <span
@@ -284,6 +295,25 @@ export function AdminCreateEventClient({
                     >
                       {template.isActive ? t("status.ACTIVE") : t("status.INACTIVE")}
                     </span>
+                  </div>
+
+                  <div className="mt-3 rounded-xl border border-slate-200 bg-white p-3">
+                    <div className="flex flex-wrap gap-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+                      <span>{coverage.sectionCount} sections</span>
+                      <span>{coverage.fieldCount} starter fields</span>
+                      {coverage.attendeeFieldCount > 0 ? (
+                        <span>{coverage.attendeeFieldCount} attendee-level</span>
+                      ) : null}
+                    </div>
+                    {sections.length > 0 ? (
+                      <p className="mt-2 text-xs text-slate-600">
+                        Includes: {sections.join(", ")}
+                      </p>
+                    ) : (
+                      <p className="mt-2 text-xs text-slate-600">
+                        {t("pages.createEvent.dynamicFieldCount", { count: template.snapshot.dynamicFields.length })}
+                      </p>
+                    )}
                   </div>
 
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -297,17 +327,12 @@ export function AdminCreateEventClient({
                     >
                       {isSelected ? t("pages.createEvent.loaded") : t("pages.createEvent.loadTemplate")}
                     </Link>
-
-                    <form action={toggleEventTemplateActive}>
-                      <input type="hidden" name="templateId" value={template.id} />
-                      <input type="hidden" name="nextActive" value={template.isActive ? "false" : "true"} />
-                      <button
-                        type="submit"
-                        className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-slate-400 hover:text-slate-900"
-                      >
-                        {template.isActive ? t("pages.createEvent.deactivate") : t("pages.createEvent.activate")}
-                      </button>
-                    </form>
+                    <Link
+                      href={`/admin/events/templates/${template.id}`}
+                      className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-slate-400 hover:text-slate-900"
+                    >
+                      View Template
+                    </Link>
                   </div>
                 </article>
               );

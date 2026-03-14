@@ -73,7 +73,7 @@ These guardrails are especially important for AI-assisted implementation.
 | `Event` | Event master | name, slug (unique), startsAt, endsAt, registrationOpensAt/ClosesAt, basePrice, lateFeePrice, lateFeeStartsAt, locationName/Address | dynamicFields, registrations, classOfferings |
 | `EventTemplate` | Reusable event blueprint | name, description, isActive, snapshot (JSON), createdByUserId | Created events remain editable and independent after template apply |
 | `EventFormField` | Dynamic form question | eventId, parentFieldId, key, label, type, fieldScope (GLOBAL/ATTENDEE), options (JSON), isRequired, sortOrder | childFields, responses. Unique on (eventId, key) |
-| `EventRegistration` | Club registration | eventId, clubId, registrationCode (unique), status, totalDue, amountPaid, paymentStatus | attendees, formResponses. Unique on (eventId, clubId) |
+| `EventRegistration` | Club registration | eventId, clubId, registrationCode (unique), status, totalDue, amountPaid, paymentStatus, reviewerNotes, revisionRequestedReason, reviewedAt, reviewedByUserId | attendees, formResponses. Unique on (eventId, clubId) |
 | `RegistrationAttendee` | Attendee link | eventRegistrationId, rosterMemberId, checkedInAt | Unique on (registrationId, memberId) |
 | `EventFormResponse` | Form answer | eventRegistrationId, eventFormFieldId, attendeeId (null=GLOBAL), value (JSON) | Unique on (registrationId, fieldId, attendeeId) |
 | `CamporeeScore` | Additive Camporee competition scoring | eventId, eventRegistrationId, category, score, createdByUserId | Extends existing event registrations rather than creating a separate Camporee registration system |
@@ -92,7 +92,8 @@ These guardrails are especially important for AI-assisted implementation.
 
 | Model | Purpose | Key Fields | Relations |
 |---|---|---|---|
-| `MonthlyReport` | Monthly club metrics | clubId, reportMonth, meetingCount, averagePathfinderAttendance, averageStaffAttendance, uniformCompliance, pointsCalculated, status | Unique on (clubId, reportMonth) |
+| `MonthlyReport` | Structured monthly reporting workflow | clubId, clubRosterYearId, reportMonth, meetingDay, meetingTime, meetingLocation, averageAttendance, pathfinderCount, tltCount, staffCount, staffMeetingHeld, meetingOutingCount, devotionsEmphasis, exercisePromotion, outreachActivities, guestHelperCount, uniformCompliance, honorWorkSummary, honorParticipantCount, bonusNotes, submittedByName, totalScore, adminComments, revisionRequestedReason, status | Unique on (clubId, reportMonth); reviewed by conference admins |
+| `MonthlyReportScoreLineItem` | Monthly report scoring breakdown | monthlyReportId, key, label, points, maxPoints, sortOrder, notes | Belongs to `MonthlyReport` and drives computed totals |
 | `YearEndReport` | Annual completions | clubId, reportYear, friendCompletions, companionCompletions, explorerCompletions, rangerCompletions, voyagerCompletions, guideCompletions, status | Unique on (clubId, reportYear) |
 
 ### Compliance & System
@@ -119,6 +120,7 @@ These guardrails are especially important for AI-assisted implementation.
 | `FormFieldScope` | GLOBAL, ATTENDEE |
 | `ClassType` | HONOR, SPECIALTY, WORKSHOP, REQUIRED |
 | `RequirementType` | MIN_AGE, MAX_AGE, MEMBER_ROLE, COMPLETED_HONOR, MASTER_GUIDE |
+| `MonthlyReportStatus` | DRAFT, SUBMITTED, UNDER_REVIEW, APPROVED, REVISION_REQUESTED |
 | `ReportStatus` | DRAFT, SUBMITTED |
 | `NominationStatus` | SUBMITTED, REVIEWED, WINNER |
 | `TltApplicationStatus` | PENDING, APPROVED, REJECTED |

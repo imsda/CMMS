@@ -54,6 +54,13 @@ export async function getClubActivityMonthSnapshot(clubId: string, monthStart: D
           reportMonth: monthStart,
         },
       },
+      include: {
+        scoreLineItems: {
+          orderBy: {
+            sortOrder: "asc",
+          },
+        },
+      },
     }),
   ]);
 

@@ -103,6 +103,11 @@ const SECTION_SIDEBARS: Record<AdminTopSectionId, { headingKey: string; descript
         descriptionKey: "shell.sidebar.events.items.createEvent.description",
       },
       {
+        href: "/admin/events/templates",
+        labelKey: "shell.sidebar.events.items.templates.label",
+        descriptionKey: "shell.sidebar.events.items.templates.description",
+      },
+      {
         href: "/admin/catalog",
         labelKey: "shell.sidebar.events.items.catalog.label",
         descriptionKey: "shell.sidebar.events.items.catalog.description",
@@ -146,7 +151,7 @@ const SECTION_SIDEBARS: Record<AdminTopSectionId, { headingKey: string; descript
 function getEventContextSidebar(pathname: string): { headingKey: string; descriptionKey: string; items: AdminSidebarItem[] } | null {
   const match = pathname.match(/^\/admin\/events\/([^/]+)/);
 
-  if (!match || match[1] === "new") {
+  if (!match || match[1] === "new" || match[1] === "templates") {
     return null;
   }
 

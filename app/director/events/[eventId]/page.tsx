@@ -3,11 +3,14 @@ import { notFound } from "next/navigation";
 import { getLocale, getTranslations } from "next-intl/server";
 
 import { getDirectorCamporeeSummary } from "../../../actions/camporee-actions";
+import { getDirectorCamporeeRegistrationSnapshot } from "../../../actions/camporee-registration-actions";
+import { isCamporeeWorkflowEvent } from "../../../../lib/camporee-workflow";
 import { getManagedClubContext } from "../../../../lib/club-management";
 import { getEventModeConfig } from "../../../../lib/event-modes";
 import { getRegistrationLifecycleState } from "../../../../lib/registration-lifecycle";
 import { prisma } from "../../../../lib/prisma";
 import { buildDirectorPath } from "../../../../lib/director-path";
+import { CamporeeRegistrationWorkflow } from "./_components/camporee-registration-workflow";
 import { RegistrationFormFulfiller } from "./_components/registration-form-fulfiller";
 
 function formatDateRange(startsAt: Date, endsAt: Date, locale: string) {
@@ -91,6 +94,28 @@ export default async function DirectorEventRegistrationPage({
           attendees: {
             select: {
               rosterMemberId: true,
+              classPreferences: {
+                where: {
+                  eventId,
+                },
+                select: {
+                  id: true,
+                },
+              },
+              rosterMember: {
+                select: {
+                  classEnrollments: {
+                    where: {
+                      offering: {
+                        eventId,
+                      },
+                    },
+                    select: {
+                      id: true,
+                    },
+                  },
+                },
+              },
             },
           },
           formResponses: {
@@ -118,12 +143,16 @@ export default async function DirectorEventRegistrationPage({
   const currentPricePerAttendee = inLateFeeWindow ? event.lateFeePrice : event.basePrice;
   const estimatedTotal = attendeeCount * currentPricePerAttendee;
   const camporeeSummary = await getDirectorCamporeeSummary(eventId, managedClub.clubId);
+  const camporeeWorkflowEnabled = isCamporeeWorkflowEvent(event);
   const eventModeConfig = getEventModeConfig(event.eventMode);
   const lifecycleState = getRegistrationLifecycleState({
     registrationOpensAt: event.registrationOpensAt,
     registrationClosesAt: event.registrationClosesAt,
     registrationStatus: registration?.status ?? null,
   });
+  const camporeeRegistrationSnapshot = camporeeWorkflowEnabled
+    ? await getDirectorCamporeeRegistrationSnapshot(eventId, managedClub.clubId)
+    : null;
 
   return (
     <section className="space-y-6">
@@ -218,39 +247,70 @@ export default async function DirectorEventRegistrationPage({
         </article>
       ) : null}
 
-      <RegistrationFormFulfiller
-        eventId={event.id}
-        eventMode={event.eventMode}
-        managedClubId={managedClub.isSuperAdmin ? managedClub.clubId : null}
-        attendees={attendees.map((member) => ({
-          id: member.id,
-          firstName: member.firstName,
-          lastName: member.lastName,
-          memberRole: member.memberRole,
-        }))}
-        dynamicFields={event.dynamicFields.map((field) => ({
-          id: field.id,
-          key: field.key,
-          label: field.label,
-          description: field.description,
-          type: field.type,
-          fieldScope: field.fieldScope,
-          isRequired: field.isRequired,
-          options: field.options,
-          parentFieldId: field.parentFieldId,
-        }))}
-        initialSelectedAttendeeIds={registration?.attendees.map((attendee) => attendee.rosterMemberId) ?? []}
-        initialResponses={
-          registration?.formResponses.map((response) => ({
-            fieldId: response.eventFormFieldId,
-            attendeeId: response.attendeeId,
-            value: response.value,
-          })) ?? []
-        }
-        registrationStatus={registration?.status ?? null}
-        canEditRegistration={lifecycleState.canEdit}
-        registrationNotice={lifecycleState.message}
-      />
+      {camporeeWorkflowEnabled && camporeeRegistrationSnapshot ? (
+        <CamporeeRegistrationWorkflow
+          eventId={event.id}
+          managedClubId={managedClub.isSuperAdmin ? managedClub.clubId : null}
+          attendees={attendees.map((member) => ({
+            id: member.id,
+            firstName: member.firstName,
+            lastName: member.lastName,
+            memberRole: member.memberRole,
+          }))}
+          initialPayload={camporeeRegistrationSnapshot.existingPayload}
+          registrationStatus={registration?.status ?? null}
+          canEditRegistration={lifecycleState.canEdit}
+          registrationNotice={lifecycleState.message}
+          reviewerNotes={camporeeRegistrationSnapshot.reviewerNotes}
+          revisionRequestedReason={camporeeRegistrationSnapshot.revisionRequestedReason}
+        />
+      ) : (
+        <RegistrationFormFulfiller
+          eventId={event.id}
+          eventName={event.name}
+          eventMode={event.eventMode}
+          managedClubId={managedClub.isSuperAdmin ? managedClub.clubId : null}
+          attendees={attendees.map((member) => ({
+            id: member.id,
+            firstName: member.firstName,
+            lastName: member.lastName,
+            memberRole: member.memberRole,
+          }))}
+          dynamicFields={event.dynamicFields.map((field) => ({
+            id: field.id,
+            key: field.key,
+            label: field.label,
+            description: field.description,
+            type: field.type,
+            fieldScope: field.fieldScope,
+            isRequired: field.isRequired,
+            options: field.options,
+            parentFieldId: field.parentFieldId,
+          }))}
+          initialSelectedAttendeeIds={registration?.attendees.map((attendee) => attendee.rosterMemberId) ?? []}
+          initialResponses={
+            registration?.formResponses.map((response) => ({
+              fieldId: response.eventFormFieldId,
+              attendeeId: response.attendeeId,
+              value: response.value,
+            })) ?? []
+          }
+          registrationStatus={registration?.status ?? null}
+          canEditRegistration={lifecycleState.canEdit}
+          registrationNotice={lifecycleState.message}
+          pricePerAttendee={currentPricePerAttendee}
+          classesHref={
+            event.eventMode === "CLASS_ASSIGNMENT"
+              ? buildDirectorPath(`/director/events/${event.id}/classes`, managedClub.clubId, managedClub.isSuperAdmin)
+              : null
+          }
+          classAssignmentCoveredAttendeeIds={
+            registration?.attendees
+              .filter((attendee) => attendee.classPreferences.length > 0 || attendee.rosterMember.classEnrollments.length > 0)
+              .map((attendee) => attendee.rosterMemberId) ?? []
+          }
+        />
+      )}
     </section>
   );
 }

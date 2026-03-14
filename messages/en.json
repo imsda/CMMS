@@ -48,6 +48,7 @@
       },
       "contextNavAriaLabel": "Contextual admin navigation",
       "closeNavigation": "Close navigation",
+      "workspaceActive": "Active workspace",
       "sections": {
         "dashboard": {
           "label": "Dashboard",
@@ -110,6 +111,10 @@
             "createEvent": {
               "label": "Create Event",
               "description": "Create a new conference event from scratch or template."
+            },
+            "templates": {
+              "label": "Templates",
+              "description": "Official and user template library for fast event creation."
             },
             "catalog": {
               "label": "Class Catalog",
@@ -625,6 +630,7 @@
     "registrationForm": {
       "modules": "Registration Modules",
       "modulesDescription": "Work through each section in order. Conditional sections will appear when earlier answers require them.",
+      "progressTitle": "Registration progress",
       "step": "Step {current} of {total}",
       "module": "Module {index}",
       "rosterTitle": "Roster Attendees",
@@ -638,6 +644,34 @@
       "selectRosterMember": "Select a roster member",
       "selectOption": "Select an option",
       "currentStatus": "Current status: {status}",
+      "reviewTitle": "Review and Submit",
+      "reviewDescription": "Review attendees, pricing, class-assignment readiness, and missing fields before you submit.",
+      "reviewBadge": "{count, plural, one {# issue to resolve} other {# issues to resolve}}",
+      "reviewStepLabel": "Review",
+      "reviewCardDescription": "Validation, attendee summary, pricing, and final submit.",
+      "validationSummaryTitle": "Finish these items before submitting",
+      "validationSummaryShort": "{count, plural, one {# issue still needs attention} other {# issues still need attention}}",
+      "reviewReadyTitle": "Review complete",
+      "reviewReadyDescription": "This registration is ready to submit when you are.",
+      "continueToReview": "Continue to Review",
+      "attendeeSummaryTitle": "Selected Attendees",
+      "attendeeSummaryEmpty": "No attendees are currently selected for this registration.",
+      "pricingSummaryTitle": "Pricing Summary",
+      "pricingPerAttendee": "Current price per attendee",
+      "pricingAttendeeCount": "Selected attendee count",
+      "pricingEstimatedTotal": "Estimated total",
+      "reviewChecklistTitle": "Section Readiness",
+      "classAssignmentIssuesTitle": "Class Assignment Readiness",
+      "classAssignmentIssuesSummary": "{count, plural, one {# attendee still needs class preferences or placement} other {# attendees still need class preferences or placement}}",
+      "classAssignmentIssuesClear": "Every selected attendee already has recorded class preferences or a placement for this event.",
+      "openClassAssignments": "Open class assignments",
+      "missingAttendeeSelection": "Select at least one attendee before submitting registration.",
+      "missingField": "Required question is missing: \"{field}\".",
+      "missingAttendeeField": "Required question \"{field}\" is missing for {attendee}.",
+      "issueCount": "{count, plural, one {# issue} other {# issues}}",
+      "ready": "Ready",
+      "inProgress": "In Progress",
+      "needsAttention": "Needs Attention",
       "previousSection": "Previous Section",
       "nextSection": "Next Section",
       "saveDraft": "Save Draft",

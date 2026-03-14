@@ -22,14 +22,19 @@ export default async function AdminEventsPage() {
         title={t("pages.events.title")}
         description={t("pages.events.description")}
         primaryAction={
-          <Link href="/admin/events/new" className="btn-primary inline-flex">
-            {t("actions.createEvent")}
+          <Link href="/admin/events/templates" className="btn-primary inline-flex">
+            Template Library
           </Link>
         }
         secondaryActions={
-          <Link href="/admin/events/new" className="btn-secondary inline-flex">
-            {t("actions.manageTemplates")}
-          </Link>
+          <>
+            <Link href="/admin/events/new" className="btn-secondary inline-flex">
+              {t("actions.createEvent")}
+            </Link>
+            <Link href="/admin/events/templates/new" className="btn-secondary inline-flex">
+              Create Template
+            </Link>
+          </>
         }
       />
 

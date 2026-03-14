@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { EventMode, FormFieldScope, FormFieldType } from "@prisma/client";
+import { EventMode, EventTemplateCategory, EventTemplateSource, FormFieldScope, FormFieldType } from "@prisma/client";
 
 import {
   buildEventTemplateSnapshot,
@@ -148,9 +148,14 @@ test("event template snapshot parsing validates stored template payloads", () =>
 test("event template drafts serialize persisted template rows for the create wizard", () => {
   const draft = serializeEventTemplateDraft({
     id: "template-1",
+    templateKey: null,
     name: "Template A",
     description: "Shared setup",
+    eventMode: EventMode.CLUB_REGISTRATION,
+    category: EventTemplateCategory.BASIC_EVENTS,
+    source: EventTemplateSource.USER,
     isActive: true,
+    archivedAt: null,
     updatedAt: new Date("2026-03-13T09:00:00.000Z"),
     snapshot: {
       eventMode: EventMode.CLUB_REGISTRATION,
@@ -172,5 +177,7 @@ test("event template drafts serialize persisted template rows for the create wiz
   assert.equal(draft.id, "template-1");
   assert.equal(draft.isActive, true);
   assert.equal(draft.snapshot.eventMode, EventMode.CLUB_REGISTRATION);
+  assert.equal(draft.category, EventTemplateCategory.BASIC_EVENTS);
+  assert.equal(draft.source, EventTemplateSource.USER);
   assert.equal(draft.snapshot.name, "Event Defaults");
 });

@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { EventMode, FormFieldScope, FormFieldType, UserRole } from "@prisma/client";
+import { EventMode, EventTemplateCategory, EventTemplateSource, FormFieldScope, FormFieldType, UserRole } from "@prisma/client";
 
 import { createEventFromInput } from "../lib/data/event-admin";
 import { buildStoredEventFieldOptions } from "../lib/event-form-config";
@@ -72,6 +72,9 @@ test("events created from a stored template snapshot reuse the existing event an
     data: {
       name: "Camporee Template",
       description: "Reusable event setup",
+      eventMode: EventMode.CLASS_ASSIGNMENT,
+      category: EventTemplateCategory.CLASS_ASSIGNMENT,
+      source: EventTemplateSource.USER,
       isActive: true,
       snapshot: templateSnapshot,
       createdByUserId: admin.id,

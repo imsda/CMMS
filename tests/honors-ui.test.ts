@@ -19,7 +19,7 @@ test("attendee filters support search and assignment status", () => {
       memberRole: MemberRole.PATHFINDER,
       masterGuide: false,
       completedHonorCodes: [],
-      enrolledOfferingIds: [],
+      enrolledAssignments: [],
     },
     {
       id: "a2",
@@ -29,7 +29,7 @@ test("attendee filters support search and assignment status", () => {
       memberRole: MemberRole.TLT,
       masterGuide: false,
       completedHonorCodes: [],
-      enrolledOfferingIds: ["off-1"],
+      enrolledAssignments: [{ offeringId: "off-1", timeslotId: "slot-1" }],
     },
   ];
 
@@ -44,6 +44,8 @@ test("offering filters support search and availability state", () => {
       id: "off-1",
       title: "Camping Skills",
       code: "HON-CAMP",
+      timeslotId: "slot-1",
+      timeslotLabel: "Sabbath Afternoon",
       location: null,
       capacity: 10,
       enrolledCount: 10,
@@ -53,6 +55,8 @@ test("offering filters support search and availability state", () => {
       id: "off-2",
       title: "First Aid",
       code: "HON-AID",
+      timeslotId: "slot-2",
+      timeslotLabel: "Sunday Morning",
       location: null,
       capacity: 10,
       enrolledCount: 4,
@@ -75,7 +79,7 @@ test("bulk selection helpers keep assignable and removable honors actions separa
       memberRole: MemberRole.PATHFINDER,
       masterGuide: false,
       completedHonorCodes: [],
-      enrolledOfferingIds: [],
+      enrolledAssignments: [],
     },
     {
       id: "a2",
@@ -85,7 +89,7 @@ test("bulk selection helpers keep assignable and removable honors actions separa
       memberRole: MemberRole.PATHFINDER,
       masterGuide: false,
       completedHonorCodes: [],
-      enrolledOfferingIds: ["off-other"],
+      enrolledAssignments: [{ offeringId: "off-other", timeslotId: "slot-1" }],
     },
     {
       id: "a3",
@@ -95,7 +99,7 @@ test("bulk selection helpers keep assignable and removable honors actions separa
       memberRole: MemberRole.PATHFINDER,
       masterGuide: false,
       completedHonorCodes: [],
-      enrolledOfferingIds: ["off-1"],
+      enrolledAssignments: [{ offeringId: "off-1", timeslotId: "slot-1" }],
     },
   ];
 
@@ -103,6 +107,8 @@ test("bulk selection helpers keep assignable and removable honors actions separa
     id: "off-1",
     title: "First Aid",
     code: "HON-AID",
+    timeslotId: "slot-1",
+    timeslotLabel: "Sabbath Afternoon",
     location: null,
     capacity: 10,
     enrolledCount: 3,

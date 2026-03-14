@@ -14,7 +14,6 @@ import {
   bootstrapRegistrationResponses,
   getVisibleRegistrationFields,
   serializeRegistrationResponses,
-  validateRequiredRegistrationResponses,
 } from "../../../../../lib/event-form-responses";
 import { isEventFieldVisible, readEventFieldConfig } from "../../../../../lib/event-form-config";
 
@@ -45,6 +44,7 @@ type ExistingResponse = {
 
 type RegistrationFormFulfillerProps = {
   eventId: string;
+  eventName: string;
   eventMode: EventMode;
   managedClubId: string | null;
   attendees: Attendee[];
@@ -54,6 +54,9 @@ type RegistrationFormFulfillerProps = {
   registrationStatus: string | null;
   canEditRegistration: boolean;
   registrationNotice: string | null;
+  pricePerAttendee: number;
+  classesHref: string | null;
+  classAssignmentCoveredAttendeeIds: string[];
 };
 
 type RegistrationSection = {
@@ -61,7 +64,14 @@ type RegistrationSection = {
   title: string;
   description: string;
   fields: DynamicField[];
-  kind: "roster" | "club" | "group";
+  kind: "roster" | "club" | "group" | "review";
+};
+
+type ValidationIssue = {
+  scope: "roster" | "club" | "group" | "review";
+  sectionId: string;
+  label: string;
+  detail: string;
 };
 
 function attendeeName(attendee: Attendee) {
@@ -76,6 +86,22 @@ function parseDateInputValue(value: unknown) {
   return typeof value === "string" ? value : "";
 }
 
+function hasResponseValue(value: unknown) {
+  if (value === null || typeof value === "undefined") {
+    return false;
+  }
+
+  if (typeof value === "string") {
+    return value.trim().length > 0;
+  }
+
+  if (Array.isArray(value)) {
+    return value.length > 0;
+  }
+
+  return true;
+}
+
 const INITIAL_ACTION_STATE: RegistrationActionState = {
   status: "idle",
   message: null,
@@ -83,6 +109,7 @@ const INITIAL_ACTION_STATE: RegistrationActionState = {
 
 export function RegistrationFormFulfiller({
   eventId,
+  eventName,
   eventMode,
   managedClubId,
   attendees,
@@ -92,16 +119,20 @@ export function RegistrationFormFulfiller({
   registrationStatus,
   canEditRegistration,
   registrationNotice,
+  pricePerAttendee,
+  classesHref,
+  classAssignmentCoveredAttendeeIds,
 }: RegistrationFormFulfillerProps) {
   const t = useTranslations("Director");
   const [selectedAttendeeIds, setSelectedAttendeeIds] = useState<string[]>(initialSelectedAttendeeIds);
   const [responseState, setResponseState] = useState(() => bootstrapRegistrationResponses(initialResponses));
   const [draftState, draftAction] = useFormState(saveEventRegistrationDraft, INITIAL_ACTION_STATE);
   const [submitState, submitAction] = useFormState(submitEventRegistration, INITIAL_ACTION_STATE);
-  const [clientValidationMessage, setClientValidationMessage] = useState<string | null>(null);
+  const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
   const [currentSectionId, setCurrentSectionId] = useState<string>("roster");
 
   const selectedAttendeeSet = useMemo(() => new Set(selectedAttendeeIds), [selectedAttendeeIds]);
+  const classAssignmentCoverageSet = useMemo(() => new Set(classAssignmentCoveredAttendeeIds), [classAssignmentCoveredAttendeeIds]);
   const attendeeById = useMemo(
     () => Object.fromEntries(attendees.map((attendee) => [attendee.id, attendee])),
     [attendees],
@@ -177,20 +208,36 @@ export function RegistrationFormFulfiller({
       });
     }
 
+    nextSections.push({
+      id: "review",
+      title: t("registrationForm.reviewTitle"),
+      description: t("registrationForm.reviewDescription"),
+      fields: [],
+      kind: "review",
+    });
+
     return nextSections;
   }, [dynamicFields, eventMode, responsesByFieldKey, t, visibleFields]);
 
   useEffect(() => {
     if (!sections.some((section) => section.id === currentSectionId)) {
-      setCurrentSectionId(sections[0]?.id ?? "roster");
+      setCurrentSectionId(sections[0]?.id ?? "review");
     }
   }, [currentSectionId, sections]);
 
-  const currentSectionIndex = Math.max(
-    sections.findIndex((section) => section.id === currentSectionId),
-    0,
-  );
+  const currentSectionIndex = Math.max(sections.findIndex((section) => section.id === currentSectionId), 0);
   const currentSection = sections[currentSectionIndex] ?? sections[0];
+  const progressPercent = sections.length > 1 ? Math.round(((currentSectionIndex + 1) / sections.length) * 100) : 100;
+  const selectedAttendees = selectedAttendeeIds.map((attendeeId) => attendeeById[attendeeId]).filter(Boolean);
+  const estimatedTotal = selectedAttendeeIds.length * pricePerAttendee;
+
+  const classAssignmentIssues = useMemo(() => {
+    if (eventMode !== EventMode.CLASS_ASSIGNMENT) {
+      return [];
+    }
+
+    return selectedAttendees.filter((attendee) => !classAssignmentCoverageSet.has(attendee.id));
+  }, [classAssignmentCoverageSet, eventMode, selectedAttendees]);
 
   const payload = useMemo(() => {
     return JSON.stringify(
@@ -202,6 +249,13 @@ export function RegistrationFormFulfiller({
       }),
     );
   }, [responseState.attendeeResponses, responseState.globalResponses, selectedAttendeeIds, visibleFields]);
+
+  const issuesBySectionId = useMemo(() => {
+    return validationIssues.reduce<Record<string, number>>((accumulator, issue) => {
+      accumulator[issue.sectionId] = (accumulator[issue.sectionId] ?? 0) + 1;
+      return accumulator;
+    }, {});
+  }, [validationIssues]);
 
   function toggleAttendee(attendeeId: string, checked: boolean) {
     if (eventMode === EventMode.BASIC_FORM) {
@@ -240,13 +294,68 @@ export function RegistrationFormFulfiller({
     }));
   }
 
-  function validateBeforeSubmit() {
-    return validateRequiredRegistrationResponses({
-      fields: visibleFields,
-      selectedAttendeeIds,
-      globalResponses: responseState.globalResponses,
-      attendeeResponses: responseState.attendeeResponses,
-    });
+  function buildValidationIssues() {
+    const issues: ValidationIssue[] = [];
+
+    if (eventMode !== EventMode.BASIC_FORM && selectedAttendeeIds.length === 0) {
+      issues.push({
+        scope: "roster",
+        sectionId: "roster",
+        label: t("registrationForm.rosterTitle"),
+        detail: t("registrationForm.missingAttendeeSelection"),
+      });
+    }
+
+    for (const field of visibleFields) {
+      if (!field.isRequired) {
+        continue;
+      }
+
+      if (field.fieldScope === FormFieldScope.ATTENDEE) {
+        for (const attendeeId of selectedAttendeeIds) {
+          const value = responseState.attendeeResponses[attendeeId]?.[field.id];
+          if (!hasResponseValue(value)) {
+            const attendee = attendeeById[attendeeId];
+            issues.push({
+              scope: "group",
+              sectionId: field.parentFieldId ?? "club-questions",
+              label: field.label,
+              detail: t("registrationForm.missingAttendeeField", {
+                field: field.label,
+                attendee: attendee ? attendeeName(attendee) : attendeeId,
+              }),
+            });
+          }
+        }
+        continue;
+      }
+
+      if (!hasResponseValue(responseState.globalResponses[field.id])) {
+        issues.push({
+          scope: field.parentFieldId ? "group" : "club",
+          sectionId: field.parentFieldId ?? "club-questions",
+          label: field.label,
+          detail: t("registrationForm.missingField", { field: field.label }),
+        });
+      }
+    }
+
+    if (eventMode === EventMode.CLASS_ASSIGNMENT && classAssignmentIssues.length > 0) {
+      issues.push({
+        scope: "review",
+        sectionId: "review",
+        label: t("registrationForm.classAssignmentIssuesTitle"),
+        detail: t("registrationForm.classAssignmentIssuesSummary", { count: classAssignmentIssues.length }),
+      });
+    }
+
+    return issues;
+  }
+
+  function openReviewStep() {
+    const nextIssues = buildValidationIssues();
+    setValidationIssues(nextIssues);
+    setCurrentSectionId("review");
   }
 
   function renderRosterSelect(
@@ -441,9 +550,7 @@ export function RegistrationFormFulfiller({
         </div>
         {isAttendeeScoped ? (
           selectedAttendeeIds.length === 0 ? (
-            <p className="glass-card-soft text-xs text-slate-500">
-              {t("registrationForm.selectAttendeeFirst")}
-            </p>
+            <p className="glass-card-soft text-xs text-slate-500">{t("registrationForm.selectAttendeeFirst")}</p>
           ) : (
             <div className="space-y-3">
               {selectedAttendeeIds.map((attendeeId) => {
@@ -468,6 +575,138 @@ export function RegistrationFormFulfiller({
     );
   }
 
+  function renderReviewPanel() {
+    return (
+      <article className="glass-panel space-y-6">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="section-title">{t("registrationForm.reviewTitle")}</h2>
+            <p className="section-copy">{t("registrationForm.reviewDescription")}</p>
+          </div>
+          <span className="status-chip-neutral">{t("registrationForm.reviewBadge", { count: validationIssues.length })}</span>
+        </div>
+
+        {validationIssues.length > 0 ? (
+          <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4">
+            <h3 className="text-sm font-semibold text-rose-900">{t("registrationForm.validationSummaryTitle")}</h3>
+            <ul className="mt-3 space-y-2 text-sm text-rose-800">
+              {validationIssues.map((issue, index) => (
+                <li key={`${issue.sectionId}-${index}`} className="rounded-xl bg-white/70 px-3 py-2">
+                  {issue.detail}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">
+            <p className="font-semibold">{t("registrationForm.reviewReadyTitle")}</p>
+            <p className="mt-1">{t("registrationForm.reviewReadyDescription")}</p>
+          </div>
+        )}
+
+        <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+                  {t("registrationForm.attendeeSummaryTitle")}
+                </h3>
+                <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-slate-700">
+                  {t("common.selected", { count: selectedAttendeeIds.length })}
+                </span>
+              </div>
+              {selectedAttendees.length === 0 ? (
+                <p className="mt-3 text-sm text-slate-600">{t("registrationForm.attendeeSummaryEmpty")}</p>
+              ) : (
+                <ul className="mt-3 grid gap-2 md:grid-cols-2">
+                  {selectedAttendees.map((attendee) => (
+                    <li key={`summary-${attendee.id}`} className="rounded-xl bg-white px-3 py-3 text-sm text-slate-700">
+                      <p className="font-semibold text-slate-900">{attendeeName(attendee)}</p>
+                      <p className="mt-1 text-xs text-slate-500">{attendee.memberRole}</p>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+
+            {eventMode === EventMode.CLASS_ASSIGNMENT ? (
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <h3 className="text-sm font-semibold uppercase tracking-wide text-amber-800">
+                    {t("registrationForm.classAssignmentIssuesTitle")}
+                  </h3>
+                  {classesHref ? (
+                    <a href={classesHref} className="text-xs font-semibold text-amber-900 underline underline-offset-2">
+                      {t("registrationForm.openClassAssignments")}
+                    </a>
+                  ) : null}
+                </div>
+                {classAssignmentIssues.length === 0 ? (
+                  <p className="mt-3 text-sm text-amber-900">{t("registrationForm.classAssignmentIssuesClear")}</p>
+                ) : (
+                  <>
+                    <p className="mt-3 text-sm text-amber-900">{t("registrationForm.classAssignmentIssuesSummary", { count: classAssignmentIssues.length })}</p>
+                    <ul className="mt-3 space-y-2 text-sm text-amber-900">
+                      {classAssignmentIssues.map((attendee) => (
+                        <li key={`class-issue-${attendee.id}`} className="rounded-xl bg-white/70 px-3 py-2">
+                          {attendeeName(attendee)}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+            ) : null}
+          </div>
+
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+                {t("registrationForm.pricingSummaryTitle")}
+              </h3>
+              <dl className="mt-3 space-y-3 text-sm text-slate-700">
+                <div className="flex items-center justify-between gap-3">
+                  <dt>{t("registrationForm.pricingPerAttendee")}</dt>
+                  <dd className="font-semibold text-slate-900">
+                    {new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(pricePerAttendee)}
+                  </dd>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <dt>{t("registrationForm.pricingAttendeeCount")}</dt>
+                  <dd className="font-semibold text-slate-900">{selectedAttendeeIds.length}</dd>
+                </div>
+                <div className="flex items-center justify-between gap-3 border-t border-slate-200 pt-3">
+                  <dt className="font-semibold text-slate-900">{t("registrationForm.pricingEstimatedTotal")}</dt>
+                  <dd className="text-lg font-semibold text-slate-900">
+                    {new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(estimatedTotal)}
+                  </dd>
+                </div>
+              </dl>
+            </div>
+
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+                {t("registrationForm.reviewChecklistTitle")}
+              </h3>
+              <ul className="mt-3 space-y-2 text-sm text-slate-700">
+                {sections
+                  .filter((section) => section.kind !== "review")
+                  .map((section) => (
+                    <li key={`check-${section.id}`} className="flex items-center justify-between gap-3 rounded-xl bg-white px-3 py-2">
+                      <span>{section.title}</span>
+                      <span className={`rounded-full px-2.5 py-1 text-[0.7rem] font-semibold ${issuesBySectionId[section.id] ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}>
+                        {issuesBySectionId[section.id] ? t("registrationForm.needsAttention") : t("registrationForm.ready")}
+                      </span>
+                    </li>
+                  ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </article>
+    );
+  }
+
   return (
     <form className="space-y-6">
       <input type="hidden" name="eventId" value={eventId} readOnly />
@@ -477,41 +716,60 @@ export function RegistrationFormFulfiller({
       {registrationNotice ? <p className="alert-warning">{registrationNotice}</p> : null}
 
       <fieldset disabled={!canEditRegistration} className="space-y-6 disabled:opacity-70">
-        <article className="glass-panel space-y-4">
+        <article className="glass-panel space-y-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2 className="section-title">{t("registrationForm.modules")}</h2>
-              <p className="section-copy">
-                {t("registrationForm.modulesDescription")}
-              </p>
+              <p className="hero-kicker">{t("registrationForm.modules")}</p>
+              <h2 className="section-title mt-2">{eventName}</h2>
+              <p className="section-copy">{t("registrationForm.modulesDescription")}</p>
             </div>
-            <span className="status-chip-neutral">
-              {t("registrationForm.step", { current: currentSectionIndex + 1, total: sections.length })}
-            </span>
+            <div className="min-w-[12rem] space-y-2">
+              <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-500">
+                <span>{t("registrationForm.progressTitle")}</span>
+                <span>{t("registrationForm.step", { current: currentSectionIndex + 1, total: sections.length })}</span>
+              </div>
+              <div className="h-2 rounded-full bg-slate-200">
+                <div className="h-2 rounded-full bg-indigo-600 transition-all" style={{ width: `${progressPercent}%` }} />
+              </div>
+            </div>
           </div>
 
-          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-5">
             {sections.map((section, index) => {
               const isActive = section.id === currentSection?.id;
+              const issueCount = issuesBySectionId[section.id] ?? 0;
+              const isComplete = section.kind === "review"
+                ? validationIssues.length === 0
+                : issueCount === 0 && (section.kind !== "roster" || eventMode === EventMode.BASIC_FORM || selectedAttendeeIds.length > 0);
+
               return (
                 <button
                   key={section.id}
                   type="button"
                   onClick={() => setCurrentSectionId(section.id)}
-                  className={`rounded-xl border px-4 py-3 text-left transition ${
+                  className={`rounded-2xl border px-4 py-3 text-left transition ${
                     isActive
                       ? "border-indigo-300 bg-indigo-50"
                       : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50"
                   }`}
                 >
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    {t("registrationForm.module", { index: index + 1 })}
-                  </p>
-                  <p className="mt-1 text-sm font-semibold text-slate-900">{section.title}</p>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        {section.kind === "review" ? t("registrationForm.reviewStepLabel") : t("registrationForm.module", { index: index + 1 })}
+                      </p>
+                      <p className="mt-1 text-sm font-semibold text-slate-900">{section.title}</p>
+                    </div>
+                    <span className={`rounded-full px-2.5 py-1 text-[0.68rem] font-semibold ${issueCount > 0 ? "bg-rose-100 text-rose-700" : isComplete ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-600"}`}>
+                      {issueCount > 0 ? t("registrationForm.issueCount", { count: issueCount }) : isComplete ? t("registrationForm.ready") : t("registrationForm.inProgress")}
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-slate-500">
                     {section.kind === "roster"
                       ? t("common.selected", { count: selectedAttendeeIds.length })
-                      : t("registrationForm.activePrompts", { count: section.fields.length })}
+                      : section.kind === "review"
+                        ? t("registrationForm.reviewCardDescription")
+                        : t("registrationForm.activePrompts", { count: section.fields.length })}
                   </p>
                 </button>
               );
@@ -545,6 +803,8 @@ export function RegistrationFormFulfiller({
               ))}
             </div>
           </article>
+        ) : currentSection?.kind === "review" ? (
+          renderReviewPanel()
         ) : currentSection ? (
           <article className="glass-panel space-y-4">
             <div className="flex flex-wrap items-start justify-between gap-4">
@@ -566,63 +826,68 @@ export function RegistrationFormFulfiller({
 
       <div className="sticky-action-bar flex flex-wrap items-center justify-between gap-4 px-5 py-4">
         <div className="space-y-1">
-          {clientValidationMessage ? <p className="text-xs font-medium text-rose-700">{clientValidationMessage}</p> : null}
+          {validationIssues.length > 0 ? <p className="text-xs font-medium text-rose-700">{t("registrationForm.validationSummaryShort", { count: validationIssues.length })}</p> : null}
           <p className="text-xs text-slate-500">
             {t("registrationForm.currentStatus", {
               status: registrationStatus ?? t("common.notStarted"),
             })}
           </p>
-          {draftState.status === "error" && draftState.message ? (
-            <p className="text-xs font-medium text-rose-700">{draftState.message}</p>
-          ) : null}
-          {submitState.status === "error" && submitState.message ? (
-            <p className="text-xs font-medium text-rose-700">{submitState.message}</p>
-          ) : null}
-          {draftState.status === "success" && draftState.message ? (
-            <p className="text-xs font-medium text-emerald-700">{draftState.message}</p>
-          ) : null}
-          {submitState.status === "success" && submitState.message ? (
-            <p className="text-xs font-medium text-emerald-700">{submitState.message}</p>
-          ) : null}
+          {draftState.status === "error" && draftState.message ? <p className="text-xs font-medium text-rose-700">{draftState.message}</p> : null}
+          {submitState.status === "error" && submitState.message ? <p className="text-xs font-medium text-rose-700">{submitState.message}</p> : null}
+          {draftState.status === "success" && draftState.message ? <p className="text-xs font-medium text-emerald-700">{draftState.message}</p> : null}
+          {submitState.status === "success" && submitState.message ? <p className="text-xs font-medium text-emerald-700">{submitState.message}</p> : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => setCurrentSectionId(sections[Math.max(currentSectionIndex - 1, 0)]?.id ?? "roster")}
+            onClick={() => setCurrentSectionId(sections[Math.max(currentSectionIndex - 1, 0)]?.id ?? "review")}
             disabled={currentSectionIndex === 0}
             className="btn-secondary"
           >
             {t("registrationForm.previousSection")}
           </button>
-          <button
-            type="button"
-            onClick={() =>
-              setCurrentSectionId(sections[Math.min(currentSectionIndex + 1, sections.length - 1)]?.id ?? "roster")
-            }
-            disabled={currentSectionIndex >= sections.length - 1}
-            className="btn-secondary"
-          >
-            {t("registrationForm.nextSection")}
-          </button>
+          {currentSection?.id !== "review" ? (
+            <button
+              type="button"
+              onClick={() => {
+                const nextSection = sections[Math.min(currentSectionIndex + 1, sections.length - 1)];
+                if (nextSection?.id === "review") {
+                  openReviewStep();
+                  return;
+                }
+
+                setCurrentSectionId(nextSection?.id ?? "review");
+              }}
+              className="btn-secondary"
+            >
+              {t("registrationForm.nextSection")}
+            </button>
+          ) : null}
           <button formAction={draftAction} type="submit" disabled={!canEditRegistration} className="btn-secondary">
             {t("registrationForm.saveDraft")}
           </button>
-          <button
-            formAction={submitAction}
-            type="submit"
-            disabled={!canEditRegistration}
-            onClick={(event) => {
-              const validationMessage = validateBeforeSubmit();
-              setClientValidationMessage(validationMessage);
+          {currentSection?.id !== "review" ? (
+            <button type="button" onClick={openReviewStep} className="btn-primary">
+              {t("registrationForm.continueToReview")}
+            </button>
+          ) : (
+            <button
+              formAction={submitAction}
+              type="submit"
+              disabled={!canEditRegistration}
+              onClick={(event) => {
+                const nextIssues = buildValidationIssues();
+                setValidationIssues(nextIssues);
 
-              if (validationMessage) {
-                event.preventDefault();
-              }
-            }}
-            className="btn-primary"
-          >
-            {t("registrationForm.submitRegistration")}
-          </button>
+                if (nextIssues.length > 0) {
+                  event.preventDefault();
+                }
+              }}
+              className="btn-primary"
+            >
+              {t("registrationForm.submitRegistration")}
+            </button>
+          )}
         </div>
       </div>
     </form>

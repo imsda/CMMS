@@ -62,8 +62,16 @@ export default async function TeacherDashboardPage() {
           code: true,
         },
       },
+      timeslot: {
+        select: {
+          label: true,
+          startsAt: true,
+          endsAt: true,
+        },
+      },
+      locationName: true,
     },
-    orderBy: [{ event: { startsAt: "asc" } }, { classCatalog: { title: "asc" } }],
+    orderBy: [{ event: { startsAt: "asc" } }, { timeslot: { sortOrder: "asc" } }, { classCatalog: { title: "asc" } }],
   });
 
   return (
@@ -107,7 +115,12 @@ export default async function TeacherDashboardPage() {
                     <p className="text-sm text-slate-600">
                       {formatDateRange(offering.event.startsAt, offering.event.endsAt)}
                     </p>
-                    <p className="text-sm text-slate-500">{offering.event.locationName ?? "Location TBD"}</p>
+                    <p className="text-sm text-slate-500">
+                      {offering.timeslot
+                        ? `${offering.timeslot.label} • ${formatDateRange(offering.timeslot.startsAt, offering.timeslot.endsAt)}`
+                        : "Timeslot TBD"}
+                    </p>
+                    <p className="text-sm text-slate-500">{offering.locationName ?? offering.event.locationName ?? "Location TBD"}</p>
                   </div>
 
                   <div className="text-right">

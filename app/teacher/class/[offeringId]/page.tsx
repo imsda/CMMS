@@ -54,6 +54,14 @@ export default async function TeacherClassRosterPage({
           locationName: true,
         },
       },
+      timeslot: {
+        select: {
+          label: true,
+          startsAt: true,
+          endsAt: true,
+        },
+      },
+      locationName: true,
       _count: {
         select: {
           enrollments: true,
@@ -114,7 +122,12 @@ export default async function TeacherClassRosterPage({
         <p className="text-sm text-slate-600">
           {formatDateRange(offering.event.startsAt, offering.event.endsAt)}
         </p>
-        <p className="text-sm text-slate-500">{offering.event.locationName ?? "Location TBD"}</p>
+        <p className="text-sm text-slate-500">
+          {offering.timeslot
+            ? `${offering.timeslot.label} • ${formatDateRange(offering.timeslot.startsAt, offering.timeslot.endsAt)}`
+            : "Timeslot TBD"}
+        </p>
+        <p className="text-sm text-slate-500">{offering.locationName ?? offering.event.locationName ?? "Location TBD"}</p>
       </header>
 
       <article className="glass-card">

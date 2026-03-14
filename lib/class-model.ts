@@ -1,9 +1,11 @@
-export const CLASS_ASSIGNMENT_POLICY = "One class enrollment per attendee per event.";
+export const CLASS_ASSIGNMENT_POLICY = "One class enrollment per attendee per timeslot.";
 
 export type EnrollmentConflictCandidate = {
   eventClassOfferingId: string;
   classTitle: string;
   classCode: string;
+  timeslotId: string | null;
+  timeslotLabel: string | null;
 };
 
 export function getSeatsLeft(capacity: number | null, enrolledCount: number) {
@@ -22,14 +24,23 @@ export function isOfferingFull(capacity: number | null, enrolledCount: number) {
 export function findEventEnrollmentConflict(
   existingEnrollments: EnrollmentConflictCandidate[],
   targetOfferingId: string,
+  targetTimeslotId: string | null,
 ) {
   return existingEnrollments.find(
-    (enrollment) => enrollment.eventClassOfferingId !== targetOfferingId,
+    (enrollment) =>
+      enrollment.eventClassOfferingId !== targetOfferingId &&
+      (enrollment.timeslotId === null ||
+        targetTimeslotId === null ||
+        enrollment.timeslotId === targetTimeslotId),
   ) ?? null;
 }
 
 export function formatEnrollmentConflictMessage(conflict: EnrollmentConflictCandidate) {
-  return `Attendee is already assigned to ${conflict.classTitle} (${conflict.classCode}). Remove that enrollment before assigning another class.`;
+  if (conflict.timeslotLabel) {
+    return `Attendee is already assigned to ${conflict.classTitle} (${conflict.classCode}) during ${conflict.timeslotLabel}. Remove that enrollment before assigning another class in the same timeslot.`;
+  }
+
+  return `Attendee is already assigned to ${conflict.classTitle} (${conflict.classCode}). Remove that enrollment before assigning another class in the same timeslot.`;
 }
 
 export function buildClassAttendanceUpdate(attended: boolean, now = new Date()) {

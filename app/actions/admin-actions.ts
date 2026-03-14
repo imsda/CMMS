@@ -60,6 +60,17 @@ function parseOptionalNonNegativeInt(value: FormDataEntryValue | null, label: st
   return parsed;
 }
 
+function parseRequiredDateTime(value: FormDataEntryValue | null, label: string) {
+  const raw = requireTrimmedString(value, label);
+  const parsed = new Date(raw);
+
+  if (Number.isNaN(parsed.getTime())) {
+    throw new Error(`${label} must be a valid date/time.`);
+  }
+
+  return parsed;
+}
+
 function redirectEventClassOfferingAction(
   eventId: string,
   status: "success" | "error",
@@ -783,16 +794,22 @@ export async function createEventClassOfferingAction(formData: FormData) {
 
   const eventId = requireTrimmedString(formData.get("eventId"), "Event");
   const classCatalogId = requireTrimmedString(formData.get("classCatalogId"), "Catalog item");
+  const timeslotId = optionalTrimmedString(formData.get("timeslotId"));
   const teacherUserId = optionalTrimmedString(formData.get("teacherUserId"));
   const capacity = parseOptionalNonNegativeInt(formData.get("capacity"), "Capacity");
+  const locationName = optionalTrimmedString(formData.get("locationName"));
+  const active = formData.get("active") !== "off";
 
   try {
     await prisma.eventClassOffering.create({
       data: {
         eventId,
+        timeslotId,
         classCatalogId,
         teacherUserId,
         capacity,
+        locationName,
+        active,
       },
     });
 
@@ -827,8 +844,11 @@ export async function updateEventClassOfferingAction(formData: FormData) {
 
   const eventId = requireTrimmedString(formData.get("eventId"), "Event");
   const offeringId = requireTrimmedString(formData.get("offeringId"), "Offering");
+  const timeslotId = optionalTrimmedString(formData.get("timeslotId"));
   const teacherUserId = optionalTrimmedString(formData.get("teacherUserId"));
   const capacity = parseOptionalNonNegativeInt(formData.get("capacity"), "Capacity");
+  const locationName = optionalTrimmedString(formData.get("locationName"));
+  const active = formData.get("active") !== "off";
 
   try {
     const offering = await prisma.eventClassOffering.findUnique({
@@ -862,8 +882,11 @@ export async function updateEventClassOfferingAction(formData: FormData) {
         id: offeringId,
       },
       data: {
+        timeslotId,
         teacherUserId,
         capacity,
+        locationName,
+        active,
       },
     });
 
@@ -884,6 +907,231 @@ export async function updateEventClassOfferingAction(formData: FormData) {
   }
 }
 
+export async function createEventClassTimeslotAction(formData: FormData) {
+  const session = await auth();
+  ensureSuperAdmin(session);
+
+  const eventId = requireTrimmedString(formData.get("eventId"), "Event");
+  const label = requireTrimmedString(formData.get("label"), "Timeslot label");
+  const startsAt = parseRequiredDateTime(formData.get("startsAt"), "Start time");
+  const endsAt = parseRequiredDateTime(formData.get("endsAt"), "End time");
+  const sortOrder = parseOptionalNonNegativeInt(formData.get("sortOrder"), "Sort order") ?? 0;
+  const active = formData.get("active") !== "off";
+
+  if (endsAt <= startsAt) {
+    redirectEventClassOfferingAction(eventId, "error", "Timeslot end time must be after start time.");
+  }
+
+  try {
+    await prisma.eventClassTimeslot.create({
+      data: {
+        eventId,
+        label,
+        startsAt,
+        endsAt,
+        sortOrder,
+        active,
+      },
+    });
+
+    revalidatePath(`/admin/events/${eventId}/classes`);
+    redirectEventClassOfferingAction(eventId, "success", "Class timeslot created.");
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code?: string }).code === "P2002"
+    ) {
+      redirectEventClassOfferingAction(eventId, "error", "That timeslot label already exists for this event.");
+    }
+
+    const message = error instanceof Error ? error.message : "Unable to create class timeslot.";
+    redirectEventClassOfferingAction(eventId, "error", message);
+  }
+}
+
+export async function updateEventClassTimeslotAction(formData: FormData) {
+  const session = await auth();
+  ensureSuperAdmin(session);
+
+  const eventId = requireTrimmedString(formData.get("eventId"), "Event");
+  const timeslotId = requireTrimmedString(formData.get("timeslotId"), "Timeslot");
+  const label = requireTrimmedString(formData.get("label"), "Timeslot label");
+  const startsAt = parseRequiredDateTime(formData.get("startsAt"), "Start time");
+  const endsAt = parseRequiredDateTime(formData.get("endsAt"), "End time");
+  const sortOrder = parseOptionalNonNegativeInt(formData.get("sortOrder"), "Sort order") ?? 0;
+  const active = formData.get("active") !== "off";
+
+  if (endsAt <= startsAt) {
+    redirectEventClassOfferingAction(eventId, "error", "Timeslot end time must be after start time.");
+  }
+
+  try {
+    await prisma.eventClassTimeslot.update({
+      where: {
+        id: timeslotId,
+      },
+      data: {
+        label,
+        startsAt,
+        endsAt,
+        sortOrder,
+        active,
+      },
+    });
+
+    revalidatePath(`/admin/events/${eventId}/classes`);
+    revalidatePath(`/director/events/${eventId}/classes`);
+    redirectEventClassOfferingAction(eventId, "success", "Class timeslot updated.");
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    const message = error instanceof Error ? error.message : "Unable to update class timeslot.";
+    redirectEventClassOfferingAction(eventId, "error", message);
+  }
+}
+
+export async function removeEventClassTimeslotAction(formData: FormData) {
+  const session = await auth();
+  ensureSuperAdmin(session);
+
+  const eventId = requireTrimmedString(formData.get("eventId"), "Event");
+  const timeslotId = requireTrimmedString(formData.get("timeslotId"), "Timeslot");
+
+  try {
+    const [offeringCount, preferenceCount, waitlistCount] = await Promise.all([
+      prisma.eventClassOffering.count({
+        where: {
+          timeslotId,
+        },
+      }),
+      prisma.eventClassPreference.count({
+        where: {
+          timeslotId,
+        },
+      }),
+      prisma.eventClassWaitlist.count({
+        where: {
+          timeslotId,
+        },
+      }),
+    ]);
+
+    if (offeringCount > 0 || preferenceCount > 0 || waitlistCount > 0) {
+      redirectEventClassOfferingAction(
+        eventId,
+        "error",
+        "Cannot remove a timeslot with offerings, saved preferences, or waitlist entries. Move or clear them first.",
+      );
+    }
+
+    await prisma.eventClassTimeslot.delete({
+      where: {
+        id: timeslotId,
+      },
+    });
+
+    revalidatePath(`/admin/events/${eventId}/classes`);
+    redirectEventClassOfferingAction(eventId, "success", "Class timeslot removed.");
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    const message = error instanceof Error ? error.message : "Unable to remove class timeslot.";
+    redirectEventClassOfferingAction(eventId, "error", message);
+  }
+}
+
+export async function migrateLegacyEventClassOfferingsAction(formData: FormData) {
+  const session = await auth();
+  ensureSuperAdmin(session);
+
+  const eventId = requireTrimmedString(formData.get("eventId"), "Event");
+  const label = requireTrimmedString(formData.get("label"), "Timeslot label");
+  const startsAt = parseRequiredDateTime(formData.get("startsAt"), "Start time");
+  const endsAt = parseRequiredDateTime(formData.get("endsAt"), "End time");
+
+  if (endsAt <= startsAt) {
+    redirectEventClassOfferingAction(eventId, "error", "Timeslot end time must be after start time.");
+  }
+
+  try {
+    const legacyOfferingCount = await prisma.eventClassOffering.count({
+      where: {
+        eventId,
+        timeslotId: null,
+      },
+    });
+
+    if (legacyOfferingCount === 0) {
+      redirectEventClassOfferingAction(eventId, "error", "There are no legacy offerings left to migrate.");
+    }
+
+    await prisma.$transaction(async (tx) => {
+      const sortOrderAggregate = await tx.eventClassTimeslot.aggregate({
+        where: {
+          eventId,
+        },
+        _max: {
+          sortOrder: true,
+        },
+      });
+
+      const timeslot = await tx.eventClassTimeslot.create({
+        data: {
+          eventId,
+          label,
+          startsAt,
+          endsAt,
+          sortOrder: (sortOrderAggregate._max.sortOrder ?? -1) + 1,
+          active: false,
+        },
+      });
+
+      await tx.eventClassOffering.updateMany({
+        where: {
+          eventId,
+          timeslotId: null,
+        },
+        data: {
+          timeslotId: timeslot.id,
+        },
+      });
+    });
+
+    revalidatePath(`/admin/events/${eventId}/classes`);
+    revalidatePath(`/admin/events/${eventId}`);
+    revalidatePath(`/director/events/${eventId}/classes`);
+    revalidatePath("/teacher/dashboard");
+
+    redirectEventClassOfferingAction(eventId, "success", "Legacy offerings were moved into a new inactive cleanup timeslot.");
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code?: string }).code === "P2002"
+    ) {
+      redirectEventClassOfferingAction(eventId, "error", "That timeslot label already exists for this event.");
+    }
+
+    const message = error instanceof Error ? error.message : "Unable to migrate legacy offerings.";
+    redirectEventClassOfferingAction(eventId, "error", message);
+  }
+}
+
 export async function removeEventClassOfferingAction(formData: FormData) {
   const session = await auth();
   ensureSuperAdmin(session);
@@ -892,17 +1140,32 @@ export async function removeEventClassOfferingAction(formData: FormData) {
   const offeringId = requireTrimmedString(formData.get("offeringId"), "Offering");
 
   try {
-    const enrollmentCount = await prisma.classEnrollment.count({
-      where: {
-        eventClassOfferingId: offeringId,
-      },
-    });
+    const [enrollmentCount, waitlistCount] = await Promise.all([
+      prisma.classEnrollment.count({
+        where: {
+          eventClassOfferingId: offeringId,
+        },
+      }),
+      prisma.eventClassWaitlist.count({
+        where: {
+          eventClassOfferingId: offeringId,
+        },
+      }),
+    ]);
 
     if (enrollmentCount > 0) {
       redirectEventClassOfferingAction(
         eventId,
         "error",
         "Cannot remove class offering with active enrollments. Unenroll attendees first.",
+      );
+    }
+
+    if (waitlistCount > 0) {
+      redirectEventClassOfferingAction(
+        eventId,
+        "error",
+        "Cannot remove class offering with active waitlist entries. Clear the waitlist first.",
       );
     }
 

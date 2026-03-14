@@ -68,34 +68,59 @@ test("club activity month snapshot aggregates activity logs and preserves existi
   const initialSnapshot = await getClubActivityMonthSnapshot(club.id, monthStart);
 
   assert.equal(initialSnapshot.activities.length, 2);
-  assert.equal(initialSnapshot.autoFill.meetingCount, 2);
+  assert.equal(initialSnapshot.autoFill.meetingOutingCount, 2);
   assert.equal(initialSnapshot.autoFill.averagePathfinderAttendance, 18);
   assert.equal(initialSnapshot.autoFill.averageStaffAttendance, 5);
   assert.equal(initialSnapshot.autoFill.uniformCompliance, 90);
-  assert.equal(initialSnapshot.formValues.meetingCount, 2);
+  assert.equal(initialSnapshot.formValues.meetingOutingCount, 2);
 
   await prisma.monthlyReport.create({
     data: {
       clubId: club.id,
+      clubRosterYearId: rosterYear.id,
       reportMonth: monthStart,
-      meetingCount: 4,
+      meetingOutingCount: 4,
+      averageAttendance: 27,
       averagePathfinderAttendance: 21,
+      averageTltAttendance: 0,
       averageStaffAttendance: 6,
+      pathfinderCount: 21,
+      tltCount: 0,
+      staffCount: 6,
       uniformCompliance: 93,
-      pointsCalculated: 0,
+      totalScore: 150,
       status: "SUBMITTED",
+      submittedByName: "Director Jones",
       submittedAt: new Date("2026-04-30T00:00:00.000Z"),
     },
   });
 
   const reportSnapshot = await getClubActivityMonthSnapshot(club.id, monthStart);
 
-  assert.equal(reportSnapshot.existingReport?.meetingCount, 4);
+  assert.equal(reportSnapshot.existingReport?.meetingOutingCount, 4);
   assert.deepEqual(reportSnapshot.formValues, {
-    meetingCount: 4,
+    meetingDay: "",
+    meetingTime: "",
+    meetingLocation: "",
+    averageAttendance: 27,
     averagePathfinderAttendance: 21,
+    averageTltAttendance: 0,
     averageStaffAttendance: 6,
+    pathfinderCount: 21,
+    tltCount: 0,
+    staffCount: 6,
+    staffMeetingHeld: false,
+    meetingOutingCount: 4,
+    devotionsEmphasis: "",
+    exercisePromotion: "",
+    outreachActivities: "",
+    guestHelperCount: 0,
     uniformCompliance: 93,
+    uniformNotes: "",
+    honorWorkSummary: "",
+    honorParticipantCount: 0,
+    bonusNotes: "",
+    submittedByName: "Director Jones",
   });
 });
 

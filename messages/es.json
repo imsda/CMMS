@@ -48,6 +48,7 @@
       },
       "contextNavAriaLabel": "Navegación contextual de administración",
       "closeNavigation": "Cerrar navegación",
+      "workspaceActive": "Espacio activo",
       "sections": {
         "dashboard": {
           "label": "Panel",
@@ -110,6 +111,10 @@
             "createEvent": {
               "label": "Crear evento",
               "description": "Cree un nuevo evento desde cero o desde una plantilla."
+            },
+            "templates": {
+              "label": "Plantillas",
+              "description": "Biblioteca oficial y de usuario para crear eventos rápidamente."
             },
             "catalog": {
               "label": "Catálogo de clases",
@@ -625,6 +630,7 @@
     "registrationForm": {
       "modules": "Módulos de registro",
       "modulesDescription": "Trabaje cada sección en orden. Las secciones condicionales aparecerán cuando respuestas anteriores las requieran.",
+      "progressTitle": "Progreso del registro",
       "step": "Paso {current} de {total}",
       "module": "Módulo {index}",
       "rosterTitle": "Asistentes de la nómina",
@@ -638,6 +644,34 @@
       "selectRosterMember": "Seleccione un miembro de la nómina",
       "selectOption": "Seleccione una opción",
       "currentStatus": "Estado actual: {status}",
+      "reviewTitle": "Revisar y enviar",
+      "reviewDescription": "Revise asistentes, precio, preparación de clases y campos faltantes antes de enviar.",
+      "reviewBadge": "{count, plural, one {# asunto por resolver} other {# asuntos por resolver}}",
+      "reviewStepLabel": "Revisión",
+      "reviewCardDescription": "Validación, resumen de asistentes, precio y envío final.",
+      "validationSummaryTitle": "Complete estos puntos antes de enviar",
+      "validationSummaryShort": "{count, plural, one {# asunto aún requiere atención} other {# asuntos aún requieren atención}}",
+      "reviewReadyTitle": "Revisión completa",
+      "reviewReadyDescription": "Este registro está listo para enviarse cuando usted lo decida.",
+      "continueToReview": "Continuar a revisión",
+      "attendeeSummaryTitle": "Asistentes seleccionados",
+      "attendeeSummaryEmpty": "No hay asistentes seleccionados actualmente para este registro.",
+      "pricingSummaryTitle": "Resumen de precio",
+      "pricingPerAttendee": "Precio actual por asistente",
+      "pricingAttendeeCount": "Cantidad de asistentes seleccionados",
+      "pricingEstimatedTotal": "Total estimado",
+      "reviewChecklistTitle": "Estado de secciones",
+      "classAssignmentIssuesTitle": "Preparación de asignación de clases",
+      "classAssignmentIssuesSummary": "{count, plural, one {# asistente aún necesita preferencias o asignación de clase} other {# asistentes aún necesitan preferencias o asignación de clase}}",
+      "classAssignmentIssuesClear": "Todos los asistentes seleccionados ya tienen preferencias de clase o una asignación registrada para este evento.",
+      "openClassAssignments": "Abrir asignaciones de clases",
+      "missingAttendeeSelection": "Seleccione al menos un asistente antes de enviar el registro.",
+      "missingField": "Falta la pregunta requerida: \"{field}\".",
+      "missingAttendeeField": "La pregunta requerida \"{field}\" falta para {attendee}.",
+      "issueCount": "{count, plural, one {# asunto} other {# asuntos}}",
+      "ready": "Listo",
+      "inProgress": "En progreso",
+      "needsAttention": "Requiere atención",
       "previousSection": "Sección anterior",
       "nextSection": "Siguiente sección",
       "saveDraft": "Guardar borrador",

@@ -12,12 +12,21 @@ export default async function AdminCreateEventPage({
   const created = resolvedSearchParams?.created === "1";
 
   const templates = await prisma.eventTemplate.findMany({
-    orderBy: [{ isActive: "desc" }, { updatedAt: "desc" }],
+    where: {
+      archivedAt: null,
+      isActive: true,
+    },
+    orderBy: [{ source: "asc" }, { updatedAt: "desc" }],
     select: {
       id: true,
+      templateKey: true,
       name: true,
       description: true,
+      eventMode: true,
+      category: true,
+      source: true,
       isActive: true,
+      archivedAt: true,
       snapshot: true,
       updatedAt: true,
     },

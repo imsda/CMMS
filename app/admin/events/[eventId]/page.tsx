@@ -80,7 +80,7 @@ export default async function EventOverseerPage({ params }: EventOverseerPagePro
               Compliance Dashboard
             </Link>
             <Link href={`/admin/events/${eventId}/camporee`} className="btn-secondary">
-              Camporee Scoring
+              Camporee Operations
             </Link>
           </>
         }
@@ -179,9 +179,9 @@ export default async function EventOverseerPage({ params }: EventOverseerPagePro
       <article className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-semibold text-slate-900">Camporee Standings</h2>
+            <h2 className="text-xl font-semibold text-slate-900">Camporee Operations & Standings</h2>
             <p className="mt-1 text-sm text-slate-600">
-              Competition scoring is additive. Camporee registration still runs through the normal event registration flow, including grouped modules and attendee selections.
+              Camporee now includes a guided operational registration workflow. Competition scoring remains additive and secondary.
             </p>
           </div>
           <Link

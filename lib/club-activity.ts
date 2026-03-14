@@ -5,17 +5,53 @@ type ActivitySummaryInput = {
 };
 
 type ExistingReportInput = {
-  meetingCount: number;
+  meetingOutingCount: number;
+  averageAttendance: number;
   averagePathfinderAttendance: number;
+  averageTltAttendance: number;
   averageStaffAttendance: number;
+  pathfinderCount: number;
+  tltCount: number;
+  staffCount: number;
   uniformCompliance: number;
+  meetingDay: string | null;
+  meetingTime: string | null;
+  meetingLocation: string | null;
+  staffMeetingHeld: boolean;
+  devotionsEmphasis: string | null;
+  exercisePromotion: string | null;
+  outreachActivities: string | null;
+  guestHelperCount: number;
+  uniformNotes: string | null;
+  honorWorkSummary: string | null;
+  honorParticipantCount: number;
+  bonusNotes: string | null;
+  submittedByName: string | null;
 } | null;
 
 export type MonthlyReportFormValues = {
-  meetingCount: number;
+  meetingDay: string;
+  meetingTime: string;
+  meetingLocation: string;
+  averageAttendance: number;
   averagePathfinderAttendance: number;
+  averageTltAttendance: number;
   averageStaffAttendance: number;
+  pathfinderCount: number;
+  tltCount: number;
+  staffCount: number;
+  staffMeetingHeld: boolean;
+  meetingOutingCount: number;
+  devotionsEmphasis: string;
+  exercisePromotion: string;
+  outreachActivities: string;
+  guestHelperCount: number;
   uniformCompliance: number;
+  uniformNotes: string;
+  honorWorkSummary: string;
+  honorParticipantCount: number;
+  bonusNotes: string;
+  submittedByName: string;
 };
 
 export type ClubActivityAutoFill = MonthlyReportFormValues & {
@@ -79,10 +115,28 @@ export function buildClubActivityAutoFill(activities: ActivitySummaryInput[]): C
   if (activities.length === 0) {
     return {
       activityCount: 0,
-      meetingCount: 0,
+      meetingDay: "",
+      meetingTime: "",
+      meetingLocation: "",
+      averageAttendance: 0,
       averagePathfinderAttendance: 0,
+      averageTltAttendance: 0,
       averageStaffAttendance: 0,
+      pathfinderCount: 0,
+      tltCount: 0,
+      staffCount: 0,
+      staffMeetingHeld: false,
+      meetingOutingCount: 0,
+      devotionsEmphasis: "",
+      exercisePromotion: "",
+      outreachActivities: "",
+      guestHelperCount: 0,
       uniformCompliance: 0,
+      uniformNotes: "",
+      honorWorkSummary: "",
+      honorParticipantCount: 0,
+      bonusNotes: "",
+      submittedByName: "",
     };
   }
 
@@ -101,10 +155,28 @@ export function buildClubActivityAutoFill(activities: ActivitySummaryInput[]): C
 
   return {
     activityCount: activities.length,
-    meetingCount: activities.length,
+    meetingDay: "",
+    meetingTime: "",
+    meetingLocation: "",
+    averageAttendance: roundAverage(totals.pathfinders + totals.staff, activities.length),
     averagePathfinderAttendance: roundAverage(totals.pathfinders, activities.length),
+    averageTltAttendance: 0,
     averageStaffAttendance: roundAverage(totals.staff, activities.length),
+    pathfinderCount: roundAverage(totals.pathfinders, activities.length),
+    tltCount: 0,
+    staffCount: roundAverage(totals.staff, activities.length),
+    staffMeetingHeld: false,
+    meetingOutingCount: activities.length,
+    devotionsEmphasis: "",
+    exercisePromotion: "",
+    outreachActivities: "",
+    guestHelperCount: 0,
     uniformCompliance: roundAverage(totals.uniformCompliance, activities.length),
+    uniformNotes: "",
+    honorWorkSummary: "",
+    honorParticipantCount: 0,
+    bonusNotes: "",
+    submittedByName: "",
   };
 }
 
@@ -114,17 +186,53 @@ export function buildMonthlyReportFormValues(
 ): MonthlyReportFormValues {
   if (existingReport) {
     return {
-      meetingCount: existingReport.meetingCount,
+      meetingDay: existingReport.meetingDay ?? "",
+      meetingTime: existingReport.meetingTime ?? "",
+      meetingLocation: existingReport.meetingLocation ?? "",
+      averageAttendance: existingReport.averageAttendance,
       averagePathfinderAttendance: existingReport.averagePathfinderAttendance,
+      averageTltAttendance: existingReport.averageTltAttendance,
       averageStaffAttendance: existingReport.averageStaffAttendance,
+      pathfinderCount: existingReport.pathfinderCount,
+      tltCount: existingReport.tltCount,
+      staffCount: existingReport.staffCount,
+      staffMeetingHeld: existingReport.staffMeetingHeld,
+      meetingOutingCount: existingReport.meetingOutingCount,
+      devotionsEmphasis: existingReport.devotionsEmphasis ?? "",
+      exercisePromotion: existingReport.exercisePromotion ?? "",
+      outreachActivities: existingReport.outreachActivities ?? "",
+      guestHelperCount: existingReport.guestHelperCount,
       uniformCompliance: existingReport.uniformCompliance,
+      uniformNotes: existingReport.uniformNotes ?? "",
+      honorWorkSummary: existingReport.honorWorkSummary ?? "",
+      honorParticipantCount: existingReport.honorParticipantCount,
+      bonusNotes: existingReport.bonusNotes ?? "",
+      submittedByName: existingReport.submittedByName ?? "",
     };
   }
 
   return {
-    meetingCount: autoFill.meetingCount,
+    meetingDay: autoFill.meetingDay,
+    meetingTime: autoFill.meetingTime,
+    meetingLocation: autoFill.meetingLocation,
+    averageAttendance: autoFill.averageAttendance,
     averagePathfinderAttendance: autoFill.averagePathfinderAttendance,
+    averageTltAttendance: autoFill.averageTltAttendance,
     averageStaffAttendance: autoFill.averageStaffAttendance,
+    pathfinderCount: autoFill.pathfinderCount,
+    tltCount: autoFill.tltCount,
+    staffCount: autoFill.staffCount,
+    staffMeetingHeld: autoFill.staffMeetingHeld,
+    meetingOutingCount: autoFill.meetingOutingCount,
+    devotionsEmphasis: autoFill.devotionsEmphasis,
+    exercisePromotion: autoFill.exercisePromotion,
+    outreachActivities: autoFill.outreachActivities,
+    guestHelperCount: autoFill.guestHelperCount,
     uniformCompliance: autoFill.uniformCompliance,
+    uniformNotes: autoFill.uniformNotes,
+    honorWorkSummary: autoFill.honorWorkSummary,
+    honorParticipantCount: autoFill.honorParticipantCount,
+    bonusNotes: autoFill.bonusNotes,
+    submittedByName: autoFill.submittedByName,
   };
 }

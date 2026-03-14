@@ -16,15 +16,20 @@ test("detects a conflicting enrollment when an attendee is already assigned to a
         eventClassOfferingId: "offering-1",
         classTitle: "Camping Skills",
         classCode: "HONOR-1",
+        timeslotId: "slot-1",
+        timeslotLabel: "Sabbath Afternoon",
       },
     ],
     "offering-2",
+    "slot-1",
   );
 
   assert.deepEqual(conflict, {
     eventClassOfferingId: "offering-1",
     classTitle: "Camping Skills",
     classCode: "HONOR-1",
+    timeslotId: "slot-1",
+    timeslotLabel: "Sabbath Afternoon",
   });
   assert.match(formatEnrollmentConflictMessage(conflict!), /Camping Skills/);
 });
@@ -36,9 +41,30 @@ test("does not report a conflict when the attendee is already enrolled in the sa
         eventClassOfferingId: "offering-1",
         classTitle: "Camping Skills",
         classCode: "HONOR-1",
+        timeslotId: "slot-1",
+        timeslotLabel: "Sabbath Afternoon",
       },
     ],
     "offering-1",
+    "slot-1",
+  );
+
+  assert.equal(conflict, null);
+});
+
+test("does not report a conflict when the attendee is assigned in a different timeslot", () => {
+  const conflict = findEventEnrollmentConflict(
+    [
+      {
+        eventClassOfferingId: "offering-1",
+        classTitle: "Camping Skills",
+        classCode: "HONOR-1",
+        timeslotId: "slot-1",
+        timeslotLabel: "Sabbath Afternoon",
+      },
+    ],
+    "offering-2",
+    "slot-2",
   );
 
   assert.equal(conflict, null);

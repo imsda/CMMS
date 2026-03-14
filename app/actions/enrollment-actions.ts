@@ -150,6 +150,7 @@ async function enrollAttendeeInClassForClub(input: EnrollAttendeeInput & { clubI
         id: true,
         capacity: true,
         eventId: true,
+        timeslotId: true,
         classCatalog: {
           select: {
             title: true,
@@ -245,6 +246,12 @@ async function enrollAttendeeInClassForClub(input: EnrollAttendeeInput & { clubI
         eventClassOfferingId: true,
         offering: {
           select: {
+            timeslotId: true,
+            timeslot: {
+              select: {
+                label: true,
+              },
+            },
             classCatalog: {
               select: {
                 title: true,
@@ -261,8 +268,11 @@ async function enrollAttendeeInClassForClub(input: EnrollAttendeeInput & { clubI
         eventClassOfferingId: enrollment.eventClassOfferingId,
         classTitle: enrollment.offering.classCatalog.title,
         classCode: enrollment.offering.classCatalog.code,
+        timeslotId: enrollment.offering.timeslotId,
+        timeslotLabel: enrollment.offering.timeslot?.label ?? null,
       })),
       input.eventClassOfferingId,
+      offering.timeslotId,
     );
 
     if (conflictingEnrollment) {
@@ -288,6 +298,7 @@ async function enrollAttendeeInClassForClub(input: EnrollAttendeeInput & { clubI
   });
 
   revalidatePath(`/director/events/${input.eventId}/classes`);
+  revalidatePath(`/admin/events/${input.eventId}/classes`);
 }
 
 export async function enrollAttendeeInClass(input: EnrollAttendeeInput) {
@@ -398,6 +409,7 @@ export async function bulkEnrollAttendeesInClass(input: BulkEnrollAttendeesInput
       select: {
         id: true,
         capacity: true,
+        timeslotId: true,
         classCatalog: {
           select: {
             title: true,
@@ -456,6 +468,12 @@ export async function bulkEnrollAttendeesInClass(input: BulkEnrollAttendeesInput
             eventClassOfferingId: true,
             offering: {
               select: {
+                timeslotId: true,
+                timeslot: {
+                  select: {
+                    label: true,
+                  },
+                },
                 classCatalog: {
                   select: {
                     title: true,
@@ -501,8 +519,11 @@ export async function bulkEnrollAttendeesInClass(input: BulkEnrollAttendeesInput
           eventClassOfferingId: enrollment.eventClassOfferingId,
           classTitle: enrollment.offering.classCatalog.title,
           classCode: enrollment.offering.classCatalog.code,
+          timeslotId: enrollment.offering.timeslotId,
+          timeslotLabel: enrollment.offering.timeslot?.label ?? null,
         })),
         input.eventClassOfferingId,
+        offering.timeslotId,
       );
 
       if (conflict) {
@@ -549,6 +570,7 @@ export async function bulkEnrollAttendeesInClass(input: BulkEnrollAttendeesInput
   });
 
   revalidatePath(`/director/events/${input.eventId}/classes`);
+  revalidatePath(`/admin/events/${input.eventId}/classes`);
 
   await safeWriteAuditLog({
     actorUserId: managedClub.userId,
@@ -608,6 +630,7 @@ export async function bulkRemoveAttendeesFromClass(input: BulkEnrollAttendeesInp
   });
 
   revalidatePath(`/director/events/${input.eventId}/classes`);
+  revalidatePath(`/admin/events/${input.eventId}/classes`);
 
   await safeWriteAuditLog({
     actorUserId: managedClub.userId,

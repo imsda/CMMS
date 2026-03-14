@@ -1,4 +1,12 @@
-import { EventMode, FormFieldScope, FormFieldType, type Prisma } from "@prisma/client";
+import {
+  EventMode,
+  EventWorkflowType,
+  EventTemplateCategory,
+  EventTemplateSource,
+  FormFieldScope,
+  FormFieldType,
+  type Prisma,
+} from "@prisma/client";
 
 import {
   readEventFieldConfig,
@@ -23,6 +31,7 @@ export type EventTemplateDynamicField = {
 
 export type EventTemplateSnapshot = {
   eventMode: EventMode;
+  workflowType?: EventWorkflowType;
   name: string;
   description: string;
   startsAt: string;
@@ -39,9 +48,14 @@ export type EventTemplateSnapshot = {
 
 export type EventTemplateDraft = {
   id: string;
+  templateKey: string | null;
   name: string;
   description: string;
+  eventMode: EventMode;
+  category: EventTemplateCategory;
+  source: EventTemplateSource;
   isActive: boolean;
+  archivedAt: string | null;
   updatedAt: string;
   snapshot: EventTemplateSnapshot;
 };
@@ -121,6 +135,7 @@ export function readTemplateFieldOptions(options: unknown) {
 
 export function buildEventTemplateSnapshot(input: {
   eventMode: EventMode;
+  workflowType?: EventWorkflowType;
   name: string;
   description: string | null;
   startsAt: Date;
@@ -136,6 +151,7 @@ export function buildEventTemplateSnapshot(input: {
 }): EventTemplateSnapshot {
   return {
     eventMode: input.eventMode,
+    workflowType: input.workflowType ?? EventWorkflowType.STANDARD,
     name: input.name,
     description: input.description ?? "",
     startsAt: toTemplateDatetimeValue(input.startsAt),
@@ -182,6 +198,10 @@ export function parseEventTemplateSnapshot(snapshot: Prisma.JsonValue): EventTem
 
   return {
     eventMode: parseEventMode(typeof candidate.eventMode === "string" ? candidate.eventMode : null),
+    workflowType:
+      candidate.workflowType === EventWorkflowType.CAMPOREE
+        ? EventWorkflowType.CAMPOREE
+        : EventWorkflowType.STANDARD,
     name: readString(candidate.name, "Template name"),
     description: readString(candidate.description ?? "", "Template description"),
     startsAt: readString(candidate.startsAt, "Template start date"),
@@ -242,17 +262,27 @@ export function parseEventTemplateSnapshot(snapshot: Prisma.JsonValue): EventTem
 
 export function serializeEventTemplateDraft(template: {
   id: string;
+  templateKey: string | null;
   name: string;
   description: string | null;
+  eventMode: EventMode;
+  category: EventTemplateCategory;
+  source: EventTemplateSource;
   isActive: boolean;
+  archivedAt: Date | null;
   updatedAt: Date;
   snapshot: Prisma.JsonValue;
 }): EventTemplateDraft {
   return {
     id: template.id,
+    templateKey: template.templateKey,
     name: template.name,
     description: template.description ?? "",
+    eventMode: template.eventMode,
+    category: template.category,
+    source: template.source,
     isActive: template.isActive,
+    archivedAt: template.archivedAt ? template.archivedAt.toISOString() : null,
     updatedAt: template.updatedAt.toISOString(),
     snapshot: parseEventTemplateSnapshot(template.snapshot),
   };

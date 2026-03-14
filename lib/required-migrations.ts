@@ -14,4 +14,10 @@ export const REQUIRED_MIGRATION_NAMES = [
   "20260313153000_add_audit_logs",
   "20260313164500_add_scheduled_job_runs",
   "20260313183000_add_event_mode",
+  "20260313193000_expand_event_template_library",
+  "20260313213000_add_event_class_timeslots_and_preferences",
+  "20260313224500_add_event_class_waitlist",
+  "20260314101500_add_camporee_registration_workflow",
+  "20260314114500_add_monthly_report_module",
+  "20260314124500_add_review_feedback_fields",
 ] as const;

@@ -26,6 +26,16 @@ export function buildDirectorDashboardHealth(input: {
   currentMonthActivityCount: number | null;
   yearEndReportStatus: string | null;
 }) {
+  const currentMonthlyReady =
+    input.currentMonthReportStatus === "SUBMITTED" ||
+    input.currentMonthReportStatus === "UNDER_REVIEW" ||
+    input.currentMonthReportStatus === "APPROVED";
+
+  const latestMonthlyReady =
+    input.latestMonthlyReportStatus === "SUBMITTED" ||
+    input.latestMonthlyReportStatus === "UNDER_REVIEW" ||
+    input.latestMonthlyReportStatus === "APPROVED";
+
   const rosterStatus = !input.hasActiveRoster
     ? "attention"
     : input.activeMemberCount === 0 || input.missingConsentCount > 0
@@ -45,11 +55,11 @@ export function buildDirectorDashboardHealth(input: {
           : "pending";
 
   const reportingStatus =
-    input.currentMonthReportStatus === "SUBMITTED"
+    currentMonthlyReady
       ? "ready"
       : input.currentMonthActivityCount !== null && input.currentMonthActivityCount > 0
         ? "attention"
-        : input.latestMonthlyReportStatus === "SUBMITTED"
+        : latestMonthlyReady
           ? "attention"
           : "pending";
 
@@ -111,7 +121,7 @@ export function buildDirectorDashboardHealth(input: {
         input.yearEndReportStatus ??
         "No monthly reports",
       detail:
-        input.currentMonthReportStatus === "SUBMITTED"
+        currentMonthlyReady
           ? "Current month reporting is already submitted."
           : input.yearEndReportStatus
             ? `Year-end reporting status is ${input.yearEndReportStatus}.`
