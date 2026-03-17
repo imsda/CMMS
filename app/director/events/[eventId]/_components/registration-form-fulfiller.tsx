@@ -131,6 +131,12 @@ export function RegistrationFormFulfiller({
   const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
   const [currentSectionId, setCurrentSectionId] = useState<string>("roster");
 
+  useEffect(() => {
+    if (submitState.status === "success" && submitState.checkoutUrl) {
+      window.location.href = submitState.checkoutUrl;
+    }
+  }, [submitState.status, submitState.checkoutUrl]);
+
   const selectedAttendeeSet = useMemo(() => new Set(selectedAttendeeIds), [selectedAttendeeIds]);
   const classAssignmentCoverageSet = useMemo(() => new Set(classAssignmentCoveredAttendeeIds), [classAssignmentCoveredAttendeeIds]);
   const attendeeById = useMemo(

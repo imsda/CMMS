@@ -8,6 +8,7 @@ import { sendRegistrationReceiptEmail } from "../../lib/email/resend";
 import { isEventFieldVisible, readEventFieldConfig } from "../../lib/event-form-config";
 import { getFieldScope } from "../../lib/event-form-scope";
 import { getEventModeConfig } from "../../lib/event-modes";
+import { createCheckoutLink } from "../../lib/payments/square";
 import { prisma } from "../../lib/prisma";
 import { generateRegistrationCode } from "../../lib/registration-code";
 import { assertRegistrationCanPersist } from "../../lib/registration-lifecycle";
@@ -15,6 +16,7 @@ import { assertRegistrationCanPersist } from "../../lib/registration-lifecycle";
 export type RegistrationActionState = {
   status: "idle" | "success" | "error";
   message: string | null;
+  checkoutUrl?: string | null;
 };
 
 type RegistrationPayload = {
@@ -411,6 +413,7 @@ export async function persistRegistrationForClub(input: {
   const pricePerAttendee = now >= event.lateFeeStartsAt ? event.lateFeePrice : event.basePrice;
   const totalDue = attendeeIds.length * pricePerAttendee;
   let emailWarning: string | null = null;
+  let savedRegistrationId: string | null = null;
 
   await prisma.$transaction(async (tx) => {
     const existingRegistration = await tx.eventRegistration.findUnique({
@@ -462,6 +465,8 @@ export async function persistRegistrationForClub(input: {
             id: true,
           },
         });
+
+    savedRegistrationId = registration.id;
 
     await tx.registrationAttendee.deleteMany({
       where: {
@@ -516,6 +521,10 @@ export async function persistRegistrationForClub(input: {
 
   return {
     emailWarning,
+    registrationId: savedRegistrationId ?? "",
+    totalDue,
+    eventName: event.name,
+    directorEmail: input.directorEmail,
   };
 }
 
@@ -563,6 +572,37 @@ export async function submitEventRegistration(
 ): Promise<RegistrationActionState> {
   try {
     const result = await persistRegistration(formData, RegistrationStatus.SUBMITTED);
+
+    if (result.totalDue > 0 && result.registrationId && result.directorEmail) {
+      try {
+        const { checkoutUrl, squareOrderId } = await createCheckoutLink({
+          registrationId: result.registrationId,
+          amountInCents: Math.round(result.totalDue * 100),
+          eventName: result.eventName,
+          directorEmail: result.directorEmail,
+        });
+
+        await prisma.eventRegistration.update({
+          where: { id: result.registrationId },
+          data: { squareCheckoutUrl: checkoutUrl, squareOrderId },
+        });
+
+        return {
+          status: "success",
+          message: result.emailWarning ?? "Registration submitted. Redirecting to payment...",
+          checkoutUrl,
+        };
+      } catch (squareError) {
+        console.error("Square checkout link creation failed.", squareError);
+        return {
+          status: "success",
+          message:
+            result.emailWarning ??
+            "Registration submitted. Visit your dashboard to complete payment.",
+        };
+      }
+    }
+
     return {
       status: "success",
       message: result.emailWarning ?? "Registration submitted.",

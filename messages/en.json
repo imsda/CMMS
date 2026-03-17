@@ -662,6 +662,15 @@
         "category": "Category",
         "score": "Score",
         "notes": "Notes"
+      },
+      "payment": {
+        "statusLabel": "Payment Status",
+        "completePayment": "Complete Payment",
+        "status": {
+          "PENDING": "Pending",
+          "PARTIAL": "Partial",
+          "PAID": "Paid"
+        }
       }
     },
     "registrationForm": {

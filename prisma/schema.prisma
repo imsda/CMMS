@@ -480,6 +480,9 @@ model EventRegistration {
   totalDue              Float
   amountPaid            Float              @default(0)
   paymentStatus         PaymentStatus      @default(PENDING)
+  squarePaymentId       String?
+  squareCheckoutUrl     String?
+  squareOrderId         String?
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
 

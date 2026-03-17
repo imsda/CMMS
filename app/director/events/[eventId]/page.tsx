@@ -136,6 +136,8 @@ export default async function DirectorEventRegistrationPage({
   }
 
   const registration = event.registrations[0] ?? null;
+  const paymentStatus = registration?.paymentStatus ?? null;
+  const squareCheckoutUrl = registration?.squareCheckoutUrl ?? null;
   const activeRoster = club.rosterYears[0];
   const attendees = activeRoster?.members ?? [];
   const attendeeCount = registration?.attendees.length ?? 0;
@@ -192,6 +194,42 @@ export default async function DirectorEventRegistrationPage({
           </div>
         </dl>
       </header>
+
+      {paymentStatus !== null ? (
+        <article className="glass-panel">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">{t("eventDetail.payment.statusLabel")}</p>
+              <p
+                className={[
+                  "mt-1 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold",
+                  paymentStatus === "PAID"
+                    ? "bg-emerald-100 text-emerald-800"
+                    : paymentStatus === "PARTIAL"
+                      ? "bg-amber-100 text-amber-800"
+                      : "bg-slate-100 text-slate-700",
+                ].join(" ")}
+              >
+                {paymentStatus === "PAID" ? (
+                  <span aria-hidden="true">✓</span>
+                ) : (
+                  <span aria-hidden="true">○</span>
+                )}
+                {t(`eventDetail.payment.status.${paymentStatus}`)}
+              </p>
+            </div>
+            {paymentStatus !== "PAID" && squareCheckoutUrl ? (
+              <a
+                href={squareCheckoutUrl}
+                className="btn-primary"
+                rel="noopener noreferrer"
+              >
+                {t("eventDetail.payment.completePayment")}
+              </a>
+            ) : null}
+          </div>
+        </article>
+      ) : null}
 
       {event.eventMode === "CLASS_ASSIGNMENT" ? (
         <article className="glass-panel flex flex-wrap items-center justify-between gap-4">

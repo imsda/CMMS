@@ -20,4 +20,5 @@ export const REQUIRED_MIGRATION_NAMES = [
   "20260314101500_add_camporee_registration_workflow",
   "20260314114500_add_monthly_report_module",
   "20260314124500_add_review_feedback_fields",
+  "20260317120000_add_square_payment_fields",
 ] as const;
