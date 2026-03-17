@@ -2,9 +2,9 @@ import Link from "next/link";
 import { EventTemplateSource } from "@prisma/client";
 
 import {
-  archiveEventTemplate,
   duplicateEventTemplate,
 } from "../../../actions/event-admin-actions";
+import { ArchiveTemplateButton } from "./_components/archive-template-button";
 import { AdminPageHeader } from "../../_components/admin-page-header";
 import { prisma } from "../../../../lib/prisma";
 import { serializeEventTemplateDraft } from "../../../../lib/event-templates";
@@ -167,12 +167,7 @@ export default async function EventTemplatesLibraryPage({
                   </button>
                 </form>
                 {template.source === EventTemplateSource.USER ? (
-                  <form action={archiveEventTemplate}>
-                    <input type="hidden" name="templateId" value={template.id} readOnly />
-                    <button type="submit" className="btn-secondary">
-                      Archive
-                    </button>
-                  </form>
+                  <ArchiveTemplateButton templateId={template.id} />
                 ) : null}
               </div>
             </article>

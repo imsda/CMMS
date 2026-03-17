@@ -62,7 +62,9 @@ export function AdminShell({ children, currentLocale, user }: AdminShellProps) {
                 id="admin-shell-search"
                 type="search"
                 placeholder={t("shell.searchPlaceholder")}
-                className="input-glass admin-search-input"
+                className="input-glass admin-search-input cursor-not-allowed opacity-50"
+                disabled
+                title="Coming soon"
               />
             </form>
 
@@ -71,7 +73,6 @@ export function AdminShell({ children, currentLocale, user }: AdminShellProps) {
 
               <button type="button" className="btn-secondary admin-topbar-button">
                 {t("shell.notifications")}
-                <span className="admin-badge">3</span>
               </button>
 
               <details className="admin-topbar-menu">
