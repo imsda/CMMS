@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 
 import { LanguageSwitcher } from "../../../components/language-switcher";
 import { type AppLocale } from "../../../i18n";
+import { signOutAction } from "../../actions/auth-actions";
 import { getAdminShellState, isAdminHrefActive } from "./admin-shell-config";
 
 type AdminShellProps = {
@@ -107,7 +108,11 @@ export function AdminShell({ children, currentLocale, user }: AdminShellProps) {
                 <Link href="/director/dashboard" className="admin-menu-item">
                     {t("shell.userMenu.directorWorkspace")}
                 </Link>
-                  <span className="admin-menu-item text-slate-500">{t("shell.userMenu.signOutHint")}</span>
+                  <form action={signOutAction}>
+                    <button type="submit" className="admin-menu-item w-full text-left">
+                      {t("shell.userMenu.signOutHint")}
+                    </button>
+                  </form>
               </div>
             </details>
             </div>
