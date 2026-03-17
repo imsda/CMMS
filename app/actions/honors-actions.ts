@@ -176,6 +176,114 @@ export async function saveRankedClassPreferences(formData: FormData) {
   revalidatePath(`/admin/events/${eventId}/classes`);
 }
 
+export type BatchPreferenceItem = {
+  registrationAttendeeId: string;
+  timeslotId: string;
+  offeringIds: string[];
+};
+
+export async function saveAllClassPreferences(input: {
+  eventId: string;
+  registrationId: string;
+  clubId?: string | null;
+  preferences: BatchPreferenceItem[];
+}) {
+  const managedClub = await getManagedClubContext(input.clubId ?? null);
+
+  const registration = await prisma.eventRegistration.findFirst({
+    where: {
+      id: input.registrationId,
+      eventId: input.eventId,
+      clubId: managedClub.clubId,
+    },
+    select: { id: true },
+  });
+
+  if (!registration) {
+    throw new Error("Registration not found for this event.");
+  }
+
+  const attendeeIds = Array.from(new Set(input.preferences.map((p) => p.registrationAttendeeId)));
+
+  if (attendeeIds.length > 0) {
+    const attendees = await prisma.registrationAttendee.findMany({
+      where: {
+        id: { in: attendeeIds },
+        eventRegistrationId: registration.id,
+      },
+      select: { id: true },
+    });
+
+    if (attendees.length !== attendeeIds.length) {
+      throw new Error("One or more attendees do not belong to this registration.");
+    }
+  }
+
+  const timeslotIds = Array.from(new Set(input.preferences.map((p) => p.timeslotId)));
+
+  if (timeslotIds.length > 0) {
+    const timeslots = await prisma.eventClassTimeslot.findMany({
+      where: { id: { in: timeslotIds }, eventId: input.eventId, active: true },
+      select: { id: true },
+    });
+
+    if (timeslots.length !== timeslotIds.length) {
+      throw new Error("One or more timeslots are invalid for this event.");
+    }
+  }
+
+  const allOfferingIds = Array.from(new Set(input.preferences.flatMap((p) => p.offeringIds)));
+
+  if (allOfferingIds.length > 0) {
+    const offerings = await prisma.eventClassOffering.findMany({
+      where: { id: { in: allOfferingIds }, eventId: input.eventId, active: true },
+      select: { id: true, timeslotId: true },
+    });
+
+    const offeringMap = new Map(offerings.map((o) => [o.id, o]));
+
+    for (const pref of input.preferences) {
+      for (const offeringId of pref.offeringIds) {
+        const offering = offeringMap.get(offeringId);
+        if (!offering) {
+          throw new Error(`Offering ${offeringId} is not active or valid for this event.`);
+        }
+        if (offering.timeslotId !== pref.timeslotId) {
+          throw new Error(`Offering ${offeringId} does not belong to timeslot ${pref.timeslotId}.`);
+        }
+      }
+    }
+  }
+
+  await prisma.$transaction(async (tx) => {
+    for (const pref of input.preferences) {
+      await tx.eventClassPreference.deleteMany({
+        where: {
+          timeslotId: pref.timeslotId,
+          registrationAttendeeId: pref.registrationAttendeeId,
+        },
+      });
+
+      const uniqueOfferingIds = Array.from(new Set(pref.offeringIds));
+
+      if (uniqueOfferingIds.length > 0) {
+        await tx.eventClassPreference.createMany({
+          data: uniqueOfferingIds.map((eventClassOfferingId, index) => ({
+            eventId: input.eventId,
+            timeslotId: pref.timeslotId,
+            registrationAttendeeId: pref.registrationAttendeeId,
+            eventClassOfferingId,
+            rank: index + 1,
+          })),
+        });
+      }
+    }
+  });
+
+  revalidatePath(`/director/events/${input.eventId}/classes`);
+  revalidatePath(`/admin/events/${input.eventId}/classes`);
+}
+
 async function ensureSuperAdmin() {
   const session = await auth();
 
