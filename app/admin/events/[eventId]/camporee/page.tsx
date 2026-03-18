@@ -10,6 +10,7 @@ import {
 import { formatCamporeeRegistrationStatus } from "../../../../../lib/camporee-workflow";
 import { buildCsvHref, slugifyFilenamePart } from "../../../../../lib/csv";
 import { AdminPageHeader } from "../../../_components/admin-page-header";
+import { CampsiteAssignmentGrid } from "./_components/campsite-assignment-grid";
 
 type CamporeePageProps = {
   params: Promise<{
@@ -461,6 +462,34 @@ export default async function CamporeePage({ params }: CamporeePageProps) {
           </div>
         </article>
         </div>
+      </section>
+
+      <section className="workflow-studio">
+        <div className="workflow-header">
+          <div>
+            <p className="hero-kicker">Campsite Assignments</p>
+            <h2 className="section-title">Assign campsites to registered clubs</h2>
+            <p className="section-copy">Enter a campsite label for each club. Changes are saved automatically on blur.</p>
+          </div>
+        </div>
+
+        {operations.registrations.length === 0 ? (
+          <div className="workflow-card-muted">
+            <p className="text-sm text-slate-600">No Camporee registrations have been started yet.</p>
+          </div>
+        ) : (
+          <CampsiteAssignmentGrid
+            fileBase={fileBase}
+            rows={operations.registrations.map((registration) => ({
+              registrationId: registration.id,
+              clubName: registration.club.name,
+              campsiteType: registration.camporeeRegistration?.campsiteType ?? null,
+              squareFootageNeeded: registration.camporeeRegistration?.squareFootageNeeded ?? null,
+              tentSummary: registration.camporeeRegistration?.tentSummary ?? null,
+              campsiteAssignment: registration.campsiteAssignment ?? null,
+            }))}
+          />
+        )}
       </section>
 
       <article className="workflow-studio">
