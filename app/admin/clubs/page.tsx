@@ -19,6 +19,7 @@ export default async function AdminClubsPage() {
       type: true,
       city: true,
       state: true,
+      district: true,
       _count: {
         select: {
           memberships: true,
@@ -54,6 +55,7 @@ export default async function AdminClubsPage() {
           type: club.type as ClubType,
           city: club.city,
           state: club.state,
+          district: club.district,
         }))}
       />
 
@@ -68,6 +70,7 @@ export default async function AdminClubsPage() {
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">Club</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">Type</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">Location</th>
+                  <th className="px-4 py-3 text-left font-semibold text-slate-700">District</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">Users</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">Roster Years</th>
                   <th className="px-4 py-3 text-left font-semibold text-slate-700">Actions</th>
@@ -84,6 +87,7 @@ export default async function AdminClubsPage() {
                     <td className="px-4 py-3 text-slate-700">
                       {[club.city, club.state].filter(Boolean).join(", ") || "—"}
                     </td>
+                    <td className="px-4 py-3 text-slate-700">{club.district ?? "—"}</td>
                     <td className="px-4 py-3 text-slate-700">{club._count.memberships}</td>
                     <td className="px-4 py-3 text-slate-700">{club._count.rosterYears}</td>
                     <td className="px-4 py-3">

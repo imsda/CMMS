@@ -65,10 +65,11 @@ export default async function CamporeePage({ params }: CamporeePageProps) {
     ]),
   ]);
   const campsiteCsvHref = buildCsvHref([
-    ["Club", "Code", "Type", "Square Footage", "Tent Summary", "Trailers", "Kitchen Canopies", "Camp Near", "Notes"],
+    ["Club", "Code", "District", "Type", "Square Footage", "Tent Summary", "Trailers", "Kitchen Canopies", "Camp Near", "Notes"],
     ...operations.registrations.map((registration) => [
       registration.club.name,
       registration.club.code,
+      registration.club.district ?? "",
       registration.camporeeRegistration?.campsiteType ?? "",
       registration.camporeeRegistration?.squareFootageNeeded ?? 0,
       registration.camporeeRegistration?.tentSummary ?? "",
@@ -329,6 +330,7 @@ export default async function CamporeePage({ params }: CamporeePageProps) {
               <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
                 <tr>
                   <th className="px-4 py-3">Club</th>
+                  <th className="px-4 py-3">District</th>
                   <th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3">Sq Ft</th>
                   <th className="px-4 py-3">Trailers</th>
@@ -339,6 +341,7 @@ export default async function CamporeePage({ params }: CamporeePageProps) {
                 {operations.registrations.map((registration) => (
                   <tr key={`${registration.id}-campsite`}>
                     <td className="px-4 py-3 text-slate-900">{registration.club.name}</td>
+                    <td className="px-4 py-3 text-slate-700">{registration.club.district ?? "—"}</td>
                     <td className="px-4 py-3 text-slate-700">{registration.camporeeRegistration?.campsiteType}</td>
                     <td className="px-4 py-3 text-slate-700">{registration.camporeeRegistration?.squareFootageNeeded}</td>
                     <td className="px-4 py-3 text-slate-700">{registration.camporeeRegistration?.trailerCount}</td>

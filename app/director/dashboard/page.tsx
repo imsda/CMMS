@@ -232,6 +232,9 @@ export default async function ClubDirectorDashboardPage({
         <div>
           <p className="hero-kicker">{td("dashboard.eyebrow")}</p>
           <h2 className="hero-title mt-3">{club.name}</h2>
+          {club.district ? (
+            <p className="mt-1 text-sm text-slate-500">{club.district}</p>
+          ) : null}
           <p className="hero-copy">
             {td("dashboard.description")}
           </p>
