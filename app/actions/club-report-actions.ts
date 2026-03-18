@@ -1,6 +1,6 @@
 "use server";
 
-import { MonthlyReportStatus, ReportStatus, UserRole } from "@prisma/client";
+import { MemberStatus, MonthlyReportStatus, ReportStatus, UserRole } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { type Session } from "next-auth";
 
@@ -546,6 +546,7 @@ export async function getDirectorReportsDashboardData(clubIdOverride?: string | 
             members: {
               where: {
                 isActive: true,
+                memberStatus: { not: MemberStatus.WALK_IN },
               },
               select: {
                 memberRole: true,

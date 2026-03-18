@@ -3,6 +3,7 @@
 import {
   Gender,
   MemberRole,
+  MemberStatus,
   RolloverStatus,
   type Prisma,
 } from "@prisma/client";
@@ -379,6 +380,7 @@ export async function executeYearlyRollover(
       where: {
         clubRosterYearId: previousYear.id,
         isActive: true,
+        memberStatus: { not: MemberStatus.WALK_IN },
       },
     });
 

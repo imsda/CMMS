@@ -1,6 +1,6 @@
 "use server";
 
-import { FormFieldScope, MemberRole, PaymentStatus, RegistrationStatus, type Prisma } from "@prisma/client";
+import { FormFieldScope, MemberRole, MemberStatus, PaymentStatus, RegistrationStatus, type Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { getManagedClubContext } from "../../lib/club-management";
@@ -191,6 +191,7 @@ async function getClubRegistrationContext(input: {
               firstName: true,
               lastName: true,
               memberRole: true,
+              memberStatus: true,
               backgroundCheckCleared: true,
             },
           },
@@ -402,6 +403,7 @@ export async function persistRegistrationForClub(input: {
       .filter((member): member is NonNullable<typeof member> => Boolean(member))
       .filter(
         (member) =>
+          member.memberStatus !== MemberStatus.WALK_IN &&
           (member.memberRole === MemberRole.STAFF || member.memberRole === MemberRole.DIRECTOR) &&
           !member.backgroundCheckCleared,
       )
@@ -642,6 +644,117 @@ export async function submitEventRegistration(
     return {
       status: "error",
       message: error instanceof Error ? error.message : "Unable to submit registration.",
+    };
+  }
+}
+
+export type WalkInAttendeeState = {
+  status: "idle" | "success" | "error";
+  message: string | null;
+  attendee?: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    memberRole: string;
+    walkIn: true;
+  };
+};
+
+export async function createWalkInAttendee(
+  _prevState: WalkInAttendeeState,
+  formData: FormData,
+): Promise<WalkInAttendeeState> {
+  try {
+    const eventIdEntry = formData.get("eventId");
+    if (typeof eventIdEntry !== "string" || eventIdEntry.trim().length === 0) {
+      throw new Error("Event id is required.");
+    }
+
+    const clubIdOverride = formData.get("clubId");
+    const managedClub = await getManagedClubContext(
+      typeof clubIdOverride === "string" && clubIdOverride.trim().length > 0 ? clubIdOverride.trim() : null,
+    );
+
+    const firstNameEntry = formData.get("firstName");
+    const lastNameEntry = formData.get("lastName");
+    const memberRoleEntry = formData.get("memberRole");
+    const ageEntry = formData.get("age");
+
+    if (typeof firstNameEntry !== "string" || firstNameEntry.trim().length === 0) {
+      throw new Error("First name is required.");
+    }
+
+    if (typeof lastNameEntry !== "string" || lastNameEntry.trim().length === 0) {
+      throw new Error("Last name is required.");
+    }
+
+    if (typeof memberRoleEntry !== "string" || !(memberRoleEntry in MemberRole)) {
+      throw new Error("Member role is required.");
+    }
+
+    const ageAtStart = typeof ageEntry === "string" && ageEntry.trim().length > 0
+      ? Number(ageEntry.trim())
+      : null;
+
+    if (ageAtStart !== null && (Number.isNaN(ageAtStart) || ageAtStart < 0)) {
+      throw new Error("Age must be a valid positive number.");
+    }
+
+    const activeRosterYear = await prisma.clubRosterYear.findFirst({
+      where: {
+        clubId: managedClub.clubId,
+        isActive: true,
+      },
+      select: {
+        id: true,
+      },
+      orderBy: {
+        startsOn: "desc",
+      },
+    });
+
+    if (!activeRosterYear) {
+      throw new Error("No active roster year found for this club.");
+    }
+
+    const newMember = await prisma.rosterMember.create({
+      data: {
+        clubRosterYearId: activeRosterYear.id,
+        firstName: firstNameEntry.trim(),
+        lastName: lastNameEntry.trim(),
+        memberRole: memberRoleEntry as MemberRole,
+        memberStatus: MemberStatus.WALK_IN,
+        ageAtStart,
+        isActive: true,
+        photoReleaseConsent: true,
+        medicalTreatmentConsent: true,
+        membershipAgreementConsent: true,
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        memberRole: true,
+      },
+    });
+
+    revalidatePath(`/director/events/${eventIdEntry.trim()}`);
+
+    return {
+      status: "success",
+      message: null,
+      attendee: {
+        id: newMember.id,
+        firstName: newMember.firstName,
+        lastName: newMember.lastName,
+        memberRole: newMember.memberRole,
+        walkIn: true,
+      },
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Unable to create walk-in attendee.",
     };
   }
 }

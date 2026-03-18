@@ -723,7 +723,17 @@
       "saveDraft": "Save Draft",
       "submitRegistration": "Submit Registration",
       "yes": "Yes",
-      "activePrompts": "{count, plural, one {# active prompt} other {# active prompts}}"
+      "activePrompts": "{count, plural, one {# active prompt} other {# active prompts}}",
+      "walkInBadge": "Walk-in",
+      "addTemporaryAttendee": "Add Temporary Attendee",
+      "walkInFormTitle": "Add Temporary Attendee",
+      "walkInFormDescription": "Walk-in attendees are added to this event only and will not carry over during yearly rollover.",
+      "walkInFirstName": "First Name",
+      "walkInLastName": "Last Name",
+      "walkInRole": "Role",
+      "walkInAge": "Age",
+      "walkInSave": "Save Walk-in",
+      "walkInCancel": "Cancel"
     },
     "roster": {
       "eyebrow": "Roster Management",

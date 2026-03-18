@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useFormState } from "react-dom";
-import { EventMode, FormFieldScope, type Prisma } from "@prisma/client";
+import { EventMode, FormFieldScope, MemberRole, type Prisma } from "@prisma/client";
 import { useTranslations } from "next-intl";
 
 import {
   type RegistrationActionState,
+  type WalkInAttendeeState,
+  createWalkInAttendee,
   saveEventRegistrationDraft,
   submitEventRegistration,
 } from "../../../../actions/event-registration-actions";
@@ -22,6 +24,7 @@ type Attendee = {
   firstName: string;
   lastName: string;
   memberRole: string;
+  walkIn?: boolean;
 };
 
 type DynamicField = {
@@ -74,6 +77,12 @@ type ValidationIssue = {
   detail: string;
 };
 
+const INITIAL_WALK_IN_STATE: WalkInAttendeeState = { status: "idle", message: null };
+const INITIAL_ACTION_STATE: RegistrationActionState = {
+  status: "idle",
+  message: null,
+};
+
 function attendeeName(attendee: Attendee) {
   return `${attendee.firstName} ${attendee.lastName}`;
 }
@@ -102,11 +111,6 @@ function hasResponseValue(value: unknown) {
   return true;
 }
 
-const INITIAL_ACTION_STATE: RegistrationActionState = {
-  status: "idle",
-  message: null,
-};
-
 export function RegistrationFormFulfiller({
   eventId,
   eventName,
@@ -124,12 +128,17 @@ export function RegistrationFormFulfiller({
   classAssignmentCoveredAttendeeIds,
 }: RegistrationFormFulfillerProps) {
   const t = useTranslations("Director");
+  const [allAttendees, setAllAttendees] = useState<Attendee[]>(attendees);
   const [selectedAttendeeIds, setSelectedAttendeeIds] = useState<string[]>(initialSelectedAttendeeIds);
   const [responseState, setResponseState] = useState(() => bootstrapRegistrationResponses(initialResponses));
   const [draftState, draftAction] = useFormState(saveEventRegistrationDraft, INITIAL_ACTION_STATE);
   const [submitState, submitAction] = useFormState(submitEventRegistration, INITIAL_ACTION_STATE);
+  const [walkInState, walkInAction] = useFormState(createWalkInAttendee, INITIAL_WALK_IN_STATE);
+  const [walkInFormVisible, setWalkInFormVisible] = useState(false);
   const [validationIssues, setValidationIssues] = useState<ValidationIssue[]>([]);
   const [currentSectionId, setCurrentSectionId] = useState<string>("roster");
+
+  const walkInFormRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     if (submitState.status === "success" && submitState.checkoutUrl) {
@@ -137,11 +146,25 @@ export function RegistrationFormFulfiller({
     }
   }, [submitState.status, submitState.checkoutUrl]);
 
+  useEffect(() => {
+    if (walkInState.status === "success" && walkInState.attendee) {
+      const newAttendee = walkInState.attendee;
+      setAllAttendees((current) =>
+        current.some((a) => a.id === newAttendee.id) ? current : [...current, newAttendee],
+      );
+      setSelectedAttendeeIds((current) =>
+        current.includes(newAttendee.id) ? current : [...current, newAttendee.id],
+      );
+      setWalkInFormVisible(false);
+      walkInFormRef.current?.reset();
+    }
+  }, [walkInState.status, walkInState.attendee]);
+
   const selectedAttendeeSet = useMemo(() => new Set(selectedAttendeeIds), [selectedAttendeeIds]);
   const classAssignmentCoverageSet = useMemo(() => new Set(classAssignmentCoveredAttendeeIds), [classAssignmentCoveredAttendeeIds]);
   const attendeeById = useMemo(
-    () => Object.fromEntries(attendees.map((attendee) => [attendee.id, attendee])),
-    [attendees],
+    () => Object.fromEntries(allAttendees.map((attendee) => [attendee.id, attendee])),
+    [allAttendees],
   );
 
   const visibleFields = useMemo(
@@ -377,7 +400,7 @@ export function RegistrationFormFulfiller({
         <div className="glass-subsection space-y-2">
           <p className="text-xs text-slate-500">{t("registrationForm.chooseRosterMember")}</p>
           <div className="grid gap-2 md:grid-cols-2">
-            {attendees.map((attendee) => {
+            {allAttendees.map((attendee) => {
               const checked = selected.includes(attendee.id);
 
               return (
@@ -396,6 +419,11 @@ export function RegistrationFormFulfiller({
                   <span>
                     {attendeeName(attendee)}
                     <span className="ml-2 text-xs text-slate-500">({attendee.memberRole})</span>
+                    {attendee.walkIn ? (
+                      <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                        {t("registrationForm.walkInBadge")}
+                      </span>
+                    ) : null}
                   </span>
                 </label>
               );
@@ -415,9 +443,9 @@ export function RegistrationFormFulfiller({
           className="select-glass"
         >
           <option value="">{t("registrationForm.selectRosterMember")}</option>
-          {attendees.map((attendee) => (
+          {allAttendees.map((attendee) => (
             <option key={`${field.id}-opt-${attendee.id}`} value={attendee.id}>
-              {attendeeName(attendee)} ({attendee.memberRole})
+              {attendeeName(attendee)} ({attendee.memberRole}){attendee.walkIn ? " (Walk-in)" : ""}
             </option>
           ))}
         </select>
@@ -627,7 +655,14 @@ export function RegistrationFormFulfiller({
                 <ul className="mt-3 grid gap-2 md:grid-cols-2">
                   {selectedAttendees.map((attendee) => (
                     <li key={`summary-${attendee.id}`} className="rounded-xl bg-white px-3 py-3 text-sm text-slate-700">
-                      <p className="font-semibold text-slate-900">{attendeeName(attendee)}</p>
+                      <p className="font-semibold text-slate-900">
+                        {attendeeName(attendee)}
+                        {attendee.walkIn ? (
+                          <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                            {t("registrationForm.walkInBadge")}
+                          </span>
+                        ) : null}
+                      </p>
                       <p className="mt-1 text-xs text-slate-500">{attendee.memberRole}</p>
                     </li>
                   ))}
@@ -713,6 +748,72 @@ export function RegistrationFormFulfiller({
     );
   }
 
+  function renderWalkInForm() {
+    return (
+      <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+        <h3 className="text-sm font-semibold text-amber-900">{t("registrationForm.walkInFormTitle")}</h3>
+        <p className="mt-1 text-xs text-amber-800">{t("registrationForm.walkInFormDescription")}</p>
+        <form
+          ref={walkInFormRef}
+          action={walkInAction}
+          className="mt-4 grid gap-3 sm:grid-cols-2"
+        >
+          <input type="hidden" name="eventId" value={eventId} />
+          {managedClubId ? <input type="hidden" name="clubId" value={managedClubId} /> : null}
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold text-amber-900">
+              {t("registrationForm.walkInFirstName")} <span className="text-rose-600">*</span>
+            </label>
+            <input type="text" name="firstName" required className="input-glass" />
+          </div>
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold text-amber-900">
+              {t("registrationForm.walkInLastName")} <span className="text-rose-600">*</span>
+            </label>
+            <input type="text" name="lastName" required className="input-glass" />
+          </div>
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold text-amber-900">
+              {t("registrationForm.walkInRole")} <span className="text-rose-600">*</span>
+            </label>
+            <select name="memberRole" required className="select-glass">
+              <option value="">{t("registrationForm.selectOption")}</option>
+              {Object.values(MemberRole).map((role) => (
+                <option key={role} value={role}>
+                  {role}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <label className="block text-xs font-semibold text-amber-900">
+              {t("registrationForm.walkInAge")}
+            </label>
+            <input type="number" name="age" min={0} max={120} className="input-glass" />
+          </div>
+          {walkInState.status === "error" && walkInState.message ? (
+            <p className="col-span-2 text-xs font-medium text-rose-700">{walkInState.message}</p>
+          ) : null}
+          <div className="col-span-2 flex items-center gap-2">
+            <button type="submit" className="btn-primary text-sm">
+              {t("registrationForm.walkInSave")}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setWalkInFormVisible(false);
+                walkInFormRef.current?.reset();
+              }}
+              className="btn-secondary text-sm"
+            >
+              {t("registrationForm.walkInCancel")}
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  }
+
   return (
     <form className="space-y-6">
       <input type="hidden" name="eventId" value={eventId} readOnly />
@@ -794,7 +895,7 @@ export function RegistrationFormFulfiller({
             </div>
 
             <div className="mt-4 grid gap-2 md:grid-cols-2">
-              {attendees.map((attendee) => (
+              {allAttendees.map((attendee) => (
                 <label key={attendee.id} className="check-card">
                   <input
                     type="checkbox"
@@ -804,10 +905,29 @@ export function RegistrationFormFulfiller({
                   <span>
                     {attendeeName(attendee)}
                     <span className="ml-2 text-xs text-slate-500">({attendee.memberRole})</span>
+                    {attendee.walkIn ? (
+                      <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800">
+                        {t("registrationForm.walkInBadge")}
+                      </span>
+                    ) : null}
                   </span>
                 </label>
               ))}
             </div>
+
+            {!walkInFormVisible ? (
+              <div className="mt-4">
+                <button
+                  type="button"
+                  onClick={() => setWalkInFormVisible(true)}
+                  className="btn-secondary text-sm"
+                >
+                  {t("registrationForm.addTemporaryAttendee")}
+                </button>
+              </div>
+            ) : (
+              renderWalkInForm()
+            )}
           </article>
         ) : currentSection?.kind === "review" ? (
           renderReviewPanel()
