@@ -16,6 +16,7 @@ type ClubOption = {
   type: ClubType;
   city: string | null;
   state: string | null;
+  district: string | null;
 };
 
 type ClubUpdateFormProps = {
@@ -115,6 +116,17 @@ export function ClubUpdateForm({ clubs }: ClubUpdateFormProps) {
             name="state"
             type="text"
             defaultValue={selectedClub?.state ?? ""}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2"
+          />
+        </label>
+
+        <label className="space-y-1 text-sm text-slate-700">
+          <span>District (optional)</span>
+          <input
+            key={`${selectedClubId}-district`}
+            name="district"
+            type="text"
+            defaultValue={selectedClub?.district ?? ""}
             className="w-full rounded-lg border border-slate-300 px-3 py-2"
           />
         </label>
