@@ -1,10 +1,17 @@
 "use server";
 
+import { type DocumentProps, renderToBuffer } from "@react-pdf/renderer";
+import { createElement, type ReactElement } from "react";
 import { FormFieldScope, MemberRole, PaymentStatus, RegistrationStatus, type Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
 import { getManagedClubContext } from "../../lib/club-management";
 import { sendRegistrationConfirmationEmail } from "../../lib/email/resend";
+import { getEventRegistrationExportDataById } from "../../lib/data/event-registration-export";
+import {
+  EventRegistrationPdfDocument,
+  generateQrDataUrls,
+} from "../../lib/pdf/event-registration-pdf";
 import { isEventFieldVisible, readEventFieldConfig } from "../../lib/event-form-config";
 import { getFieldScope } from "../../lib/event-form-scope";
 import { getEventModeConfig } from "../../lib/event-modes";
@@ -530,6 +537,33 @@ export async function persistRegistrationForClub(input: {
         .filter((m): m is NonNullable<typeof m> => Boolean(m))
         .map((m) => ({ name: `${m.firstName} ${m.lastName}`, role: m.memberRole }));
 
+      let pdfAttachment: { filename: string; content: string } | null = null;
+
+      if (savedRegistrationId) {
+        try {
+          const exportData = await getEventRegistrationExportDataById(savedRegistrationId);
+
+          if (exportData) {
+            const qrDataUrls = exportData.attendees.length > 0
+              ? await generateQrDataUrls(exportData.attendees, savedRegistrationId)
+              : undefined;
+
+            const documentElement = createElement(EventRegistrationPdfDocument, {
+              data: exportData,
+              qrDataUrls,
+            }) as ReactElement<DocumentProps>;
+
+            const buffer = await renderToBuffer(documentElement);
+            pdfAttachment = {
+              filename: `${event.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-registration.pdf`,
+              content: Buffer.from(buffer).toString("base64"),
+            };
+          }
+        } catch (pdfError) {
+          console.error("PDF generation for email attachment failed.", pdfError);
+        }
+      }
+
       try {
         await (input.sendConfirmationEmail ?? sendRegistrationConfirmationEmail)({
           to: directorEmail,
@@ -542,6 +576,7 @@ export async function persistRegistrationForClub(input: {
           totalDue,
           paymentStatus: totalDue <= 0 ? "PAID" : "PENDING",
           eventId: input.eventId,
+          pdfAttachment,
         });
       } catch (error) {
         console.error("Registration was saved, but the confirmation email failed to send.", error);

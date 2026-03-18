@@ -1,10 +1,12 @@
 import {
   Document,
+  Image,
   Page,
   StyleSheet,
   Text,
   View,
 } from "@react-pdf/renderer";
+import qrcode from "qrcode";
 
 import type { EventRegistrationExportData } from "../data/event-registration-export";
 
@@ -194,6 +196,79 @@ const styles = StyleSheet.create({
     color: "#64748b",
     fontStyle: "italic",
   },
+  qrPage: {
+    paddingTop: 24,
+    paddingHorizontal: 24,
+    paddingBottom: 30,
+    fontSize: 10,
+    color: "#0f172a",
+    lineHeight: 1.35,
+  },
+  qrGrid: {
+    display: "flex",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    marginTop: 12,
+  },
+  qrCard: {
+    width: "30%",
+    borderWidth: 1,
+    borderColor: "#cbd5e1",
+    borderRadius: 8,
+    padding: 10,
+    backgroundColor: "#f8fafc",
+    alignItems: "center",
+  },
+  qrImage: {
+    width: 80,
+    height: 80,
+  },
+  qrName: {
+    marginTop: 6,
+    fontSize: 9,
+    fontWeight: 700,
+    textAlign: "center",
+    color: "#0f172a",
+  },
+  qrRole: {
+    fontSize: 8,
+    color: "#64748b",
+    textAlign: "center",
+  },
+  qrId: {
+    fontSize: 7,
+    color: "#94a3b8",
+    textAlign: "center",
+    marginTop: 2,
+  },
+  campsitePanel: {
+    borderWidth: 1,
+    borderColor: "#bae6fd",
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+    backgroundColor: "#f0f9ff",
+  },
+  campsite: {
+    fontSize: 9,
+    marginBottom: 2,
+  },
+  paymentBadgePaid: {
+    fontSize: 9,
+    color: "#065f46",
+    fontWeight: 700,
+  },
+  paymentBadgePending: {
+    fontSize: 9,
+    color: "#92400e",
+    fontWeight: 700,
+  },
+  paymentBadgePartial: {
+    fontSize: 9,
+    color: "#1e40af",
+    fontWeight: 700,
+  },
 });
 
 function formatDateTime(value: Date) {
@@ -206,6 +281,13 @@ function formatDateTime(value: Date) {
 function formatDate(value: Date) {
   return new Intl.DateTimeFormat("en-US", {
     dateStyle: "medium",
+  }).format(value);
+}
+
+function formatCurrency(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
   }).format(value);
 }
 
@@ -321,7 +403,46 @@ function formatResponseValue(value: unknown) {
   return "No response provided";
 }
 
-export function EventRegistrationPdfDocument({ data }: { data: RegistrationData }) {
+function paymentStatusStyle(status: string) {
+  if (status === "PAID") return styles.paymentBadgePaid;
+  if (status === "PARTIAL") return styles.paymentBadgePartial;
+  return styles.paymentBadgePending;
+}
+
+export async function generateQrDataUrls(
+  attendees: RegistrationData["attendees"],
+  registrationId: string,
+): Promise<Map<string, string>> {
+  const map = new Map<string, string>();
+
+  await Promise.all(
+    attendees.map(async (attendee) => {
+      const payload = JSON.stringify({
+        registrationId,
+        attendeeId: attendee.id,
+        rosterMemberId: attendee.rosterMemberId,
+      });
+
+      const dataUrl = await qrcode.toDataURL(payload, {
+        errorCorrectionLevel: "M",
+        margin: 1,
+        width: 160,
+      });
+
+      map.set(attendee.id, dataUrl);
+    }),
+  );
+
+  return map;
+}
+
+export function EventRegistrationPdfDocument({
+  data,
+  qrDataUrls,
+}: {
+  data: RegistrationData;
+  qrDataUrls?: Map<string, string>;
+}) {
   const stats = summarizeCounts(data);
   const sortedAttendees = [...data.attendees].sort((a, b) => {
     const byLast = a.rosterMember.lastName.localeCompare(b.rosterMember.lastName);
@@ -361,6 +482,9 @@ export function EventRegistrationPdfDocument({ data }: { data: RegistrationData 
     "Additional Responses",
   ];
 
+  const directorName = (data.club as { memberships?: Array<{ user: { name: string | null } }> }).memberships?.[0]?.user?.name ?? null;
+  const camporee = data.camporeeRegistration as { campsiteType?: string; campsiteNotes?: string | null } | null;
+
   return (
     <Document title={`${data.event.name} - ${data.club.name} Registration`}>
       <Page size="A4" style={styles.page}>
@@ -377,18 +501,50 @@ export function EventRegistrationPdfDocument({ data }: { data: RegistrationData 
             </View>
             <View style={styles.headerMetaItem}>
               <Text style={styles.headerMetaLabel}>Registration Status</Text>
-              <Text style={styles.headerMetaValue}>{friendlyRole(data.status)}</Text>
+              <Text style={[styles.headerMetaValue, paymentStatusStyle(data.paymentStatus)]}>
+                {friendlyRole(data.status)}
+              </Text>
             </View>
             <View style={styles.headerMetaItem}>
               <Text style={styles.headerMetaLabel}>Location</Text>
               <Text style={styles.headerMetaValue}>{data.event.locationName ?? "TBD"}</Text>
             </View>
             <View style={styles.headerMetaItem}>
+              <Text style={styles.headerMetaLabel}>Director</Text>
+              <Text style={styles.headerMetaValue}>{directorName ?? "—"}</Text>
+            </View>
+            <View style={styles.headerMetaItem}>
+              <Text style={styles.headerMetaLabel}>Submitted At</Text>
+              <Text style={styles.headerMetaValue}>
+                {data.submittedAt ? formatDateTime(data.submittedAt) : "Not submitted"}
+              </Text>
+            </View>
+            <View style={styles.headerMetaItem}>
               <Text style={styles.headerMetaLabel}>Exported At</Text>
               <Text style={styles.headerMetaValue}>{formatDateTime(new Date())}</Text>
             </View>
+            <View style={styles.headerMetaItem}>
+              <Text style={styles.headerMetaLabel}>Estimated Total</Text>
+              <Text style={styles.headerMetaValue}>{formatCurrency(data.totalDue)}</Text>
+            </View>
+            <View style={styles.headerMetaItem}>
+              <Text style={styles.headerMetaLabel}>Payment Status</Text>
+              <Text style={[styles.headerMetaValue, paymentStatusStyle(data.paymentStatus)]}>
+                {friendlyRole(data.paymentStatus)}
+              </Text>
+            </View>
           </View>
         </View>
+
+        {camporee ? (
+          <View style={styles.campsitePanel}>
+            <Text style={styles.sectionTitle}>Campsite Assignment</Text>
+            <Text style={styles.campsite}>Type: {camporee.campsiteType}</Text>
+            {camporee.campsiteNotes ? (
+              <Text style={styles.campsite}>Notes: {camporee.campsiteNotes}</Text>
+            ) : null}
+          </View>
+        ) : null}
 
         <Text style={styles.sectionTitle}>Attendance Breakdown</Text>
         <View style={styles.statsGrid}>
@@ -417,11 +573,11 @@ export function EventRegistrationPdfDocument({ data }: { data: RegistrationData 
             <Text style={styles.statValue}>{stats.children}</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Medical Flags ⚕</Text>
+            <Text style={styles.statLabel}>Medical Flags</Text>
             <Text style={styles.statValue}>{stats.medicalCount}</Text>
           </View>
           <View style={styles.statCard}>
-            <Text style={styles.statLabel}>Dietary Restrictions 🥗</Text>
+            <Text style={styles.statLabel}>Dietary Restrictions</Text>
             <Text style={styles.statValue}>{stats.dietaryCount}</Text>
           </View>
         </View>
@@ -432,8 +588,8 @@ export function EventRegistrationPdfDocument({ data }: { data: RegistrationData 
             <Text style={[styles.tableHeaderText, styles.colName]}>Name</Text>
             <Text style={[styles.tableHeaderText, styles.colRole]}>Role</Text>
             <Text style={[styles.tableHeaderText, styles.colAge]}>Age</Text>
-            <Text style={[styles.tableHeaderText, styles.colMedical]}>Medical ⚕</Text>
-            <Text style={[styles.tableHeaderText, styles.colDietary]}>Dietary 🥗</Text>
+            <Text style={[styles.tableHeaderText, styles.colMedical]}>Medical</Text>
+            <Text style={[styles.tableHeaderText, styles.colDietary]}>Dietary</Text>
             <Text style={[styles.tableHeaderText, styles.colClasses]}>Class Enrollments</Text>
           </View>
 
@@ -474,8 +630,8 @@ export function EventRegistrationPdfDocument({ data }: { data: RegistrationData 
                     {friendlyRole(attendee.rosterMember.memberRole)}
                   </Text>
                   <Text style={[styles.tableCell, styles.colAge]}>{age ?? "-"}</Text>
-                  <Text style={[styles.tableCell, styles.colMedical]}>{medical ? `⚕ ${medical}` : "-"}</Text>
-                  <Text style={[styles.tableCell, styles.colDietary]}>{dietary ? `🥗 ${dietary}` : "-"}</Text>
+                  <Text style={[styles.tableCell, styles.colMedical]}>{medical ? medical : "-"}</Text>
+                  <Text style={[styles.tableCell, styles.colDietary]}>{dietary ? dietary : "-"}</Text>
                   <Text style={[styles.tableCell, styles.colClasses]}>{classTitles || "-"}</Text>
                 </View>
               );
@@ -532,6 +688,34 @@ export function EventRegistrationPdfDocument({ data }: { data: RegistrationData 
           );
         })}
       </Page>
+
+      {qrDataUrls && qrDataUrls.size > 0 ? (
+        <Page size="A4" style={styles.qrPage}>
+          <Text style={styles.pageBreakTitle}>Attendee Check-in QR Codes</Text>
+          <Text style={styles.pageBreakSubtitle}>
+            One QR code per attendee. Scan at the gate for individual check-in.
+          </Text>
+
+          <View style={styles.qrGrid}>
+            {sortedAttendees.map((attendee) => {
+              const dataUrl = qrDataUrls.get(attendee.id);
+              if (!dataUrl) return null;
+
+              return (
+                <View key={`qr-${attendee.id}`} style={styles.qrCard}>
+                  {/* eslint-disable-next-line jsx-a11y/alt-text */}
+                  <Image src={dataUrl} style={styles.qrImage} />
+                  <Text style={styles.qrName}>
+                    {attendee.rosterMember.firstName} {attendee.rosterMember.lastName}
+                  </Text>
+                  <Text style={styles.qrRole}>{friendlyRole(attendee.rosterMember.memberRole)}</Text>
+                  <Text style={styles.qrId}>{attendee.id.slice(-8)}</Text>
+                </View>
+              );
+            })}
+          </View>
+        </Page>
+      ) : null}
     </Document>
   );
 }

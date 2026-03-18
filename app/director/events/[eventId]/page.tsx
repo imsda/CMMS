@@ -242,15 +242,26 @@ export default async function DirectorEventRegistrationPage({
                 {t(`eventDetail.payment.status.${paymentStatus}`)}
               </p>
             </div>
-            {paymentStatus !== "PAID" && squareCheckoutUrl ? (
-              <a
-                href={squareCheckoutUrl}
-                className="btn-primary"
-                rel="noopener noreferrer"
-              >
-                {t("eventDetail.payment.completePayment")}
-              </a>
-            ) : null}
+            <div className="flex flex-wrap items-center gap-2">
+              {registration && (registration.status === "SUBMITTED" || registration.status === "APPROVED") ? (
+                <a
+                  href={`/api/registrations/${registration.id}/pdf`}
+                  className="btn-secondary"
+                  download
+                >
+                  {t("eventDetail.downloadPdf")}
+                </a>
+              ) : null}
+              {paymentStatus !== "PAID" && squareCheckoutUrl ? (
+                <a
+                  href={squareCheckoutUrl}
+                  className="btn-primary"
+                  rel="noopener noreferrer"
+                >
+                  {t("eventDetail.payment.completePayment")}
+                </a>
+              ) : null}
+            </div>
           </div>
         </article>
       ) : null}

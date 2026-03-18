@@ -663,6 +663,7 @@
         "score": "Puntuación",
         "notes": "Notas"
       },
+      "downloadPdf": "Descargar PDF de registro",
       "payment": {
         "statusLabel": "Estado de pago",
         "completePayment": "Completar pago",
