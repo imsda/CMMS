@@ -13,6 +13,7 @@ import { prisma } from "../../../../lib/prisma";
 import { buildDirectorPath } from "../../../../lib/director-path";
 import { CamporeeRegistrationWorkflow } from "./_components/camporee-registration-workflow";
 import { RegistrationFormFulfiller } from "./_components/registration-form-fulfiller";
+import { RegistrationStatusBanner } from "./_components/registration-status-banner";
 
 function formatDateRange(startsAt: Date, endsAt: Date, locale: string) {
   const formatter = new Intl.DateTimeFormat(locale, {
@@ -149,6 +150,7 @@ export default async function DirectorEventRegistrationPage({
   const registration = event.registrations[0] ?? null;
   const paymentStatus = registration?.paymentStatus ?? null;
   const squareCheckoutUrl = registration?.squareCheckoutUrl ?? null;
+  const campsiteAssignment = registration?.campsiteAssignment ?? null;
   const activeRoster = club.rosterYears[0];
   const attendees = activeRoster?.members ?? [];
   const attendeeMedicalSummaries = attendees.map((member) => {
@@ -308,6 +310,13 @@ export default async function DirectorEventRegistrationPage({
           </div>
         </article>
       ) : null}
+
+      <RegistrationStatusBanner
+        registrationStatus={registration?.status ?? null}
+        paymentStatus={paymentStatus}
+        reviewTurnaroundDays={event.reviewTurnaroundDays}
+        campsiteAssignment={campsiteAssignment}
+      />
 
       {camporeeWorkflowEnabled && camporeeRegistrationSnapshot ? (
         <CamporeeRegistrationWorkflow

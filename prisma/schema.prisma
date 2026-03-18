@@ -405,6 +405,7 @@ model Event {
   lateFeeStartsAt      DateTime
   locationName         String?
   locationAddress      String?
+  reviewTurnaroundDays Int?
   createdByUserId      String?
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
