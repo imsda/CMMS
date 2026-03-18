@@ -1,5 +1,6 @@
 import {
   Document,
+  Image,
   Page,
   StyleSheet,
   Text,
@@ -194,6 +195,37 @@ const styles = StyleSheet.create({
     color: "#64748b",
     fontStyle: "italic",
   },
+  qrGrid: {
+    display: "flex",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+  },
+  qrCard: {
+    width: "22%",
+    borderWidth: 1,
+    borderColor: "#e2e8f0",
+    borderRadius: 6,
+    padding: 8,
+    backgroundColor: "#ffffff",
+    alignItems: "center",
+  },
+  qrImage: {
+    width: 80,
+    height: 80,
+  },
+  qrName: {
+    marginTop: 4,
+    fontSize: 8,
+    fontWeight: 700,
+    color: "#0f172a",
+    textAlign: "center",
+  },
+  qrRole: {
+    fontSize: 7,
+    color: "#64748b",
+    textAlign: "center",
+  },
 });
 
 function formatDateTime(value: Date) {
@@ -321,7 +353,13 @@ function formatResponseValue(value: unknown) {
   return "No response provided";
 }
 
-export function EventRegistrationPdfDocument({ data }: { data: RegistrationData }) {
+export function EventRegistrationPdfDocument({
+  data,
+  attendeeQrCodes,
+}: {
+  data: RegistrationData;
+  attendeeQrCodes?: Map<string, string>;
+}) {
   const stats = summarizeCounts(data);
   const sortedAttendees = [...data.attendees].sort((a, b) => {
     const byLast = a.rosterMember.lastName.localeCompare(b.rosterMember.lastName);
@@ -532,6 +570,32 @@ export function EventRegistrationPdfDocument({ data }: { data: RegistrationData 
           );
         })}
       </Page>
+
+      {attendeeQrCodes && attendeeQrCodes.size > 0 && (
+        <Page size="A4" style={styles.page}>
+          <Text style={styles.pageBreakTitle}>Attendee QR Codes</Text>
+          <Text style={styles.pageBreakSubtitle}>
+            Scan each code at the gate to check in individual attendees.
+          </Text>
+          <View style={styles.qrGrid}>
+            {sortedAttendees.map((attendee) => {
+              const qrDataUrl = attendeeQrCodes.get(attendee.rosterMemberId);
+              return (
+                <View key={attendee.id} style={styles.qrCard}>
+                  {qrDataUrl ? (
+                    // eslint-disable-next-line jsx-a11y/alt-text
+                    <Image src={qrDataUrl} style={styles.qrImage} />
+                  ) : null}
+                  <Text style={styles.qrName}>
+                    {attendee.rosterMember.firstName} {attendee.rosterMember.lastName}
+                  </Text>
+                  <Text style={styles.qrRole}>{friendlyRole(attendee.rosterMember.memberRole)}</Text>
+                </View>
+              );
+            })}
+          </View>
+        </Page>
+      )}
     </Document>
   );
 }

@@ -1,5 +1,6 @@
 import { type DocumentProps, renderToBuffer } from "@react-pdf/renderer";
 import { createElement, type ReactElement } from "react";
+import QRCode from "qrcode";
 import { NextResponse } from "next/server";
 
 import { auth } from "../../../../../../auth";
@@ -59,9 +60,17 @@ export async function GET(
     return NextResponse.json({ error: "Registration not found." }, { status: 404 });
   }
 
+  const qrEntries = await Promise.all(
+    registration.attendees.map(async (attendee) => {
+      const dataUrl = await QRCode.toDataURL(attendee.rosterMemberId, { width: 120, margin: 1 });
+      return [attendee.rosterMemberId, dataUrl] as const;
+    }),
+  );
+  const attendeeQrCodes = new Map<string, string>(qrEntries);
+
   const documentElement = createElement(
     EventRegistrationPdfDocument,
-    { data: registration },
+    { data: registration, attendeeQrCodes },
   ) as ReactElement<DocumentProps>;
 
   const buffer = await renderToBuffer(documentElement);
