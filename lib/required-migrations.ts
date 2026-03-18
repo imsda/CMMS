@@ -22,4 +22,5 @@ export const REQUIRED_MIGRATION_NAMES = [
   "20260314124500_add_review_feedback_fields",
   "20260317120000_add_square_payment_fields",
   "20260318100000_add_campsite_assignment",
+  "20260318120000_add_review_turnaround_and_campsite_assignment",
 ] as const;
