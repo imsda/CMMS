@@ -9,6 +9,7 @@ import { getMissingRequiredFieldLabels } from "../../lib/event-form-completeness
 import { prisma } from "../../lib/prisma";
 import { assertRegistrationCanBeCheckedIn } from "../../lib/registration-lifecycle";
 
+
 function ensureSuperAdmin(session: Session | null) {
   if (!session?.user || session.user.role !== "SUPER_ADMIN") {
     throw new Error("Only super admins can perform this action.");
@@ -85,6 +86,7 @@ export async function getEventCheckinDashboard(eventId: string) {
                 select: {
                   firstName: true,
                   lastName: true,
+                  memberRole: true,
                   swimTestCleared: true,
                 },
               },
@@ -226,4 +228,51 @@ export async function approveRegistrationForCheckIn(eventId: string, registratio
       },
     });
   });
+}
+
+export async function checkInAttendee(formData: FormData) {
+  const session = await auth();
+  ensureSuperAdmin(session);
+
+  const eventId = requireTrimmedString(formData.get("eventId"), "Event");
+  const attendeeId = requireTrimmedString(formData.get("attendeeId"), "Attendee");
+
+  await prisma.registrationAttendee.updateMany({
+    where: {
+      id: attendeeId,
+      checkedInAt: null,
+      eventRegistration: {
+        eventId,
+        status: { in: [RegistrationStatus.SUBMITTED, RegistrationStatus.APPROVED] },
+      },
+    },
+    data: {
+      checkedInAt: new Date(),
+    },
+  });
+
+  revalidatePath(`/admin/events/${eventId}`);
+  revalidatePath(`/admin/events/${eventId}/checkin`);
+}
+
+export async function checkInAttendeeByRosterMemberId(eventId: string, rosterMemberId: string) {
+  const session = await auth();
+  ensureSuperAdmin(session);
+
+  await prisma.registrationAttendee.updateMany({
+    where: {
+      rosterMemberId,
+      checkedInAt: null,
+      eventRegistration: {
+        eventId,
+        status: { in: [RegistrationStatus.SUBMITTED, RegistrationStatus.APPROVED] },
+      },
+    },
+    data: {
+      checkedInAt: new Date(),
+    },
+  });
+
+  revalidatePath(`/admin/events/${eventId}`);
+  revalidatePath(`/admin/events/${eventId}/checkin`);
 }
