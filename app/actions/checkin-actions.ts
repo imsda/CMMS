@@ -87,6 +87,7 @@ export async function getEventCheckinDashboard(eventId: string) {
                   firstName: true,
                   lastName: true,
                   memberRole: true,
+                  swimTestCleared: true,
                 },
               },
             },

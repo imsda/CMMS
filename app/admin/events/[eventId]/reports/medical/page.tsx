@@ -26,6 +26,7 @@ type ManifestTableProps = {
   roleHeader: string;
   clubHeader: string;
   emergencyHeader: string;
+  swimTestHeader: string;
   getDetail: (row: MedicalManifestRow) => string;
 };
 
@@ -39,6 +40,7 @@ function ManifestTable({
   roleHeader,
   clubHeader,
   emergencyHeader,
+  swimTestHeader,
   getDetail,
 }: ManifestTableProps) {
   return (
@@ -57,6 +59,7 @@ function ManifestTable({
                 <th className="px-4 py-3">{roleHeader}</th>
                 <th className="px-4 py-3">{clubHeader}</th>
                 <th className="px-4 py-3">{emergencyHeader}</th>
+                <th className="px-4 py-3">{swimTestHeader}</th>
                 <th className="px-4 py-3">{detailHeader}</th>
               </tr>
             </thead>
@@ -68,6 +71,7 @@ function ManifestTable({
                   <td className="px-4 py-3 text-slate-700">{row.role}</td>
                   <td className="px-4 py-3 text-slate-700">{row.clubName}</td>
                   <td className="px-4 py-3 text-slate-700">{row.emergencyContactInfo}</td>
+                  <td className="px-4 py-3 text-slate-700">{row.swimTestCleared ? "Yes" : "No"}</td>
                   <td className="px-4 py-3 text-slate-900">{getDetail(row)}</td>
                 </tr>
               ))}
@@ -159,6 +163,7 @@ export default async function MedicalManifestPage({ params }: MedicalManifestPag
         roleHeader={t("pages.medical.table.role")}
         clubHeader={t("pages.medical.table.club")}
         emergencyHeader={t("pages.medical.table.emergency")}
+        swimTestHeader={t("pages.medical.table.swimTest")}
         getDetail={(row) => row.dietaryRestrictions ?? ""}
       />
 
@@ -172,6 +177,7 @@ export default async function MedicalManifestPage({ params }: MedicalManifestPag
         roleHeader={t("pages.medical.table.role")}
         clubHeader={t("pages.medical.table.club")}
         emergencyHeader={t("pages.medical.table.emergency")}
+        swimTestHeader={t("pages.medical.table.swimTest")}
         getDetail={(row) => row.medicalFlags ?? ""}
       />
     </section>

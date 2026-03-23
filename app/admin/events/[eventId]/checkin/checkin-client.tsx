@@ -16,6 +16,7 @@ type Attendee = {
     firstName: string;
     lastName: string;
     memberRole: string;
+    swimTestCleared: boolean;
   };
 };
 
@@ -329,6 +330,11 @@ export function CheckinClient({ eventId, eventName, registrations }: CheckinClie
                           </p>
                           <p className="truncate text-xs text-slate-500">
                             {reg.club.name} &middot; {attendee.rosterMember.memberRole.replace(/_/g, " ")}
+                            {attendee.rosterMember.swimTestCleared ? (
+                              <span className="ml-1.5 inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-xs font-semibold text-emerald-700">
+                                Swim ✓
+                              </span>
+                            ) : null}
                           </p>
                           {checkedIn ? (
                             <p className="text-xs font-semibold text-emerald-700">✓ Checked in</p>

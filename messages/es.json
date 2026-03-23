@@ -544,7 +544,8 @@
           "age": "Edad",
           "role": "Rol",
           "club": "Nombre del club",
-          "emergency": "Contacto de emergencia"
+          "emergency": "Contacto de emergencia",
+          "swimTest": "Prueba de natación aprobada"
         },
         "dietaryTitle": "Manifiesto de restricciones dietéticas",
         "dietaryDetail": "Restricción dietética",
@@ -755,6 +756,7 @@
         "medical": "Médico",
         "dietary": "Dieta",
         "masterGuide": "Master Guide",
+        "swimTest": "Prueba de natación",
         "actions": "Acciones"
       },
       "empty": "Todavía no se encontraron miembros activos en este año de nómina.",
@@ -768,7 +770,9 @@
         "missing": "Falta",
         "complete": "Completo",
         "flagged": "Marcado",
-        "certified": "Certificado"
+        "certified": "Certificado",
+        "cleared2": "Aprobado",
+        "notCleared": "No aprobado"
       },
       "edit": "Editar",
       "modal": {
@@ -793,6 +797,7 @@
         "medicalPersonnel": "Personal médico",
         "masterGuide": "Master Guide",
         "activeMember": "Miembro activo",
+        "swimTestCleared": "Prueba de natación aprobada",
         "agreementsTitle": "Acuerdos y salud",
         "agreementsDescription": "Registre consentimientos del padre/tutor y datos clave de salud.",
         "insuranceCompany": "Compañía de seguro",

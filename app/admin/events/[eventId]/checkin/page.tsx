@@ -40,6 +40,7 @@ export default async function EventCheckinPage({ params }: CheckinPageProps) {
         firstName: a.rosterMember.firstName,
         lastName: a.rosterMember.lastName,
         memberRole: a.rosterMember.memberRole,
+        swimTestCleared: a.rosterMember.swimTestCleared,
       },
     })),
   }));
