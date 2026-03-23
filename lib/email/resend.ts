@@ -1,6 +1,9 @@
 import { buildRegistrationConfirmationHtml, type RegistrationConfirmationAttendee } from "./registration-confirmation";
 import { buildRegistrationReceiptHtml } from "./templates/registration-receipt";
 import { buildAccountCredentialHtml } from "./templates/account-credentials";
+import { buildRegistrationApprovedHtml } from "./registration-approved";
+import { buildRevisionRequestedHtml } from "./revision-requested";
+import { buildClassAssignmentHtml, type ClassAssignmentMember } from "./class-assignment";
 
 type SendRegistrationReceiptInput = {
   to: string;
@@ -28,6 +31,33 @@ type SendRegistrationConfirmationInput = {
   totalDue: number;
   paymentStatus: string;
   eventId: string;
+};
+
+type SendRegistrationApprovedInput = {
+  to: string;
+  eventName: string;
+  clubName: string;
+  eventStartsAt: Date;
+  eventEndsAt: Date;
+  locationName: string | null;
+  locationAddress: string | null;
+  registrationUrl: string;
+};
+
+type SendRevisionRequestedInput = {
+  to: string;
+  eventName: string;
+  clubName: string;
+  reason: string;
+  registrationUrl: string;
+};
+
+type SendClassAssignmentInput = {
+  to: string;
+  eventName: string;
+  clubName: string;
+  members: ClassAssignmentMember[];
+  classesUrl: string;
 };
 
 type SendDirectorReadinessReminderInput = {
@@ -191,6 +221,126 @@ export async function sendAccountCredentialEmail(input: SendAccountCredentialInp
     sent: true,
     error: null,
   };
+}
+
+export async function sendRegistrationApprovedEmail(input: SendRegistrationApprovedInput) {
+  const config = getResendConfig();
+
+  if (!config) {
+    console.warn("Skipping registration approved email because RESEND_API_KEY or RESEND_FROM_EMAIL is not configured.");
+    return;
+  }
+
+  const contactEmail = normalizeEnvValue(process.env.CONFERENCE_CONTACT_EMAIL);
+  const appUrl = normalizeEnvValue(process.env.NEXT_PUBLIC_APP_URL) ?? "http://localhost:3000";
+
+  const html = buildRegistrationApprovedHtml({
+    eventName: input.eventName,
+    clubName: input.clubName,
+    eventStartsAt: input.eventStartsAt,
+    eventEndsAt: input.eventEndsAt,
+    locationName: input.locationName,
+    locationAddress: input.locationAddress,
+    registrationUrl: input.registrationUrl.startsWith("http") ? input.registrationUrl : `${appUrl}${input.registrationUrl}`,
+    contactEmail,
+  });
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${config.apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: config.from,
+      to: [input.to],
+      subject: `Registration approved: ${input.eventName}`,
+      html,
+    }),
+  });
+
+  if (!response.ok) {
+    const payload = await response.text();
+    throw new Error(`Failed to send registration approved email: ${response.status} ${payload}`);
+  }
+}
+
+export async function sendRevisionRequestedEmail(input: SendRevisionRequestedInput) {
+  const config = getResendConfig();
+
+  if (!config) {
+    console.warn("Skipping revision requested email because RESEND_API_KEY or RESEND_FROM_EMAIL is not configured.");
+    return;
+  }
+
+  const contactEmail = normalizeEnvValue(process.env.CONFERENCE_CONTACT_EMAIL);
+  const appUrl = normalizeEnvValue(process.env.NEXT_PUBLIC_APP_URL) ?? "http://localhost:3000";
+
+  const html = buildRevisionRequestedHtml({
+    eventName: input.eventName,
+    clubName: input.clubName,
+    reason: input.reason,
+    registrationUrl: input.registrationUrl.startsWith("http") ? input.registrationUrl : `${appUrl}${input.registrationUrl}`,
+    contactEmail,
+  });
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${config.apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: config.from,
+      to: [input.to],
+      subject: `Action required: ${input.eventName} registration needs changes`,
+      html,
+    }),
+  });
+
+  if (!response.ok) {
+    const payload = await response.text();
+    throw new Error(`Failed to send revision requested email: ${response.status} ${payload}`);
+  }
+}
+
+export async function sendClassAssignmentEmail(input: SendClassAssignmentInput) {
+  const config = getResendConfig();
+
+  if (!config) {
+    console.warn("Skipping class assignment email because RESEND_API_KEY or RESEND_FROM_EMAIL is not configured.");
+    return;
+  }
+
+  const contactEmail = normalizeEnvValue(process.env.CONFERENCE_CONTACT_EMAIL);
+  const appUrl = normalizeEnvValue(process.env.NEXT_PUBLIC_APP_URL) ?? "http://localhost:3000";
+
+  const html = buildClassAssignmentHtml({
+    eventName: input.eventName,
+    clubName: input.clubName,
+    members: input.members,
+    classesUrl: input.classesUrl.startsWith("http") ? input.classesUrl : `${appUrl}${input.classesUrl}`,
+    contactEmail,
+  });
+
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${config.apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: config.from,
+      to: [input.to],
+      subject: `Class assignments ready: ${input.eventName}`,
+      html,
+    }),
+  });
+
+  if (!response.ok) {
+    const payload = await response.text();
+    throw new Error(`Failed to send class assignment email: ${response.status} ${payload}`);
+  }
 }
 
 type SendTltApplicationDecisionInput = {
