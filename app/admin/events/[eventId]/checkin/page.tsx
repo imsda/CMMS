@@ -109,6 +109,25 @@ export default async function EventCheckinPage({ params }: CheckinPageProps) {
                       <span className="font-semibold">{registration.attendees.length}</span>
                     </p>
 
+                    {registration.attendees.length > 0 ? (
+                      <div className="mt-2 space-y-1">
+                        {registration.attendees.map((attendee) => (
+                          <div key={attendee.id} className="flex items-center gap-2 text-xs text-slate-600">
+                            <span>{attendee.rosterMember.firstName} {attendee.rosterMember.lastName}</span>
+                            {attendee.rosterMember.swimTestCleared ? (
+                              <span className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
+                                Swim ✓
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center rounded-full border border-slate-300 bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600">
+                                Swim —
+                              </span>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+
                     {registration.hasMissingRequiredFields ? (
                       <ul className="list-disc space-y-1 pl-5 text-xs text-rose-700">
                         {registration.missingRequiredFields.map((missingField) => (

@@ -281,6 +281,7 @@ model RosterMember {
   masterGuide                Boolean               @default(false)
   backgroundCheckDate        DateTime?
   backgroundCheckCleared     Boolean               @default(false)
+  swimTestCleared            Boolean               @default(false)
   rolloverStatus             RolloverStatus        @default(CONTINUING)
   isActive                   Boolean               @default(true)
   emergencyContactName       String?

@@ -85,6 +85,7 @@ export async function getEventCheckinDashboard(eventId: string) {
                 select: {
                   firstName: true,
                   lastName: true,
+                  swimTestCleared: true,
                 },
               },
             },
