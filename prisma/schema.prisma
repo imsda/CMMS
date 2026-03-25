@@ -290,11 +290,15 @@ model RosterMember {
   insuranceCardFilename      String?
   lastTetanusDate            DateTime?
   lastTetanusDateEncrypted   String?
-  photoReleaseConsent        Boolean               @default(false)
-  medicalTreatmentConsent    Boolean               @default(false)
-  membershipAgreementConsent Boolean               @default(false)
-  createdAt                  DateTime              @default(now())
-  updatedAt                  DateTime              @updatedAt
+  photoReleaseConsent           Boolean               @default(false)
+  medicalTreatmentConsent       Boolean               @default(false)
+  membershipAgreementConsent    Boolean               @default(false)
+  photoReleaseConsentAt         DateTime?
+  medicalTreatmentConsentAt     DateTime?
+  membershipAgreementConsentAt  DateTime?
+  consentVersion                String?
+  createdAt                     DateTime              @default(now())
+  updatedAt                     DateTime              @updatedAt
 
   clubRosterYear         ClubRosterYear        @relation(fields: [clubRosterYearId], references: [id], onDelete: Cascade)
   registrations          RegistrationAttendee[]
@@ -405,6 +409,9 @@ model Event {
   lateFeeStartsAt      DateTime
   locationName         String?
   locationAddress      String?
+  minAttendeeAge       Int?
+  maxAttendeeAge       Int?
+  allowedClubTypes     String[]             @default([])
   createdByUserId      String?
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt

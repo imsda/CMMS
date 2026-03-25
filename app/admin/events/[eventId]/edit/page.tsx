@@ -39,6 +39,9 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
       lateFeeStartsAt: true,
       locationName: true,
       locationAddress: true,
+      minAttendeeAge: true,
+      maxAttendeeAge: true,
+      allowedClubTypes: true,
       dynamicFields: {
         select: {
           id: true,
@@ -130,6 +133,9 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
           lateFeeStartsAt: toDatetimeLocalValue(event.lateFeeStartsAt),
           locationName: event.locationName ?? "",
           locationAddress: event.locationAddress ?? "",
+          minAttendeeAge: event.minAttendeeAge,
+          maxAttendeeAge: event.maxAttendeeAge,
+          allowedClubTypes: event.allowedClubTypes,
         }}
       />
 

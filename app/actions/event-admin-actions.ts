@@ -1,6 +1,7 @@
 "use server";
 
 import {
+  ClubType,
   EventMode,
   EventWorkflowType,
   EventTemplateCategory,
@@ -461,6 +462,29 @@ async function buildUniqueSlug(name: string) {
   return `${base}-${Date.now()}`;
 }
 
+function parseOptionalPositiveInt(value: FormDataEntryValue | null): number | null {
+  if (typeof value !== "string" || value.trim().length === 0) {
+    return null;
+  }
+
+  const parsed = Number.parseInt(value, 10);
+
+  if (Number.isNaN(parsed) || parsed < 0) {
+    return null;
+  }
+
+  return parsed;
+}
+
+function parseAllowedClubTypes(formData: FormData): string[] {
+  const values = formData.getAll("allowedClubTypes");
+  const validClubTypes = new Set<string>(Object.values(ClubType));
+
+  return values
+    .filter((v): v is string => typeof v === "string")
+    .filter((v) => validClubTypes.has(v));
+}
+
 function isRedirectError(error: unknown) {
   return (
     typeof error === "object" &&
@@ -504,6 +528,10 @@ async function parseEventMutationInput(formData: FormData): Promise<EventMutatio
   prepareUniqueDynamicFieldKeys(dynamicFields);
   validateDynamicFieldsForEventMode(eventMode, dynamicFields);
 
+  const minAttendeeAge = parseOptionalPositiveInt(formData.get("minAttendeeAge"));
+  const maxAttendeeAge = parseOptionalPositiveInt(formData.get("maxAttendeeAge"));
+  const allowedClubTypes = parseAllowedClubTypes(formData);
+
   return {
     eventMode,
     workflowType,
@@ -518,6 +546,9 @@ async function parseEventMutationInput(formData: FormData): Promise<EventMutatio
     lateFeeStartsAt,
     locationName,
     locationAddress,
+    minAttendeeAge,
+    maxAttendeeAge,
+    allowedClubTypes,
     dynamicFields,
   };
 }
@@ -740,6 +771,9 @@ export async function updateEventCoreDetails(
     const locationName = optionalTrimmedString(formData.get("locationName"));
     const locationAddress = optionalTrimmedString(formData.get("locationAddress"));
     const description = optionalTrimmedString(formData.get("description"));
+    const minAttendeeAge = parseOptionalPositiveInt(formData.get("minAttendeeAge"));
+    const maxAttendeeAge = parseOptionalPositiveInt(formData.get("maxAttendeeAge"));
+    const allowedClubTypes = parseAllowedClubTypes(formData);
 
     validateEventTimeline({
       startsAt,
@@ -765,6 +799,9 @@ export async function updateEventCoreDetails(
         locationName,
         locationAddress,
         description,
+        minAttendeeAge,
+        maxAttendeeAge,
+        allowedClubTypes,
       },
     });
 

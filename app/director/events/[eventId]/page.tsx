@@ -219,6 +219,33 @@ export default async function DirectorEventRegistrationPage({
         </dl>
       </header>
 
+      {(event.minAttendeeAge !== null || event.maxAttendeeAge !== null || event.allowedClubTypes.length > 0) ? (
+        <article className="glass-panel">
+          <h2 className="text-base font-semibold text-slate-900">{t("eventDetail.eligibility.title")}</h2>
+          <dl className="mt-3 grid gap-2 text-sm text-slate-700 md:grid-cols-3">
+            {event.minAttendeeAge !== null ? (
+              <div>
+                <dt className="font-semibold text-slate-900">{t("eventDetail.eligibility.minAge")}</dt>
+                <dd>{event.minAttendeeAge}</dd>
+              </div>
+            ) : null}
+            {event.maxAttendeeAge !== null ? (
+              <div>
+                <dt className="font-semibold text-slate-900">{t("eventDetail.eligibility.maxAge")}</dt>
+                <dd>{event.maxAttendeeAge}</dd>
+              </div>
+            ) : null}
+            {event.allowedClubTypes.length > 0 ? (
+              <div>
+                <dt className="font-semibold text-slate-900">{t("eventDetail.eligibility.clubTypes")}</dt>
+                <dd>{event.allowedClubTypes.join(", ")}</dd>
+              </div>
+            ) : null}
+          </dl>
+          <p className="mt-2 text-xs text-slate-500">{t("eventDetail.eligibility.warningNote")}</p>
+        </article>
+      ) : null}
+
       {paymentStatus !== null ? (
         <article className="glass-panel">
           <div className="flex flex-wrap items-center justify-between gap-4">

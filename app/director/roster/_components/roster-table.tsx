@@ -2,9 +2,35 @@
 
 import { Gender, MemberRole } from "@prisma/client";
 import { useMemo, useState } from "react";
+import { useFormState } from "react-dom";
 import { useTranslations } from "next-intl";
 
-import { saveRosterMember } from "../../../actions/roster-actions";
+import { saveRosterMember, importRosterMembers, type ImportRosterResult } from "../../../actions/roster-actions";
+
+// ---------------------------------------------------------------------------
+// CSV template column headers (order matters — matches the import parser)
+// Required: firstName, lastName, memberRole, dateOfBirth
+// Optional: gender, ageAtStart, emergencyContactName, emergencyContactPhone,
+//           medicalFlags, dietaryRestrictions, isFirstTime, isMedicalPersonnel, masterGuide
+// memberRole values: PATHFINDER | ADVENTURER | TLT | STAFF | CHILD | DIRECTOR | COUNSELOR
+// gender values: MALE | FEMALE | NON_BINARY | PREFER_NOT_TO_SAY
+// dateOfBirth format: YYYY-MM-DD   Boolean columns: true | false
+// ---------------------------------------------------------------------------
+const CSV_IMPORT_HEADERS = [
+  "firstName",
+  "lastName",
+  "memberRole",
+  "dateOfBirth",
+  "gender",
+  "ageAtStart",
+  "emergencyContactName",
+  "emergencyContactPhone",
+  "medicalFlags",
+  "dietaryRestrictions",
+  "isFirstTime",
+  "isMedicalPersonnel",
+  "masterGuide",
+] as const;
 
 type RosterMemberRow = {
   id: string;
@@ -80,9 +106,31 @@ function hasMissingRequiredConsent(member: RosterMemberRow) {
   return !(member.photoReleaseConsent && member.medicalTreatmentConsent && member.membershipAgreementConsent);
 }
 
+function downloadCsvTemplate() {
+  const commentRow = [
+    "# Required: firstName,lastName,memberRole,dateOfBirth",
+    "# memberRole values: PATHFINDER|ADVENTURER|TLT|STAFF|CHILD|DIRECTOR|COUNSELOR",
+    "# gender values: MALE|FEMALE|NON_BINARY|PREFER_NOT_TO_SAY",
+    "# dateOfBirth format: YYYY-MM-DD",
+    "# Boolean columns (isFirstTime/isMedicalPersonnel/masterGuide): true|false",
+  ].join("\n");
+  const headerRow = CSV_IMPORT_HEADERS.join(",");
+  const exampleRow = "Jane,Doe,PATHFINDER,2012-05-14,FEMALE,12,Parent Name,555-0100,,,false,false,false";
+  const csv = `${commentRow}\n${headerRow}\n${exampleRow}\n`;
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "roster-import-template.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function RosterTable({ rosterYearId, managedClubId, members }: RosterTableProps) {
   const t = useTranslations("Director");
   const [modalState, setModalState] = useState<ModalState | null>(null);
+  const [showImportForm, setShowImportForm] = useState(false);
+  const [importResult, importAction] = useFormState<ImportRosterResult | null, FormData>(importRosterMembers, null);
 
   const sortedMembers = useMemo(
     () =>
@@ -104,14 +152,81 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
           <h2 className="section-title">{t("rosterTable.title")}</h2>
           <p className="section-copy">{t("rosterTable.description")}</p>
         </div>
-        <button
-          type="button"
-          onClick={() => setModalState({ mode: "create", member: null })}
-          className="btn-primary"
-        >
-          {t("rosterTable.addMember")}
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={downloadCsvTemplate}
+            className="btn-secondary"
+          >
+            {t("rosterTable.downloadTemplate")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowImportForm((v) => !v)}
+            className="btn-secondary"
+          >
+            {t("rosterTable.importCsv")}
+          </button>
+          <button
+            type="button"
+            onClick={() => setModalState({ mode: "create", member: null })}
+            className="btn-primary"
+          >
+            {t("rosterTable.addMember")}
+          </button>
+        </div>
       </div>
+
+      {showImportForm ? (
+        <div className="glass-panel space-y-3">
+          <h3 className="text-base font-semibold text-slate-900">{t("rosterTable.csvImport.title")}</h3>
+          <p className="text-sm text-slate-600">{t("rosterTable.csvImport.description")}</p>
+          <form action={importAction} className="flex flex-wrap items-end gap-3">
+            <input type="hidden" name="clubRosterYearId" value={rosterYearId} />
+            {managedClubId ? <input type="hidden" name="clubId" value={managedClubId} /> : null}
+            <label className="flex-1 space-y-1 text-sm font-medium text-slate-700">
+              <span>{t("rosterTable.csvImport.fileLabel")}</span>
+              <input
+                type="file"
+                name="csvFile"
+                accept=".csv,text/csv"
+                required
+                className="block w-full text-sm text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-indigo-50 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-indigo-700 hover:file:bg-indigo-100"
+              />
+            </label>
+            <button type="submit" className="btn-primary">
+              {t("rosterTable.csvImport.submit")}
+            </button>
+          </form>
+
+          {importResult !== null ? (
+            <div
+              className={[
+                "rounded-lg border px-4 py-3 text-sm",
+                importResult.errors.length > 0 && importResult.imported === 0
+                  ? "border-rose-200 bg-rose-50 text-rose-800"
+                  : importResult.errors.length > 0
+                    ? "border-amber-200 bg-amber-50 text-amber-800"
+                    : "border-emerald-200 bg-emerald-50 text-emerald-800",
+              ].join(" ")}
+            >
+              <p className="font-semibold">
+                {t("rosterTable.csvImport.result", {
+                  imported: importResult.imported,
+                  skipped: importResult.skipped,
+                })}
+              </p>
+              {importResult.errors.length > 0 ? (
+                <ul className="mt-2 list-inside list-disc space-y-1 text-xs">
+                  {importResult.errors.map((err, idx) => (
+                    <li key={idx}>{err}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="glass-table table-shell overflow-hidden">
         <table>

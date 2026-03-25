@@ -27,6 +27,9 @@ export type EventMutationInput = {
   lateFeeStartsAt: Date;
   locationName: string | null;
   locationAddress: string | null;
+  minAttendeeAge: number | null;
+  maxAttendeeAge: number | null;
+  allowedClubTypes: string[];
   dynamicFields: DynamicFieldInput[];
 };
 
@@ -119,6 +122,9 @@ export async function createEventFromInput(
       lateFeeStartsAt: input.lateFeeStartsAt,
       locationName: input.locationName,
       locationAddress: input.locationAddress,
+      minAttendeeAge: input.minAttendeeAge,
+      maxAttendeeAge: input.maxAttendeeAge,
+      allowedClubTypes: input.allowedClubTypes,
       createdByUserId,
     },
     select: {

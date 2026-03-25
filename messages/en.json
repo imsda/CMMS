@@ -663,6 +663,13 @@
         "score": "Score",
         "notes": "Notes"
       },
+      "eligibility": {
+        "title": "Event Eligibility Restrictions",
+        "minAge": "Minimum Age",
+        "maxAge": "Maximum Age",
+        "clubTypes": "Allowed Club Types",
+        "warningNote": "Attendees that do not meet these requirements will trigger a warning when submitting registration. Registration is not blocked."
+      },
       "payment": {
         "statusLabel": "Payment Status",
         "completePayment": "Complete Payment",
@@ -722,6 +729,7 @@
       "nextSection": "Next Section",
       "saveDraft": "Save Draft",
       "submitRegistration": "Submit Registration",
+      "eligibilityWarnings": "Eligibility warnings — registration was still submitted:",
       "yes": "Yes",
       "activePrompts": "{count, plural, one {# active prompt} other {# active prompts}}"
     },
@@ -742,6 +750,15 @@
       "title": "Roster Members",
       "description": "Manage the active members for the current roster year.",
       "addMember": "Add Member",
+      "downloadTemplate": "Download CSV Template",
+      "importCsv": "Import CSV",
+      "csvImport": {
+        "title": "Bulk Import from CSV",
+        "description": "Upload a CSV file using the template format to import multiple members at once. Consent fields will be set to false and must be updated individually.",
+        "fileLabel": "CSV File",
+        "submit": "Import Members",
+        "result": "{imported} imported, {skipped} skipped"
+      },
       "missingConsentsTitle": "Missing one or more required consents",
       "headers": {
         "name": "Name",
