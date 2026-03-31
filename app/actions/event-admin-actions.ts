@@ -8,6 +8,7 @@ import {
   EventTemplateSource,
   FormFieldScope,
   FormFieldType,
+  RegistrationStatus,
   type Prisma,
 } from "@prisma/client";
 import { revalidatePath } from "next/cache";
@@ -33,6 +34,10 @@ import { EVENT_FORM_FIELD_TYPES } from "../../lib/event-form-fields";
 import { buildEventTemplateSnapshot } from "../../lib/event-templates";
 import { parseEventMode, validateDynamicFieldsForEventMode } from "../../lib/event-modes";
 import { prisma } from "../../lib/prisma";
+import {
+  sendRegistrationApprovedEmail,
+  sendRevisionRequestedEmail,
+} from "../../lib/email/resend";
 
 type IncomingDynamicField = {
   id?: string;
@@ -892,5 +897,147 @@ export async function updateEventDynamicFields(
       status: "error",
       message: error instanceof Error ? error.message : "Unable to update dynamic questions.",
     };
+  }
+}
+
+export async function reviewRegistration(formData: FormData) {
+  const adminUserId = await requireSuperAdminUserId();
+
+  const registrationId = requireTrimmedString(formData.get("registrationId"), "Registration");
+
+  const registration = await prisma.eventRegistration.findUnique({
+    where: { id: registrationId },
+    select: {
+      id: true,
+      status: true,
+      eventId: true,
+      clubId: true,
+      club: {
+        select: {
+          name: true,
+          memberships: {
+            where: { user: { role: "CLUB_DIRECTOR" } },
+            orderBy: { isPrimary: "desc" },
+            take: 1,
+            select: { user: { select: { email: true } } },
+          },
+        },
+      },
+      event: {
+        select: {
+          id: true,
+          name: true,
+          startsAt: true,
+          endsAt: true,
+          locationName: true,
+          locationAddress: true,
+        },
+      },
+    },
+  });
+
+  if (!registration) {
+    throw new Error("Registration not found.");
+  }
+
+  if (registration.status !== RegistrationStatus.SUBMITTED && registration.status !== RegistrationStatus.REVIEWED) {
+    throw new Error("Only submitted or reviewed registrations can be approved.");
+  }
+
+  await prisma.eventRegistration.update({
+    where: { id: registrationId },
+    data: {
+      status: RegistrationStatus.APPROVED,
+      reviewedAt: new Date(),
+      reviewedByUserId: adminUserId,
+      revisionRequestedReason: null,
+    },
+  });
+
+  revalidatePath(`/admin/events/${registration.eventId}/checkin`);
+  revalidatePath(`/admin/events/${registration.eventId}`);
+  revalidatePath(`/director/events/${registration.eventId}`);
+
+  const directorEmail = registration.club.memberships[0]?.user?.email ?? null;
+  if (directorEmail) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    await sendRegistrationApprovedEmail({
+      to: directorEmail,
+      eventName: registration.event.name,
+      clubName: registration.club.name,
+      eventStartsAt: registration.event.startsAt,
+      eventEndsAt: registration.event.endsAt,
+      locationName: registration.event.locationName,
+      locationAddress: registration.event.locationAddress,
+      registrationUrl: `${appUrl}/director/events/${registration.event.id}`,
+    });
+  }
+}
+
+export async function requestRevision(formData: FormData) {
+  const adminUserId = await requireSuperAdminUserId();
+
+  const registrationId = requireTrimmedString(formData.get("registrationId"), "Registration");
+  const reason = requireTrimmedString(formData.get("reason"), "Revision reason");
+
+  const registration = await prisma.eventRegistration.findUnique({
+    where: { id: registrationId },
+    select: {
+      id: true,
+      status: true,
+      eventId: true,
+      clubId: true,
+      club: {
+        select: {
+          name: true,
+          memberships: {
+            where: { user: { role: "CLUB_DIRECTOR" } },
+            orderBy: { isPrimary: "desc" },
+            take: 1,
+            select: { user: { select: { email: true } } },
+          },
+        },
+      },
+      event: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  if (!registration) {
+    throw new Error("Registration not found.");
+  }
+
+  if (registration.status !== RegistrationStatus.SUBMITTED && registration.status !== RegistrationStatus.REVIEWED) {
+    throw new Error("Only submitted or reviewed registrations can have revisions requested.");
+  }
+
+  await prisma.eventRegistration.update({
+    where: { id: registrationId },
+    data: {
+      status: RegistrationStatus.NEEDS_CHANGES,
+      reviewedAt: new Date(),
+      reviewedByUserId: adminUserId,
+      revisionRequestedReason: reason,
+    },
+  });
+
+  revalidatePath(`/admin/events/${registration.eventId}/checkin`);
+  revalidatePath(`/admin/events/${registration.eventId}`);
+  revalidatePath(`/director/events/${registration.eventId}`);
+
+  const directorEmail = registration.club.memberships[0]?.user?.email ?? null;
+  if (directorEmail) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    await sendRevisionRequestedEmail({
+      to: directorEmail,
+      eventName: registration.event.name,
+      clubName: registration.club.name,
+      reason,
+      registrationUrl: `${appUrl}/director/events/${registration.event.id}`,
+    });
   }
 }

@@ -13,6 +13,7 @@ import { prisma } from "../../../../lib/prisma";
 import { buildDirectorPath } from "../../../../lib/director-path";
 import { CamporeeRegistrationWorkflow } from "./_components/camporee-registration-workflow";
 import { RegistrationFormFulfiller } from "./_components/registration-form-fulfiller";
+import { RegistrationStatusBanner } from "./_components/registration-status-banner";
 
 function formatDateRange(startsAt: Date, endsAt: Date, locale: string) {
   const formatter = new Intl.DateTimeFormat(locale, {
@@ -149,6 +150,7 @@ export default async function DirectorEventRegistrationPage({
   const registration = event.registrations[0] ?? null;
   const paymentStatus = registration?.paymentStatus ?? null;
   const squareCheckoutUrl = registration?.squareCheckoutUrl ?? null;
+  const campsiteAssignment = registration?.campsiteAssignment ?? null;
   const activeRoster = club.rosterYears[0];
   const attendees = activeRoster?.members ?? [];
   const attendeeMedicalSummaries = attendees.map((member) => {
@@ -269,15 +271,26 @@ export default async function DirectorEventRegistrationPage({
                 {t(`eventDetail.payment.status.${paymentStatus}`)}
               </p>
             </div>
-            {paymentStatus !== "PAID" && squareCheckoutUrl ? (
-              <a
-                href={squareCheckoutUrl}
-                className="btn-primary"
-                rel="noopener noreferrer"
-              >
-                {t("eventDetail.payment.completePayment")}
-              </a>
-            ) : null}
+            <div className="flex flex-wrap items-center gap-2">
+              {registration && (registration.status === "SUBMITTED" || registration.status === "APPROVED") ? (
+                <a
+                  href={`/api/registrations/${registration.id}/pdf`}
+                  className="btn-secondary"
+                  download
+                >
+                  {t("eventDetail.downloadPdf")}
+                </a>
+              ) : null}
+              {paymentStatus !== "PAID" && squareCheckoutUrl ? (
+                <a
+                  href={squareCheckoutUrl}
+                  className="btn-primary"
+                  rel="noopener noreferrer"
+                >
+                  {t("eventDetail.payment.completePayment")}
+                </a>
+              ) : null}
+            </div>
           </div>
         </article>
       ) : null}
@@ -335,6 +348,13 @@ export default async function DirectorEventRegistrationPage({
           </div>
         </article>
       ) : null}
+
+      <RegistrationStatusBanner
+        registrationStatus={registration?.status ?? null}
+        paymentStatus={paymentStatus}
+        reviewTurnaroundDays={event.reviewTurnaroundDays}
+        campsiteAssignment={campsiteAssignment}
+      />
 
       {camporeeWorkflowEnabled && camporeeRegistrationSnapshot ? (
         <CamporeeRegistrationWorkflow

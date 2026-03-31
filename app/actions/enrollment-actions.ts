@@ -15,6 +15,7 @@ import {
   evaluateClassRequirements,
   type RequirementInput,
 } from "../../lib/class-prerequisite-utils";
+import { sendClassAssignmentEmail } from "../../lib/email/resend";
 
 type EnrollAttendeeInput = {
   eventId: string;
@@ -584,6 +585,99 @@ export async function bulkEnrollAttendeesInClass(input: BulkEnrollAttendeesInput
       rosterMemberCount: rosterMemberIds.length,
     },
   });
+
+  await sendClassAssignmentEmailsForEnrollment({
+    eventId: input.eventId,
+    eventClassOfferingId: input.eventClassOfferingId,
+    enrolledMemberIds: rosterMemberIds,
+  });
+}
+
+async function sendClassAssignmentEmailsForEnrollment(input: {
+  eventId: string;
+  eventClassOfferingId: string;
+  enrolledMemberIds: string[];
+}) {
+  const offering = await prisma.eventClassOffering.findUnique({
+    where: { id: input.eventClassOfferingId },
+    select: {
+      classCatalog: { select: { title: true } },
+      event: { select: { id: true, name: true } },
+    },
+  });
+
+  if (!offering) {
+    return;
+  }
+
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+  // Find all enrolled members for this offering to group by club
+  const enrollments = await prisma.classEnrollment.findMany({
+    where: {
+      eventClassOfferingId: input.eventClassOfferingId,
+      rosterMemberId: { in: input.enrolledMemberIds },
+    },
+    select: {
+      rosterMember: {
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          clubRosterYear: {
+            select: {
+              club: {
+                select: {
+                  id: true,
+                  name: true,
+                  memberships: {
+                    where: { user: { role: "CLUB_DIRECTOR" } },
+                    orderBy: { isPrimary: "desc" },
+                    take: 1,
+                    select: { user: { select: { email: true } } },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  // Group members by club
+  const byClub = new Map<string, { clubName: string; directorEmail: string | null; members: Array<{ name: string; className: string }> }>();
+
+  for (const enrollment of enrollments) {
+    const club = enrollment.rosterMember.clubRosterYear.club;
+    const existing = byClub.get(club.id);
+    const memberName = `${enrollment.rosterMember.firstName} ${enrollment.rosterMember.lastName}`;
+    const entry = { name: memberName, className: offering.classCatalog.title };
+
+    if (existing) {
+      existing.members.push(entry);
+    } else {
+      byClub.set(club.id, {
+        clubName: club.name,
+        directorEmail: club.memberships[0]?.user?.email ?? null,
+        members: [entry],
+      });
+    }
+  }
+
+  for (const { clubName, directorEmail, members } of byClub.values()) {
+    if (!directorEmail) {
+      continue;
+    }
+
+    await sendClassAssignmentEmail({
+      to: directorEmail,
+      eventName: offering.event.name,
+      clubName,
+      members,
+      classesUrl: `${appUrl}/director/events/${offering.event.id}/classes`,
+    });
+  }
 }
 
 export async function bulkRemoveAttendeesFromClass(input: BulkEnrollAttendeesInput) {
