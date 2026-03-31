@@ -97,6 +97,10 @@
             "nominations": {
               "label": "Nominations",
               "description": "Awards review and winner selection queue."
+            },
+            "tlt": {
+              "label": "TLT Applications",
+              "description": "Review and approve Teen Leadership Training applications."
             }
           }
         },
@@ -202,6 +206,7 @@
       "reports": "Reports",
       "users": "Users",
       "nominations": "Nominations",
+      "tlt": "TLT Applications",
       "catalog": "Class Catalog",
       "compliance": "Compliance Sync",
       "storage": "Storage",
@@ -544,7 +549,8 @@
           "age": "Age",
           "role": "Role",
           "club": "Club Name",
-          "emergency": "Emergency Contact Info"
+          "emergency": "Emergency Contact Info",
+          "swimTest": "Swim Test Cleared"
         },
         "dietaryTitle": "Dietary Restrictions Manifest",
         "dietaryDetail": "Dietary Restriction",
@@ -772,6 +778,7 @@
         "medical": "Medical",
         "dietary": "Dietary",
         "masterGuide": "Master Guide",
+        "swimTest": "Swim Test",
         "actions": "Actions"
       },
       "empty": "No active members found in this roster year yet.",
@@ -785,7 +792,9 @@
         "missing": "Missing",
         "complete": "Complete",
         "flagged": "Flagged",
-        "certified": "Certified"
+        "certified": "Certified",
+        "cleared2": "Cleared",
+        "notCleared": "Not Cleared"
       },
       "edit": "Edit",
       "modal": {
@@ -810,6 +819,7 @@
         "medicalPersonnel": "Medical Personnel",
         "masterGuide": "Master Guide",
         "activeMember": "Active Member",
+        "swimTestCleared": "Swim Test Cleared",
         "agreementsTitle": "Agreements & Medical",
         "agreementsDescription": "Capture parent/guardian consent confirmations and key health record details.",
         "insuranceCompany": "Insurance Company",

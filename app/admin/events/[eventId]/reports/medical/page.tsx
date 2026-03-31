@@ -80,6 +80,7 @@ function ManifestTable({
                 <th className="px-4 py-3">{roleHeader}</th>
                 <th className="px-4 py-3">{clubHeader}</th>
                 <th className="px-4 py-3">{emergencyHeader}</th>
+                <th className="px-4 py-3">{swimTestHeader}</th>
                 <th className="px-4 py-3">{detailHeader}</th>
                 <th className="px-4 py-3">{consentHeader}</th>
               </tr>
@@ -92,6 +93,7 @@ function ManifestTable({
                   <td className="px-4 py-3 text-slate-700">{row.role}</td>
                   <td className="px-4 py-3 text-slate-700">{row.clubName}</td>
                   <td className="px-4 py-3 text-slate-700">{row.emergencyContactInfo}</td>
+                  <td className="px-4 py-3 text-slate-700">{row.swimTestCleared ? "Yes" : "No"}</td>
                   <td className="px-4 py-3 text-slate-900">{getDetail(row)}</td>
                   <td className="px-4 py-3 text-xs text-slate-600">{formatConsentTimestamps(row, locale)}</td>
                 </tr>

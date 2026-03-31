@@ -32,7 +32,7 @@ export default async function SuperAdminDashboardPage() {
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <article className="metric-card">
           <p className="metric-label">Total Active Clubs</p>
           <p className="metric-value">{overview.totalActiveClubs}</p>
@@ -48,6 +48,16 @@ export default async function SuperAdminDashboardPage() {
           <p className="metric-label">Upcoming Events</p>
           <p className="metric-value">{overview.upcomingEvents.length}</p>
           <p className="metric-caption">Events ending today or later.</p>
+        </article>
+
+        <article className="metric-card">
+          <p className="metric-label">Pending TLT Applications</p>
+          <p className="metric-value">{overview.pendingTltApplications}</p>
+          <p className="metric-caption">
+            <Link href="/admin/tlt?status=pending" className="text-indigo-600 underline underline-offset-2">
+              Review applications
+            </Link>
+          </p>
         </article>
       </div>
 

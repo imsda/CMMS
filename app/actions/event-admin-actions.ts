@@ -37,6 +37,10 @@ import { EVENT_FORM_FIELD_TYPES } from "../../lib/event-form-fields";
 import { buildEventTemplateSnapshot } from "../../lib/event-templates";
 import { parseEventMode, validateDynamicFieldsForEventMode } from "../../lib/event-modes";
 import { prisma } from "../../lib/prisma";
+import {
+  sendRegistrationApprovedEmail,
+  sendRevisionRequestedEmail,
+} from "../../lib/email/resend";
 
 type IncomingDynamicField = {
   id?: string;

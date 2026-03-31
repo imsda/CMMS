@@ -106,6 +106,28 @@ export async function saveCamporeeScore(formData: FormData) {
   revalidatePath(`/director/events/${eventId}`);
 }
 
+export async function assignCampsite(registrationId: string, campsiteLabel: string) {
+  await requireSuperAdminUserId();
+
+  const label = campsiteLabel.trim();
+
+  const registration = await prisma.eventRegistration.findUnique({
+    where: { id: registrationId },
+    select: { id: true, eventId: true },
+  });
+
+  if (!registration) {
+    throw new Error("Registration not found.");
+  }
+
+  await prisma.eventRegistration.update({
+    where: { id: registrationId },
+    data: { campsiteAssignment: label.length > 0 ? label : null },
+  });
+
+  revalidatePath(`/admin/events/${registration.eventId}/camporee`);
+}
+
 export async function getDirectorCamporeeSummary(eventId: string, clubIdOverride?: string | null) {
   const managedClub = await getManagedClubContext(clubIdOverride);
 

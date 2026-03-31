@@ -73,6 +73,15 @@ export function ClubCreateForm() {
           />
         </label>
 
+        <label className="space-y-1 text-sm text-slate-700">
+          <span>District (optional)</span>
+          <input
+            name="district"
+            type="text"
+            className="w-full rounded-lg border border-slate-300 px-3 py-2"
+          />
+        </label>
+
         {state.status === "error" && state.message ? (
           <p className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 md:col-span-2">
             {state.message}

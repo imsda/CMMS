@@ -2,13 +2,13 @@ import { type DocumentProps, renderToBuffer } from "@react-pdf/renderer";
 import { createElement, type ReactElement } from "react";
 import { NextResponse } from "next/server";
 
-import { auth } from "../../../../../../auth";
-import { getEventRegistrationExportData } from "../../../../../../lib/data/event-registration-export";
+import { auth } from "../../../../../auth";
+import { getEventRegistrationExportDataById } from "../../../../../lib/data/event-registration-export";
 import {
   EventRegistrationPdfDocument,
   generateAttendeeQrCodes,
-} from "../../../../../../lib/pdf/event-registration-pdf";
-import { prisma } from "../../../../../../lib/prisma";
+} from "../../../../../lib/pdf/event-registration-pdf";
+import { prisma } from "../../../../../lib/prisma";
 
 export const runtime = "nodejs";
 
@@ -19,15 +19,22 @@ function safeFilename(value: string) {
     .replace(/^-+|-+$/g, "");
 }
 
-async function canDirectorAccessClub(clubId: string, userId: string) {
+async function canDirectorAccessRegistration(registrationId: string, userId: string) {
+  const registration = await prisma.eventRegistration.findUnique({
+    where: { id: registrationId },
+    select: { clubId: true },
+  });
+
+  if (!registration) {
+    return false;
+  }
+
   const membership = await prisma.clubMembership.findFirst({
     where: {
-      clubId,
+      clubId: registration.clubId,
       userId,
     },
-    select: {
-      id: true,
-    },
+    select: { id: true },
   });
 
   return Boolean(membership);
@@ -35,7 +42,7 @@ async function canDirectorAccessClub(clubId: string, userId: string) {
 
 export async function GET(
   _request: Request,
-  context: { params: Promise<{ eventId: string; clubId: string }> },
+  context: { params: Promise<{ registrationId: string }> },
 ) {
   const session = await auth();
 
@@ -47,16 +54,16 @@ export async function GET(
     return NextResponse.json({ error: "Insufficient permissions." }, { status: 403 });
   }
 
-  const { eventId, clubId } = await context.params;
+  const { registrationId } = await context.params;
 
   if (session.user.role === "CLUB_DIRECTOR") {
-    const hasAccess = await canDirectorAccessClub(clubId, session.user.id);
+    const hasAccess = await canDirectorAccessRegistration(registrationId, session.user.id);
     if (!hasAccess) {
       return NextResponse.json({ error: "Forbidden." }, { status: 403 });
     }
   }
 
-  const registration = await getEventRegistrationExportData(eventId, clubId);
+  const registration = await getEventRegistrationExportDataById(registrationId);
 
   if (!registration) {
     return NextResponse.json({ error: "Registration not found." }, { status: 404 });

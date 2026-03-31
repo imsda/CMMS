@@ -130,6 +130,7 @@ export async function saveRosterMember(formData: FormData) {
     masterGuide: formData.get("masterGuide") === "on",
     backgroundCheckDate,
     backgroundCheckCleared: Boolean(backgroundCheckDate),
+    swimTestCleared: formData.get("swimTestCleared") === "on",
     emergencyContactName: parseOptionalString(formData.get("emergencyContactName")),
     emergencyContactPhone: parseOptionalString(formData.get("emergencyContactPhone")),
     insuranceCompany: medicalWriteFields.insuranceCompany,
@@ -183,6 +184,7 @@ export async function saveRosterMember(formData: FormData) {
       // Only compliance sync should grant clearance. Director roster edits may log a date,
       // but they must not imply a cleared status on their own.
       backgroundCheckCleared: existingMember.backgroundCheckCleared,
+      swimTestCleared: payload.swimTestCleared,
       emergencyContactName: payload.emergencyContactName,
       emergencyContactPhone: payload.emergencyContactPhone,
       insuranceCompany: payload.insuranceCompany,
@@ -438,6 +440,7 @@ export async function executeYearlyRollover(
             masterGuide: member.masterGuide,
             backgroundCheckDate: member.backgroundCheckDate,
             backgroundCheckCleared: member.backgroundCheckCleared,
+            swimTestCleared: false,
             emergencyContactName: member.emergencyContactName,
             emergencyContactPhone: member.emergencyContactPhone,
             insuranceCompany: medicalWriteFields.insuranceCompany,

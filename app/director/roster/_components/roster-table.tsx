@@ -46,6 +46,7 @@ type RosterMemberRow = {
   masterGuide: boolean;
   backgroundCheckDate: string | null;
   backgroundCheckCleared: boolean;
+  swimTestCleared: boolean;
   dateOfBirth: string | null;
   emergencyContactName: string | null;
   emergencyContactPhone: string | null;
@@ -236,6 +237,7 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                 t("rosterTable.headers.medical"),
                 t("rosterTable.headers.dietary"),
                 t("rosterTable.headers.masterGuide"),
+                t("rosterTable.headers.swimTest"),
                 t("rosterTable.headers.actions"),
               ].map((header) => (
                 <th
@@ -250,7 +252,7 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
           <tbody>
             {sortedMembers.length === 0 ? (
               <tr>
-                <td colSpan={11} className="px-4 py-10 text-center text-sm text-slate-500">
+                <td colSpan={12} className="px-4 py-10 text-center text-sm text-slate-500">
                   {t("rosterTable.empty")}
                 </td>
               </tr>
@@ -310,6 +312,9 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                     </td>
                     <td className="px-4 py-3">
                       {member.masterGuide ? <Badge label={t("rosterTable.badges.certified")} tone="good" /> : <Badge label={t("common.no")} tone="neutral" />}
+                    </td>
+                    <td className="px-4 py-3">
+                      {member.swimTestCleared ? <Badge label={t("rosterTable.badges.cleared2")} tone="good" /> : <Badge label={t("rosterTable.badges.notCleared")} tone="neutral" />}
                     </td>
                     <td className="px-4 py-3">
                       <button
@@ -510,6 +515,16 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                     className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                   />
                   {t("rosterTable.form.activeMember")}
+                </label>
+
+                <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700">
+                  <input
+                    type="checkbox"
+                    name="swimTestCleared"
+                    defaultChecked={modalState.member?.swimTestCleared ?? false}
+                    className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  {t("rosterTable.form.swimTestCleared")}
                 </label>
               </div>
 

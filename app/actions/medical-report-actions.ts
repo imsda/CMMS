@@ -149,6 +149,7 @@ export async function getMedicalManifest(eventId: string): Promise<MedicalManife
           memberRole: true,
           dietaryRestrictions: true,
           medicalFlags: true,
+          swimTestCleared: true,
           emergencyContactName: true,
           emergencyContactPhone: true,
           photoReleaseConsentAt: true,

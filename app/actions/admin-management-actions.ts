@@ -87,6 +87,7 @@ export async function createClubAction(
     const type = parseClubType(formData.get("type"));
     const city = parseOptionalString(formData.get("city"));
     const state = parseOptionalString(formData.get("state"));
+    const district = parseOptionalString(formData.get("district"));
 
     await prisma.club.create({
       data: {
@@ -95,6 +96,7 @@ export async function createClubAction(
         type,
         city,
         state,
+        district,
       },
     });
 
@@ -110,6 +112,7 @@ export async function createClubAction(
         type,
         city,
         state,
+        district,
       },
     });
 
@@ -141,6 +144,7 @@ export async function updateClubAction(
     const type = parseClubType(formData.get("type"));
     const city = parseOptionalString(formData.get("city"));
     const state = parseOptionalString(formData.get("state"));
+    const district = parseOptionalString(formData.get("district"));
 
     await prisma.club.update({
       where: {
@@ -152,6 +156,7 @@ export async function updateClubAction(
         type,
         city,
         state,
+        district,
       },
     });
 
@@ -168,6 +173,7 @@ export async function updateClubAction(
         type,
         city,
         state,
+        district,
       },
     });
 

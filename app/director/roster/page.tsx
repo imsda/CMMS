@@ -132,6 +132,7 @@ export default async function DirectorRosterPage({
                   ? member.backgroundCheckDate.toISOString()
                   : null,
                 backgroundCheckCleared: member.backgroundCheckCleared,
+                swimTestCleared: member.swimTestCleared,
                 dateOfBirth: member.dateOfBirth ? member.dateOfBirth.toISOString() : null,
                 emergencyContactName: member.emergencyContactName,
                 emergencyContactPhone: member.emergencyContactPhone,

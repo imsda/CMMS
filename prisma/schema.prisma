@@ -196,6 +196,7 @@ model Club {
   type            ClubType
   city            String?
   state           String?
+  district        String?
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 
@@ -281,6 +282,7 @@ model RosterMember {
   masterGuide                Boolean               @default(false)
   backgroundCheckDate        DateTime?
   backgroundCheckCleared     Boolean               @default(false)
+  swimTestCleared            Boolean               @default(false)
   rolloverStatus             RolloverStatus        @default(CONTINUING)
   isActive                   Boolean               @default(true)
   emergencyContactName       String?
@@ -504,6 +506,7 @@ model EventRegistration {
   squarePaymentId       String?
   squareCheckoutUrl     String?
   squareOrderId         String?
+  campsiteAssignment    String?
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
 
