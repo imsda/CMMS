@@ -13,6 +13,7 @@ import { prisma } from "../../../../lib/prisma";
 import { buildDirectorPath } from "../../../../lib/director-path";
 import { CamporeeRegistrationWorkflow } from "./_components/camporee-registration-workflow";
 import { RegistrationFormFulfiller } from "./_components/registration-form-fulfiller";
+import { RegistrationStatusBanner } from "./_components/registration-status-banner";
 
 function formatDateRange(startsAt: Date, endsAt: Date, locale: string) {
   const formatter = new Intl.DateTimeFormat(locale, {
@@ -149,6 +150,7 @@ export default async function DirectorEventRegistrationPage({
   const registration = event.registrations[0] ?? null;
   const paymentStatus = registration?.paymentStatus ?? null;
   const squareCheckoutUrl = registration?.squareCheckoutUrl ?? null;
+  const campsiteAssignment = registration?.campsiteAssignment ?? null;
   const activeRoster = club.rosterYears[0];
   const attendees = activeRoster?.members ?? [];
   const attendeeMedicalSummaries = attendees.map((member) => {
@@ -219,6 +221,33 @@ export default async function DirectorEventRegistrationPage({
         </dl>
       </header>
 
+      {(event.minAttendeeAge !== null || event.maxAttendeeAge !== null || event.allowedClubTypes.length > 0) ? (
+        <article className="glass-panel">
+          <h2 className="text-base font-semibold text-slate-900">{t("eventDetail.eligibility.title")}</h2>
+          <dl className="mt-3 grid gap-2 text-sm text-slate-700 md:grid-cols-3">
+            {event.minAttendeeAge !== null ? (
+              <div>
+                <dt className="font-semibold text-slate-900">{t("eventDetail.eligibility.minAge")}</dt>
+                <dd>{event.minAttendeeAge}</dd>
+              </div>
+            ) : null}
+            {event.maxAttendeeAge !== null ? (
+              <div>
+                <dt className="font-semibold text-slate-900">{t("eventDetail.eligibility.maxAge")}</dt>
+                <dd>{event.maxAttendeeAge}</dd>
+              </div>
+            ) : null}
+            {event.allowedClubTypes.length > 0 ? (
+              <div>
+                <dt className="font-semibold text-slate-900">{t("eventDetail.eligibility.clubTypes")}</dt>
+                <dd>{event.allowedClubTypes.join(", ")}</dd>
+              </div>
+            ) : null}
+          </dl>
+          <p className="mt-2 text-xs text-slate-500">{t("eventDetail.eligibility.warningNote")}</p>
+        </article>
+      ) : null}
+
       {paymentStatus !== null ? (
         <article className="glass-panel">
           <div className="flex flex-wrap items-center justify-between gap-4">
@@ -242,15 +271,26 @@ export default async function DirectorEventRegistrationPage({
                 {t(`eventDetail.payment.status.${paymentStatus}`)}
               </p>
             </div>
-            {paymentStatus !== "PAID" && squareCheckoutUrl ? (
-              <a
-                href={squareCheckoutUrl}
-                className="btn-primary"
-                rel="noopener noreferrer"
-              >
-                {t("eventDetail.payment.completePayment")}
-              </a>
-            ) : null}
+            <div className="flex flex-wrap items-center gap-2">
+              {registration && (registration.status === "SUBMITTED" || registration.status === "APPROVED") ? (
+                <a
+                  href={`/api/registrations/${registration.id}/pdf`}
+                  className="btn-secondary"
+                  download
+                >
+                  {t("eventDetail.downloadPdf")}
+                </a>
+              ) : null}
+              {paymentStatus !== "PAID" && squareCheckoutUrl ? (
+                <a
+                  href={squareCheckoutUrl}
+                  className="btn-primary"
+                  rel="noopener noreferrer"
+                >
+                  {t("eventDetail.payment.completePayment")}
+                </a>
+              ) : null}
+            </div>
           </div>
         </article>
       ) : null}
@@ -308,6 +348,13 @@ export default async function DirectorEventRegistrationPage({
           </div>
         </article>
       ) : null}
+
+      <RegistrationStatusBanner
+        registrationStatus={registration?.status ?? null}
+        paymentStatus={paymentStatus}
+        reviewTurnaroundDays={event.reviewTurnaroundDays}
+        campsiteAssignment={campsiteAssignment}
+      />
 
       {camporeeWorkflowEnabled && camporeeRegistrationSnapshot ? (
         <CamporeeRegistrationWorkflow

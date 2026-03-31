@@ -962,6 +962,14 @@ export function RegistrationFormFulfiller({
           {submitState.status === "error" && submitState.message ? <p className="text-xs font-medium text-rose-700">{submitState.message}</p> : null}
           {draftState.status === "success" && draftState.message ? <p className="text-xs font-medium text-emerald-700">{draftState.message}</p> : null}
           {submitState.status === "success" && submitState.message ? <p className="text-xs font-medium text-emerald-700">{submitState.message}</p> : null}
+          {submitState.eligibilityWarnings && submitState.eligibilityWarnings.length > 0 ? (
+            <div className="mt-1 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              <p className="font-semibold">{t("registrationForm.eligibilityWarnings")}</p>
+              <ul className="mt-1 list-inside list-disc space-y-0.5">
+                {submitState.eligibilityWarnings.map((w, i) => <li key={i}>{w}</li>)}
+              </ul>
+            </div>
+          ) : null}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <button

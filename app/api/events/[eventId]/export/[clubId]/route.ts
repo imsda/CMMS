@@ -4,7 +4,10 @@ import { NextResponse } from "next/server";
 
 import { auth } from "../../../../../../auth";
 import { getEventRegistrationExportData } from "../../../../../../lib/data/event-registration-export";
-import { EventRegistrationPdfDocument } from "../../../../../../lib/pdf/event-registration-pdf";
+import {
+  EventRegistrationPdfDocument,
+  generateAttendeeQrCodes,
+} from "../../../../../../lib/pdf/event-registration-pdf";
 import { prisma } from "../../../../../../lib/prisma";
 
 export const runtime = "nodejs";
@@ -59,10 +62,14 @@ export async function GET(
     return NextResponse.json({ error: "Registration not found." }, { status: 404 });
   }
 
-  const documentElement = createElement(
-    EventRegistrationPdfDocument,
-    { data: registration },
-  ) as ReactElement<DocumentProps>;
+  const attendeeQrCodes = registration.attendees.length > 0
+    ? await generateAttendeeQrCodes(registration.attendees)
+    : undefined;
+
+  const documentElement = createElement(EventRegistrationPdfDocument, {
+    data: registration,
+    attendeeQrCodes,
+  }) as ReactElement<DocumentProps>;
 
   const buffer = await renderToBuffer(documentElement);
 

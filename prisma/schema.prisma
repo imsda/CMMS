@@ -202,6 +202,7 @@ model Club {
   type            ClubType
   city            String?
   state           String?
+  district        String?
   createdAt       DateTime            @default(now())
   updatedAt       DateTime            @updatedAt
 
@@ -297,11 +298,15 @@ model RosterMember {
   insuranceCardFilename      String?
   lastTetanusDate            DateTime?
   lastTetanusDateEncrypted   String?
-  photoReleaseConsent        Boolean               @default(false)
-  medicalTreatmentConsent    Boolean               @default(false)
-  membershipAgreementConsent Boolean               @default(false)
-  createdAt                  DateTime              @default(now())
-  updatedAt                  DateTime              @updatedAt
+  photoReleaseConsent           Boolean               @default(false)
+  medicalTreatmentConsent       Boolean               @default(false)
+  membershipAgreementConsent    Boolean               @default(false)
+  photoReleaseConsentAt         DateTime?
+  medicalTreatmentConsentAt     DateTime?
+  membershipAgreementConsentAt  DateTime?
+  consentVersion                String?
+  createdAt                     DateTime              @default(now())
+  updatedAt                     DateTime              @updatedAt
 
   clubRosterYear         ClubRosterYear        @relation(fields: [clubRosterYearId], references: [id], onDelete: Cascade)
   registrations          RegistrationAttendee[]
@@ -412,6 +417,10 @@ model Event {
   lateFeeStartsAt      DateTime
   locationName         String?
   locationAddress      String?
+  minAttendeeAge       Int?
+  maxAttendeeAge       Int?
+  allowedClubTypes     String[]             @default([])
+  isPublished          Boolean              @default(false)
   createdByUserId      String?
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
@@ -423,6 +432,19 @@ model Event {
   classPreferences EventClassPreference[]
   classWaitlistEntries EventClassWaitlist[]
   camporeeScores CamporeeScore[]
+  broadcasts     EventBroadcast[]
+}
+
+model EventBroadcast {
+  id             String   @id @default(cuid())
+  eventId        String
+  subject        String
+  sentAt         DateTime @default(now())
+  recipientCount Int
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, sentAt])
 }
 
 model EventTemplate {
@@ -490,6 +512,7 @@ model EventRegistration {
   squarePaymentId       String?
   squareCheckoutUrl     String?
   squareOrderId         String?
+  campsiteAssignment    String?
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
 

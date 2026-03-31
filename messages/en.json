@@ -97,6 +97,10 @@
             "nominations": {
               "label": "Nominations",
               "description": "Awards review and winner selection queue."
+            },
+            "tlt": {
+              "label": "TLT Applications",
+              "description": "Review and approve Teen Leadership Training applications."
             }
           }
         },
@@ -202,6 +206,7 @@
       "reports": "Reports",
       "users": "Users",
       "nominations": "Nominations",
+      "tlt": "TLT Applications",
       "catalog": "Class Catalog",
       "compliance": "Compliance Sync",
       "storage": "Storage",
@@ -544,7 +549,8 @@
           "age": "Age",
           "role": "Role",
           "club": "Club Name",
-          "emergency": "Emergency Contact Info"
+          "emergency": "Emergency Contact Info",
+          "swimTest": "Swim Test Cleared"
         },
         "dietaryTitle": "Dietary Restrictions Manifest",
         "dietaryDetail": "Dietary Restriction",
@@ -566,7 +572,8 @@
         "roster": "Roster",
         "nominations": "Nominations",
         "tlt": "TLT",
-        "reports": "Reports"
+        "reports": "Reports",
+        "catalog": "Class Catalog"
       }
     },
     "common": {
@@ -663,6 +670,13 @@
         "score": "Score",
         "notes": "Notes"
       },
+      "eligibility": {
+        "title": "Event Eligibility Restrictions",
+        "minAge": "Minimum Age",
+        "maxAge": "Maximum Age",
+        "clubTypes": "Allowed Club Types",
+        "warningNote": "Attendees that do not meet these requirements will trigger a warning when submitting registration. Registration is not blocked."
+      },
       "payment": {
         "statusLabel": "Payment Status",
         "completePayment": "Complete Payment",
@@ -722,6 +736,7 @@
       "nextSection": "Next Section",
       "saveDraft": "Save Draft",
       "submitRegistration": "Submit Registration",
+      "eligibilityWarnings": "Eligibility warnings — registration was still submitted:",
       "yes": "Yes",
       "activePrompts": "{count, plural, one {# active prompt} other {# active prompts}}",
       "walkInBadge": "Walk-in",
@@ -752,6 +767,15 @@
       "title": "Roster Members",
       "description": "Manage the active members for the current roster year.",
       "addMember": "Add Member",
+      "downloadTemplate": "Download CSV Template",
+      "importCsv": "Import CSV",
+      "csvImport": {
+        "title": "Bulk Import from CSV",
+        "description": "Upload a CSV file using the template format to import multiple members at once. Consent fields will be set to false and must be updated individually.",
+        "fileLabel": "CSV File",
+        "submit": "Import Members",
+        "result": "{imported} imported, {skipped} skipped"
+      },
       "missingConsentsTitle": "Missing one or more required consents",
       "headers": {
         "name": "Name",
@@ -764,6 +788,7 @@
         "medical": "Medical",
         "dietary": "Dietary",
         "masterGuide": "Master Guide",
+        "swimTest": "Swim Test",
         "actions": "Actions"
       },
       "empty": "No active members found in this roster year yet.",
@@ -777,7 +802,9 @@
         "missing": "Missing",
         "complete": "Complete",
         "flagged": "Flagged",
-        "certified": "Certified"
+        "certified": "Certified",
+        "cleared2": "Cleared",
+        "notCleared": "Not Cleared"
       },
       "edit": "Edit",
       "modal": {
@@ -802,6 +829,7 @@
         "medicalPersonnel": "Medical Personnel",
         "masterGuide": "Master Guide",
         "activeMember": "Active Member",
+        "swimTestCleared": "Swim Test Cleared",
         "agreementsTitle": "Agreements & Medical",
         "agreementsDescription": "Capture parent/guardian consent confirmations and key health record details.",
         "insuranceCompany": "Insurance Company",

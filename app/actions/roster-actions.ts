@@ -10,6 +10,12 @@ import {
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+export type ImportRosterResult = {
+  imported: number;
+  skipped: number;
+  errors: string[];
+};
+
 import { auth } from "../../auth";
 import { safeWriteAuditLog } from "../../lib/audit-log";
 import { getManagedClubContext } from "../../lib/club-management";
@@ -125,6 +131,7 @@ export async function saveRosterMember(formData: FormData) {
     masterGuide: formData.get("masterGuide") === "on",
     backgroundCheckDate,
     backgroundCheckCleared: Boolean(backgroundCheckDate),
+    swimTestCleared: formData.get("swimTestCleared") === "on",
     emergencyContactName: parseOptionalString(formData.get("emergencyContactName")),
     emergencyContactPhone: parseOptionalString(formData.get("emergencyContactPhone")),
     insuranceCompany: medicalWriteFields.insuranceCompany,
@@ -149,12 +156,18 @@ export async function saveRosterMember(formData: FormData) {
       select: {
         id: true,
         backgroundCheckCleared: true,
+        photoReleaseConsentAt: true,
+        medicalTreatmentConsentAt: true,
+        membershipAgreementConsentAt: true,
       },
     });
 
     if (!existingMember) {
       throw new Error("Roster member not found for this club.");
     }
+
+    const now = new Date();
+    const consentVersion = process.env.CONSENT_DOCUMENT_VERSION ?? null;
 
     const updatePayload: Prisma.RosterMemberUncheckedUpdateInput = {
       firstName: payload.firstName,
@@ -172,6 +185,7 @@ export async function saveRosterMember(formData: FormData) {
       // Only compliance sync should grant clearance. Director roster edits may log a date,
       // but they must not imply a cleared status on their own.
       backgroundCheckCleared: existingMember.backgroundCheckCleared,
+      swimTestCleared: payload.swimTestCleared,
       emergencyContactName: payload.emergencyContactName,
       emergencyContactPhone: payload.emergencyContactPhone,
       insuranceCompany: payload.insuranceCompany,
@@ -181,6 +195,17 @@ export async function saveRosterMember(formData: FormData) {
       photoReleaseConsent: payload.photoReleaseConsent,
       medicalTreatmentConsent: payload.medicalTreatmentConsent,
       membershipAgreementConsent: payload.membershipAgreementConsent,
+      // Preserve existing timestamps; only record new timestamp on first consent
+      photoReleaseConsentAt: photoReleaseConsent
+        ? (existingMember.photoReleaseConsentAt ?? now)
+        : null,
+      medicalTreatmentConsentAt: medicalTreatmentConsent
+        ? (existingMember.medicalTreatmentConsentAt ?? now)
+        : null,
+      membershipAgreementConsentAt: membershipAgreementConsent
+        ? (existingMember.membershipAgreementConsentAt ?? now)
+        : null,
+      consentVersion: photoReleaseConsent ? consentVersion : null,
       isActive: payload.isActive,
     };
 
@@ -205,10 +230,16 @@ export async function saveRosterMember(formData: FormData) {
       },
     });
   } else {
+    const createNow = new Date();
+    const createConsentVersion = process.env.CONSENT_DOCUMENT_VERSION ?? null;
     const createdMember = await prisma.rosterMember.create({
       data: {
         ...payload,
         backgroundCheckCleared: false,
+        photoReleaseConsentAt: photoReleaseConsent ? createNow : null,
+        medicalTreatmentConsentAt: medicalTreatmentConsent ? createNow : null,
+        membershipAgreementConsentAt: membershipAgreementConsent ? createNow : null,
+        consentVersion: photoReleaseConsent ? createConsentVersion : null,
       },
     });
 
@@ -411,6 +442,7 @@ export async function executeYearlyRollover(
             masterGuide: member.masterGuide,
             backgroundCheckDate: member.backgroundCheckDate,
             backgroundCheckCleared: member.backgroundCheckCleared,
+            swimTestCleared: false,
             emergencyContactName: member.emergencyContactName,
             emergencyContactPhone: member.emergencyContactPhone,
             insuranceCompany: medicalWriteFields.insuranceCompany,
@@ -443,4 +475,199 @@ export async function executeYearlyRollover(
 
   revalidatePath("/director/roster");
   redirect(buildDirectorPath("/director/roster", clubId, managedClub.isSuperAdmin));
+}
+
+function parseCSVLine(line: string): string[] {
+  const result: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    if (char === '"') {
+      inQuotes = !inQuotes;
+    } else if (char === "," && !inQuotes) {
+      result.push(current);
+      current = "";
+    } else {
+      current += char;
+    }
+  }
+
+  result.push(current);
+  return result;
+}
+
+function parseCSV(csvText: string): Array<Record<string, string>> {
+  const lines = csvText.split(/\r?\n/).filter((line) => line.trim().length > 0);
+
+  if (lines.length === 0) {
+    return [];
+  }
+
+  const headers = parseCSVLine(lines[0]).map((h) => h.trim().replace(/^"|"$/g, ""));
+
+  return lines.slice(1).map((line) => {
+    const values = parseCSVLine(line);
+    const row: Record<string, string> = {};
+
+    headers.forEach((header, i) => {
+      row[header] = (values[i] ?? "").trim().replace(/^"|"$/g, "");
+    });
+
+    return row;
+  });
+}
+
+export async function importRosterMembers(
+  _prevState: ImportRosterResult | null,
+  formData: FormData,
+): Promise<ImportRosterResult> {
+  const clubIdOverride = readManagedClubId(formData.get("clubId"));
+  const managedClub = await getRosterManagementContext(clubIdOverride);
+  const clubId = managedClub.clubId;
+
+  const rosterYearIdEntry = formData.get("clubRosterYearId");
+
+  if (typeof rosterYearIdEntry !== "string" || rosterYearIdEntry.length === 0) {
+    return { imported: 0, skipped: 0, errors: ["A roster year is required."] };
+  }
+
+  const rosterYear = await prisma.clubRosterYear.findFirst({
+    where: { id: rosterYearIdEntry, clubId },
+    select: { id: true },
+  });
+
+  if (!rosterYear) {
+    return { imported: 0, skipped: 0, errors: ["Roster year not found for this club."] };
+  }
+
+  const csvFile = formData.get("csvFile");
+
+  if (!(csvFile instanceof File) || csvFile.size === 0) {
+    return { imported: 0, skipped: 0, errors: ["Please select a CSV file to import."] };
+  }
+
+  const csvText = await csvFile.text();
+  let rows: Array<Record<string, string>>;
+
+  try {
+    rows = parseCSV(csvText);
+  } catch {
+    return {
+      imported: 0,
+      skipped: 0,
+      errors: ["Could not parse the CSV file. Ensure it uses comma-separated values."],
+    };
+  }
+
+  if (rows.length === 0) {
+    return { imported: 0, skipped: 0, errors: ["The CSV file contains no data rows."] };
+  }
+
+  let skipped = 0;
+  const errors: string[] = [];
+  const membersToCreate: Prisma.RosterMemberUncheckedCreateInput[] = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const rowNum = i + 2; // row 1 is header; data starts at row 2
+
+    const firstName = row["firstName"]?.trim() ?? "";
+    const lastName = row["lastName"]?.trim() ?? "";
+    const memberRoleRaw = row["memberRole"]?.trim() ?? "";
+    const dateOfBirthRaw = row["dateOfBirth"]?.trim() ?? "";
+
+    if (!firstName || !lastName || !memberRoleRaw || !dateOfBirthRaw) {
+      const missing = [
+        !firstName && "firstName",
+        !lastName && "lastName",
+        !memberRoleRaw && "memberRole",
+        !dateOfBirthRaw && "dateOfBirth",
+      ]
+        .filter(Boolean)
+        .join(", ");
+      errors.push(`Row ${rowNum}: missing required field(s): ${missing}.`);
+      skipped++;
+      continue;
+    }
+
+    if (!(memberRoleRaw in MemberRole)) {
+      errors.push(
+        `Row ${rowNum}: invalid memberRole "${memberRoleRaw}". Valid values: ${Object.values(MemberRole).join(", ")}.`,
+      );
+      skipped++;
+      continue;
+    }
+
+    const dateOfBirth = new Date(`${dateOfBirthRaw}T00:00:00.000Z`);
+
+    if (Number.isNaN(dateOfBirth.getTime())) {
+      errors.push(`Row ${rowNum}: invalid dateOfBirth "${dateOfBirthRaw}". Use YYYY-MM-DD format.`);
+      skipped++;
+      continue;
+    }
+
+    const genderRaw = row["gender"]?.trim() ?? "";
+    const genderValue = genderRaw.length > 0 && genderRaw in Gender ? (genderRaw as Gender) : null;
+
+    const ageAtStartRaw = row["ageAtStart"]?.trim() ?? "";
+    const ageAtStartParsed = ageAtStartRaw.length > 0 ? Number(ageAtStartRaw) : null;
+    const ageAtStart = ageAtStartParsed !== null && !Number.isNaN(ageAtStartParsed) ? ageAtStartParsed : null;
+
+    const medicalWriteFields = prepareMedicalFieldsForWrite({
+      medicalFlags: row["medicalFlags"]?.trim() || null,
+      dietaryRestrictions: row["dietaryRestrictions"]?.trim() || null,
+      insuranceCompany: null,
+      insurancePolicyNumber: null,
+      lastTetanusDate: null,
+    });
+
+    membersToCreate.push({
+      clubRosterYearId: rosterYear.id,
+      firstName,
+      lastName,
+      memberRole: memberRoleRaw as MemberRole,
+      dateOfBirth,
+      ageAtStart,
+      gender: genderValue,
+      emergencyContactName: row["emergencyContactName"]?.trim() || null,
+      emergencyContactPhone: row["emergencyContactPhone"]?.trim() || null,
+      medicalFlags: medicalWriteFields.medicalFlags,
+      dietaryRestrictions: medicalWriteFields.dietaryRestrictions,
+      isFirstTime: row["isFirstTime"]?.trim().toLowerCase() === "true",
+      isMedicalPersonnel: row["isMedicalPersonnel"]?.trim().toLowerCase() === "true",
+      masterGuide: row["masterGuide"]?.trim().toLowerCase() === "true",
+      photoReleaseConsent: false,
+      medicalTreatmentConsent: false,
+      membershipAgreementConsent: false,
+      backgroundCheckCleared: false,
+      rolloverStatus: RolloverStatus.NEW,
+      isActive: true,
+    });
+  }
+
+  let imported = 0;
+
+  if (membersToCreate.length > 0) {
+    await prisma.$transaction(async (tx) => {
+      await tx.rosterMember.createMany({ data: membersToCreate });
+    });
+    imported = membersToCreate.length;
+  }
+
+  await safeWriteAuditLog({
+    actorUserId: managedClub.userId,
+    action: "roster_member.csv_import",
+    targetType: "ClubRosterYear",
+    targetId: rosterYear.id,
+    clubId,
+    clubRosterYearId: rosterYear.id,
+    summary: `CSV import: ${imported} imported, ${skipped} skipped.`,
+    metadata: { imported, skipped, errorCount: errors.length },
+  });
+
+  revalidatePath("/director/roster");
+
+  return { imported, skipped, errors };
 }

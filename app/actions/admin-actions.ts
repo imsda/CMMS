@@ -428,7 +428,7 @@ export async function getAdminDashboardOverview() {
 
   const now = new Date();
 
-  const [totalActiveClubs, totalConferenceMembers, upcomingEvents, systemHealth] = await Promise.all([
+  const [totalActiveClubs, totalConferenceMembers, upcomingEvents, systemHealth, pendingTltApplications] = await Promise.all([
     prisma.club.count(),
     prisma.rosterMember.count({
       where: {
@@ -457,6 +457,7 @@ export async function getAdminDashboardOverview() {
       },
     }),
     getSystemHealthSummary(),
+    prisma.tltApplication.count({ where: { status: "PENDING" } }),
   ]);
 
   return {
@@ -464,6 +465,7 @@ export async function getAdminDashboardOverview() {
     totalConferenceMembers,
     upcomingEvents,
     systemHealth,
+    pendingTltApplications,
   };
 }
 
@@ -693,6 +695,15 @@ export async function getAdminEventRegistrations(eventId: string) {
       id: eventId,
     },
     include: {
+      broadcasts: {
+        orderBy: { sentAt: "desc" },
+        select: {
+          id: true,
+          subject: true,
+          sentAt: true,
+          recipientCount: true,
+        },
+      },
       registrations: {
         orderBy: [{ status: "asc" }, { createdAt: "asc" }],
         include: {
@@ -714,6 +725,7 @@ export async function getAdminEventRegistrations(eventId: string) {
                           id: true,
                           name: true,
                           code: true,
+                          district: true,
                         },
                       },
                     },
@@ -762,6 +774,7 @@ export async function getMasterEventAttendeesCsv(eventId: string) {
         registration.status,
         club.name,
         club.code,
+        club.district ?? "",
         `${member.firstName} ${member.lastName}`,
         member.memberRole,
         member.ageAtStart?.toString() ?? "",
@@ -775,6 +788,7 @@ export async function getMasterEventAttendeesCsv(eventId: string) {
     "Registration Status",
     "Club",
     "Club Code",
+    "District",
     "Attendee",
     "Member Role",
     "Age At Start",

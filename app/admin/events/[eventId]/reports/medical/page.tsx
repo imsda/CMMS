@@ -5,6 +5,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { getMedicalManifest, type MedicalManifestRow } from "../../../../../actions/medical-report-actions";
 import { AdminPageHeader } from "../../../../_components/admin-page-header";
 import { PrintManifestButton } from "./_components/print-manifest-button";
+import { DownloadManifestCsvButton } from "./_components/download-manifest-csv-button";
 
 function formatDateRange(startsAt: Date, endsAt: Date, locale: string) {
   return `${startsAt.toLocaleDateString(locale)} - ${endsAt.toLocaleDateString(locale)}`;
@@ -26,8 +27,28 @@ type ManifestTableProps = {
   roleHeader: string;
   clubHeader: string;
   emergencyHeader: string;
+  consentHeader: string;
+  locale: string;
   getDetail: (row: MedicalManifestRow) => string;
 };
+
+function formatConsentTimestamps(row: MedicalManifestRow, locale: string) {
+  const parts: string[] = [];
+
+  if (row.photoReleaseConsentAt) {
+    parts.push(`Photo: ${row.photoReleaseConsentAt.toLocaleDateString(locale)}`);
+  }
+
+  if (row.medicalTreatmentConsentAt) {
+    parts.push(`Medical: ${row.medicalTreatmentConsentAt.toLocaleDateString(locale)}`);
+  }
+
+  if (row.membershipAgreementConsentAt) {
+    parts.push(`Membership: ${row.membershipAgreementConsentAt.toLocaleDateString(locale)}`);
+  }
+
+  return parts.length > 0 ? parts.join(" | ") : "Not recorded";
+}
 
 function ManifestTable({
   title,
@@ -39,6 +60,8 @@ function ManifestTable({
   roleHeader,
   clubHeader,
   emergencyHeader,
+  consentHeader,
+  locale,
   getDetail,
 }: ManifestTableProps) {
   return (
@@ -57,7 +80,9 @@ function ManifestTable({
                 <th className="px-4 py-3">{roleHeader}</th>
                 <th className="px-4 py-3">{clubHeader}</th>
                 <th className="px-4 py-3">{emergencyHeader}</th>
+                <th className="px-4 py-3">{swimTestHeader}</th>
                 <th className="px-4 py-3">{detailHeader}</th>
+                <th className="px-4 py-3">{consentHeader}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -68,7 +93,9 @@ function ManifestTable({
                   <td className="px-4 py-3 text-slate-700">{row.role}</td>
                   <td className="px-4 py-3 text-slate-700">{row.clubName}</td>
                   <td className="px-4 py-3 text-slate-700">{row.emergencyContactInfo}</td>
+                  <td className="px-4 py-3 text-slate-700">{row.swimTestCleared ? "Yes" : "No"}</td>
                   <td className="px-4 py-3 text-slate-900">{getDetail(row)}</td>
+                  <td className="px-4 py-3 text-xs text-slate-600">{formatConsentTimestamps(row, locale)}</td>
                 </tr>
               ))}
             </tbody>
@@ -128,7 +155,12 @@ export default async function MedicalManifestPage({ params }: MedicalManifestPag
           ]}
           title={t("breadcrumbs.medicalManifest")}
           description="Master event-wide manifest for kitchen and medical staff, including emergency contact details."
-          primaryAction={<PrintManifestButton />}
+          primaryAction={
+            <div className="flex gap-2">
+              <DownloadManifestCsvButton report={report} locale={locale} />
+              <PrintManifestButton />
+            </div>
+          }
           secondaryActions={
             <Link href={`/admin/events/${eventId}`} className="btn-secondary">
               {t("actions.backToEvent")}
@@ -159,6 +191,8 @@ export default async function MedicalManifestPage({ params }: MedicalManifestPag
         roleHeader={t("pages.medical.table.role")}
         clubHeader={t("pages.medical.table.club")}
         emergencyHeader={t("pages.medical.table.emergency")}
+        consentHeader="Consent Timestamps"
+        locale={locale}
         getDetail={(row) => row.dietaryRestrictions ?? ""}
       />
 
@@ -172,6 +206,8 @@ export default async function MedicalManifestPage({ params }: MedicalManifestPag
         roleHeader={t("pages.medical.table.role")}
         clubHeader={t("pages.medical.table.club")}
         emergencyHeader={t("pages.medical.table.emergency")}
+        consentHeader="Consent Timestamps"
+        locale={locale}
         getDetail={(row) => row.medicalFlags ?? ""}
       />
     </section>

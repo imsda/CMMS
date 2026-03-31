@@ -7,6 +7,12 @@ import {
   updateEventCoreDetails,
 } from "../../../../../actions/event-admin-actions";
 
+const CLUB_TYPE_OPTIONS = [
+  { value: "PATHFINDER", label: "Pathfinder" },
+  { value: "ADVENTURER", label: "Adventurer" },
+  { value: "EAGER_BEAVER", label: "Eager Beaver" },
+] as const;
+
 type EventEditDefaults = {
   id: string;
   eventModeLabel: string;
@@ -22,6 +28,10 @@ type EventEditDefaults = {
   lateFeeStartsAt: string;
   locationName: string;
   locationAddress: string;
+  minAttendeeAge: number | null;
+  maxAttendeeAge: number | null;
+  allowedClubTypes: string[];
+  isPublished: boolean;
 };
 
 type EventEditFormProps = {
@@ -169,6 +179,72 @@ export function EventEditForm({ defaults }: EventEditFormProps) {
             className="w-full rounded-lg border border-slate-300 px-3 py-2"
           />
         </label>
+
+        <label className="space-y-1 text-sm text-slate-700">
+          <span>Minimum Attendee Age (optional)</span>
+          <input
+            name="minAttendeeAge"
+            type="number"
+            min="0"
+            max="99"
+            defaultValue={defaults.minAttendeeAge ?? ""}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2"
+          />
+          <p className="text-xs text-slate-500">Attendees below this age will trigger a warning at registration.</p>
+        </label>
+
+        <label className="space-y-1 text-sm text-slate-700">
+          <span>Maximum Attendee Age (optional)</span>
+          <input
+            name="maxAttendeeAge"
+            type="number"
+            min="0"
+            max="99"
+            defaultValue={defaults.maxAttendeeAge ?? ""}
+            className="w-full rounded-lg border border-slate-300 px-3 py-2"
+          />
+          <p className="text-xs text-slate-500">Attendees above this age will trigger a warning at registration.</p>
+        </label>
+
+        <fieldset className="space-y-2 md:col-span-2">
+          <legend className="text-sm text-slate-700">Allowed Club Types (optional — leave all unchecked to allow any)</legend>
+          <div className="flex flex-wrap gap-4">
+            {CLUB_TYPE_OPTIONS.map(({ value, label }) => (
+              <label key={value} className="inline-flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  name="allowedClubTypes"
+                  value={value}
+                  defaultChecked={defaults.allowedClubTypes.includes(value)}
+                  className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+          <p className="text-xs text-slate-500">Club type restrictions trigger a warning (not a block) at registration.</p>
+        </fieldset>
+
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 md:col-span-2">
+          <label className="inline-flex cursor-pointer items-center gap-3">
+            <input
+              type="checkbox"
+              name="isPublished"
+              value="true"
+              defaultChecked={defaults.isPublished}
+              className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span className="text-sm font-semibold text-slate-900">
+              Publish to public event listing
+            </span>
+          </label>
+          <p className="mt-1 text-xs text-slate-500">
+            When checked, this event appears on the public{" "}
+            <code className="rounded bg-slate-200 px-1 py-0.5">/events</code>{" "}
+            page visible to anyone without login. Pricing and registration details
+            are not shown publicly.
+          </p>
+        </div>
       </div>
 
       {state.status === "error" && state.message ? (

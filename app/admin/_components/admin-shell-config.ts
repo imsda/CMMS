@@ -86,6 +86,12 @@ const SECTION_SIDEBARS: Record<AdminTopSectionId, { headingKey: string; descript
         labelKey: "shell.sidebar.clubs.items.nominations.label",
         descriptionKey: "shell.sidebar.clubs.items.nominations.description",
       },
+      {
+        href: "/admin/tlt",
+        labelKey: "shell.sidebar.clubs.items.tlt.label",
+        descriptionKey: "shell.sidebar.clubs.items.tlt.description",
+        matchPrefixes: ["/admin/tlt"],
+      },
     ],
   },
   events: {
@@ -212,7 +218,7 @@ function getEventContextSidebar(pathname: string): { headingKey: string; descrip
 }
 
 function resolveTopSection(pathname: string): AdminTopSection {
-  if (pathname.startsWith("/admin/clubs") || pathname.startsWith("/admin/users") || pathname.startsWith("/admin/nominations")) {
+  if (pathname.startsWith("/admin/clubs") || pathname.startsWith("/admin/users") || pathname.startsWith("/admin/nominations") || pathname.startsWith("/admin/tlt")) {
     return ADMIN_TOP_SECTIONS.find((section) => section.id === "clubs") ?? ADMIN_TOP_SECTIONS[0];
   }
 

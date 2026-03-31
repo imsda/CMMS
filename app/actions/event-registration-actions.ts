@@ -5,6 +5,11 @@ import { revalidatePath } from "next/cache";
 
 import { getManagedClubContext } from "../../lib/club-management";
 import { sendRegistrationConfirmationEmail } from "../../lib/email/resend";
+import { getEventRegistrationExportDataById } from "../../lib/data/event-registration-export";
+import {
+  EventRegistrationPdfDocument,
+  generateAttendeeQrCodes,
+} from "../../lib/pdf/event-registration-pdf";
 import { isEventFieldVisible, readEventFieldConfig } from "../../lib/event-form-config";
 import { getFieldScope } from "../../lib/event-form-scope";
 import { getEventModeConfig } from "../../lib/event-modes";
@@ -17,6 +22,7 @@ export type RegistrationActionState = {
   status: "idle" | "success" | "error";
   message: string | null;
   checkoutUrl?: string | null;
+  eligibilityWarnings?: string[];
 };
 
 type RegistrationPayload = {
@@ -176,7 +182,10 @@ async function getClubRegistrationContext(input: {
     where: {
       id: input.clubId,
     },
-    include: {
+    select: {
+      id: true,
+      name: true,
+      type: true,
       rosterYears: {
         where: {
           isActive: true,
@@ -193,6 +202,8 @@ async function getClubRegistrationContext(input: {
               memberRole: true,
               memberStatus: true,
               backgroundCheckCleared: true,
+              ageAtStart: true,
+              dateOfBirth: true,
             },
           },
         },
@@ -225,6 +236,9 @@ async function getClubRegistrationContext(input: {
       lateFeeStartsAt: true,
       registrationOpensAt: true,
       registrationClosesAt: true,
+      minAttendeeAge: true,
+      maxAttendeeAge: true,
+      allowedClubTypes: true,
       dynamicFields: {
         select: {
           id: true,
@@ -253,6 +267,7 @@ async function getClubRegistrationContext(input: {
     event,
     clubId: membershipClub.id,
     clubName: membershipClub.name,
+    clubType: membershipClub.type,
     directorEmail: input.directorEmail,
     rosterMembers,
     validAttendeeIds,
@@ -288,6 +303,7 @@ export async function persistRegistrationForClub(input: {
 }) {
   const {
     event,
+    clubType,
     rosterMembers,
     validAttendeeIds,
     validFieldIds,
@@ -415,6 +431,50 @@ export async function persistRegistrationForClub(input: {
       );
     }
   }
+
+  // Eligibility warnings (non-blocking — surface to director but do not prevent submission)
+  const eligibilityWarnings: string[] = [];
+
+  if (event.allowedClubTypes.length > 0 && !event.allowedClubTypes.includes(clubType)) {
+    eligibilityWarnings.push(
+      `Your club type (${clubType}) is not in the list of allowed club types for this event (${event.allowedClubTypes.join(", ")}).`,
+    );
+  }
+
+  if (event.minAttendeeAge !== null || event.maxAttendeeAge !== null) {
+    const attendeeLookupForAge = new Map(rosterMembers.map((m) => [m.id, m]));
+
+    for (const attendeeId of attendeeIds) {
+      const member = attendeeLookupForAge.get(attendeeId);
+      if (!member) continue;
+
+      const age = member.ageAtStart ?? (() => {
+        if (!member.dateOfBirth) return null;
+        const now2 = new Date();
+        let calculated = now2.getFullYear() - member.dateOfBirth.getFullYear();
+        const monthDiff = now2.getMonth() - member.dateOfBirth.getMonth();
+        if (monthDiff < 0 || (monthDiff === 0 && now2.getDate() < member.dateOfBirth.getDate())) {
+          calculated -= 1;
+        }
+        return Math.max(calculated, 0);
+      })();
+
+      if (age === null) continue;
+
+      if (event.minAttendeeAge !== null && age < event.minAttendeeAge) {
+        eligibilityWarnings.push(
+          `${member.firstName} ${member.lastName} (age ${age}) is below the minimum age of ${event.minAttendeeAge} for this event.`,
+        );
+      }
+
+      if (event.maxAttendeeAge !== null && age > event.maxAttendeeAge) {
+        eligibilityWarnings.push(
+          `${member.firstName} ${member.lastName} (age ${age}) is above the maximum age of ${event.maxAttendeeAge} for this event.`,
+        );
+      }
+    }
+  }
+
   const now = input.now ?? new Date();
   const pricePerAttendee = now >= event.lateFeeStartsAt ? event.lateFeePrice : event.basePrice;
   const totalDue = attendeeIds.length * pricePerAttendee;
@@ -532,6 +592,33 @@ export async function persistRegistrationForClub(input: {
         .filter((m): m is NonNullable<typeof m> => Boolean(m))
         .map((m) => ({ name: `${m.firstName} ${m.lastName}`, role: m.memberRole }));
 
+      let pdfAttachment: { filename: string; content: string } | null = null;
+
+      if (savedRegistrationId) {
+        try {
+          const exportData = await getEventRegistrationExportDataById(savedRegistrationId);
+
+          if (exportData) {
+            const attendeeQrCodes = exportData.attendees.length > 0
+              ? await generateAttendeeQrCodes(exportData.attendees)
+              : undefined;
+
+            const documentElement = createElement(EventRegistrationPdfDocument, {
+              data: exportData,
+              attendeeQrCodes,
+            }) as ReactElement<DocumentProps>;
+
+            const buffer = await renderToBuffer(documentElement);
+            pdfAttachment = {
+              filename: `${event.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-registration.pdf`,
+              content: Buffer.from(buffer).toString("base64"),
+            };
+          }
+        } catch (pdfError) {
+          console.error("PDF generation for email attachment failed.", pdfError);
+        }
+      }
+
       try {
         await (input.sendConfirmationEmail ?? sendRegistrationConfirmationEmail)({
           to: directorEmail,
@@ -544,6 +631,7 @@ export async function persistRegistrationForClub(input: {
           totalDue,
           paymentStatus: totalDue <= 0 ? "PAID" : "PENDING",
           eventId: input.eventId,
+          pdfAttachment,
         });
       } catch (error) {
         console.error("Registration was saved, but the confirmation email failed to send.", error);
@@ -558,6 +646,7 @@ export async function persistRegistrationForClub(input: {
     totalDue,
     eventName: event.name,
     directorEmail: input.directorEmail,
+    eligibilityWarnings,
   };
 }
 
@@ -624,6 +713,7 @@ export async function submitEventRegistration(
           status: "success",
           message: result.emailWarning ?? "Registration submitted. Redirecting to payment...",
           checkoutUrl,
+          eligibilityWarnings: result.eligibilityWarnings,
         };
       } catch (squareError) {
         console.error("Square checkout link creation failed.", squareError);
@@ -632,6 +722,7 @@ export async function submitEventRegistration(
           message:
             result.emailWarning ??
             "Registration submitted. Visit your dashboard to complete payment.",
+          eligibilityWarnings: result.eligibilityWarnings,
         };
       }
     }
@@ -639,6 +730,7 @@ export async function submitEventRegistration(
     return {
       status: "success",
       message: result.emailWarning ?? "Registration submitted.",
+      eligibilityWarnings: result.eligibilityWarnings,
     };
   } catch (error) {
     return {

@@ -99,6 +99,9 @@ test("events created from a stored template snapshot reuse the existing event an
         lateFeeStartsAt: new Date("2027-03-20T00:00:00.000Z"),
         locationName: parsedSnapshot.locationName,
         locationAddress: parsedSnapshot.locationAddress,
+        minAttendeeAge: null,
+        maxAttendeeAge: null,
+        allowedClubTypes: [],
         dynamicFields: parsedSnapshot.dynamicFields.map((field, index) => ({
           ...field,
           description: field.description || null,
@@ -246,6 +249,9 @@ test("events created from a stored template snapshot preserve grouped child fiel
         lateFeeStartsAt: new Date("2027-03-20T00:00:00.000Z"),
         locationName: parsedSnapshot.locationName,
         locationAddress: parsedSnapshot.locationAddress,
+        minAttendeeAge: null,
+        maxAttendeeAge: null,
+        allowedClubTypes: [],
         dynamicFields: parsedSnapshot.dynamicFields.map((field, index) => ({
           ...field,
           description: field.description || null,

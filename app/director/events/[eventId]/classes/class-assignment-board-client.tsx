@@ -347,41 +347,76 @@ export function ClassAssignmentBoardClient({
                     </div>
 
                     <div className="mt-4 grid gap-3 md:grid-cols-3">
-                      {[0, 1, 2].map((index) => (
-                        <label
-                          key={`${attendee.id}-${timeslot.id}-${index}`}
-                          className="space-y-1 text-sm text-slate-700"
-                        >
-                          <span>Preference #{index + 1}</span>
-                          <select
-                            value={currentSelections[index] ?? ""}
-                            onChange={(e) =>
-                              handleSelectionChange(attendee.id, timeslot.id, index, e.target.value)
-                            }
-                            className="w-full rounded-lg border border-slate-300 px-3 py-2"
-                          >
-                            <option value="">No selection</option>
-                            {timeslot.offerings.map((offering) => {
-                              const eligibility = evaluateClassRequirements(
-                                {
-                                  ageAtStart: attendee.rosterMember.ageAtStart,
-                                  memberRole: attendee.rosterMember.memberRole,
-                                  masterGuide: attendee.rosterMember.masterGuide,
-                                  completedHonorCodes: attendee.rosterMember.completedHonorCodes,
-                                },
-                                offering.classCatalog.requirements as RequirementInput[],
-                              );
+                      {[0, 1, 2].map((index) => {
+                        const selectedId = currentSelections[index] ?? "";
+                        const selectedOffering = selectedId
+                          ? timeslot.offerings.find((o) => o.id === selectedId)
+                          : null;
+                        const selectedEligibility = selectedOffering
+                          ? evaluateClassRequirements(
+                              {
+                                ageAtStart: attendee.rosterMember.ageAtStart,
+                                memberRole: attendee.rosterMember.memberRole,
+                                masterGuide: attendee.rosterMember.masterGuide,
+                                completedHonorCodes: attendee.rosterMember.completedHonorCodes,
+                              },
+                              selectedOffering.classCatalog.requirements as RequirementInput[],
+                            )
+                          : null;
+                        const isSelectedIneligible =
+                          selectedEligibility !== null && !selectedEligibility.eligible;
 
-                              return (
-                                <option key={offering.id} value={offering.id}>
-                                  {offering.classCatalog.title}
-                                  {!eligibility.eligible ? " (warning)" : ""}
-                                </option>
-                              );
-                            })}
-                          </select>
-                        </label>
-                      ))}
+                        return (
+                          <label
+                            key={`${attendee.id}-${timeslot.id}-${index}`}
+                            className="space-y-1 text-sm text-slate-700"
+                          >
+                            <span>Preference #{index + 1}</span>
+                            <select
+                              value={selectedId}
+                              onChange={(e) =>
+                                handleSelectionChange(attendee.id, timeslot.id, index, e.target.value)
+                              }
+                              className={`w-full rounded-lg border px-3 py-2 ${
+                                isSelectedIneligible
+                                  ? "border-amber-400 bg-amber-50"
+                                  : "border-slate-300"
+                              }`}
+                            >
+                              <option value="">No selection</option>
+                              {timeslot.offerings.map((offering) => {
+                                const eligibility = evaluateClassRequirements(
+                                  {
+                                    ageAtStart: attendee.rosterMember.ageAtStart,
+                                    memberRole: attendee.rosterMember.memberRole,
+                                    masterGuide: attendee.rosterMember.masterGuide,
+                                    completedHonorCodes: attendee.rosterMember.completedHonorCodes,
+                                  },
+                                  offering.classCatalog.requirements as RequirementInput[],
+                                );
+
+                                return (
+                                  <option
+                                    key={offering.id}
+                                    value={offering.id}
+                                    disabled={!eligibility.eligible}
+                                  >
+                                    {eligibility.eligible
+                                      ? offering.classCatalog.title
+                                      : `[INELIGIBLE: ${eligibility.blockers.join(", ")}] ${offering.classCatalog.title}`}
+                                  </option>
+                                );
+                              })}
+                            </select>
+                            {isSelectedIneligible && (
+                              <p className="text-xs font-medium text-amber-700">
+                                Warning: saved preference does not meet requirements (
+                                {selectedEligibility.blockers.join(", ")}).
+                              </p>
+                            )}
+                          </label>
+                        );
+                      })}
                     </div>
 
                     {/* Eligibility warnings */}

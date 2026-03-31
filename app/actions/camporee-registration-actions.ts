@@ -549,6 +549,7 @@ export async function getCamporeeOperationsDashboard(eventId: string) {
               id: true,
               name: true,
               code: true,
+              district: true,
             },
           },
           attendees: {

@@ -10,6 +10,7 @@ import {
 import { formatCamporeeRegistrationStatus } from "../../../../../lib/camporee-workflow";
 import { buildCsvHref, slugifyFilenamePart } from "../../../../../lib/csv";
 import { AdminPageHeader } from "../../../_components/admin-page-header";
+import { CampsiteAssignmentGrid } from "./_components/campsite-assignment-grid";
 
 type CamporeePageProps = {
   params: Promise<{
@@ -65,10 +66,11 @@ export default async function CamporeePage({ params }: CamporeePageProps) {
     ]),
   ]);
   const campsiteCsvHref = buildCsvHref([
-    ["Club", "Code", "Type", "Square Footage", "Tent Summary", "Trailers", "Kitchen Canopies", "Camp Near", "Notes"],
+    ["Club", "Code", "District", "Type", "Square Footage", "Tent Summary", "Trailers", "Kitchen Canopies", "Camp Near", "Notes"],
     ...operations.registrations.map((registration) => [
       registration.club.name,
       registration.club.code,
+      registration.club.district ?? "",
       registration.camporeeRegistration?.campsiteType ?? "",
       registration.camporeeRegistration?.squareFootageNeeded ?? 0,
       registration.camporeeRegistration?.tentSummary ?? "",
@@ -329,6 +331,7 @@ export default async function CamporeePage({ params }: CamporeePageProps) {
               <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
                 <tr>
                   <th className="px-4 py-3">Club</th>
+                  <th className="px-4 py-3">District</th>
                   <th className="px-4 py-3">Type</th>
                   <th className="px-4 py-3">Sq Ft</th>
                   <th className="px-4 py-3">Trailers</th>
@@ -339,6 +342,7 @@ export default async function CamporeePage({ params }: CamporeePageProps) {
                 {operations.registrations.map((registration) => (
                   <tr key={`${registration.id}-campsite`}>
                     <td className="px-4 py-3 text-slate-900">{registration.club.name}</td>
+                    <td className="px-4 py-3 text-slate-700">{registration.club.district ?? "—"}</td>
                     <td className="px-4 py-3 text-slate-700">{registration.camporeeRegistration?.campsiteType}</td>
                     <td className="px-4 py-3 text-slate-700">{registration.camporeeRegistration?.squareFootageNeeded}</td>
                     <td className="px-4 py-3 text-slate-700">{registration.camporeeRegistration?.trailerCount}</td>
@@ -461,6 +465,34 @@ export default async function CamporeePage({ params }: CamporeePageProps) {
           </div>
         </article>
         </div>
+      </section>
+
+      <section className="workflow-studio">
+        <div className="workflow-header">
+          <div>
+            <p className="hero-kicker">Campsite Assignments</p>
+            <h2 className="section-title">Assign campsites to registered clubs</h2>
+            <p className="section-copy">Enter a campsite label for each club. Changes are saved automatically on blur.</p>
+          </div>
+        </div>
+
+        {operations.registrations.length === 0 ? (
+          <div className="workflow-card-muted">
+            <p className="text-sm text-slate-600">No Camporee registrations have been started yet.</p>
+          </div>
+        ) : (
+          <CampsiteAssignmentGrid
+            fileBase={fileBase}
+            rows={operations.registrations.map((registration) => ({
+              registrationId: registration.id,
+              clubName: registration.club.name,
+              campsiteType: registration.camporeeRegistration?.campsiteType ?? null,
+              squareFootageNeeded: registration.camporeeRegistration?.squareFootageNeeded ?? null,
+              tentSummary: registration.camporeeRegistration?.tentSummary ?? null,
+              campsiteAssignment: registration.campsiteAssignment ?? null,
+            }))}
+          />
+        )}
       </section>
 
       <article className="workflow-studio">
