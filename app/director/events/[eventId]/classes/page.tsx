@@ -1,4 +1,5 @@
 import { Prisma, type MemberRole, type RequirementType } from "@prisma/client";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 
@@ -216,14 +217,24 @@ export default async function DirectorClassSelectionPage({
   });
 
   return (
-    <ClassAssignmentBoardClient
-      eventId={registration.event.id}
-      eventName={registration.event.name}
-      registrationId={registration.id}
-      clubId={managedClub.clubId}
-      isSuperAdmin={managedClub.isSuperAdmin}
-      classTimeslots={classTimeslots}
-      attendees={attendees}
-    />
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Link
+          href="/director/catalog"
+          className="text-sm font-semibold text-indigo-600 hover:text-indigo-800"
+        >
+          Browse Class Catalog →
+        </Link>
+      </div>
+      <ClassAssignmentBoardClient
+        eventId={registration.event.id}
+        eventName={registration.event.name}
+        registrationId={registration.id}
+        clubId={managedClub.clubId}
+        isSuperAdmin={managedClub.isSuperAdmin}
+        classTimeslots={classTimeslots}
+        attendees={attendees}
+      />
+    </div>
   );
 }

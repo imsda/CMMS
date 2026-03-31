@@ -695,6 +695,15 @@ export async function getAdminEventRegistrations(eventId: string) {
       id: eventId,
     },
     include: {
+      broadcasts: {
+        orderBy: { sentAt: "desc" },
+        select: {
+          id: true,
+          subject: true,
+          sentAt: true,
+          recipientCount: true,
+        },
+      },
       registrations: {
         orderBy: [{ status: "asc" }, { createdAt: "asc" }],
         include: {

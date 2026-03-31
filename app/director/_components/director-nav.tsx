@@ -14,6 +14,7 @@ type DirectorNavItem = {
 const navItems: DirectorNavItem[] = [
   { href: "/director/dashboard", labelKey: "nav.sections.dashboard" },
   { href: "/director/events", labelKey: "nav.sections.events" },
+  { href: "/director/catalog", labelKey: "nav.sections.catalog" },
   { href: "/director/roster", labelKey: "nav.sections.roster" },
   { href: "/director/nominations", labelKey: "nav.sections.nominations" },
   { href: "/director/tlt", labelKey: "nav.sections.tlt" },

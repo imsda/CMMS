@@ -42,6 +42,7 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
       minAttendeeAge: true,
       maxAttendeeAge: true,
       allowedClubTypes: true,
+      isPublished: true,
       dynamicFields: {
         select: {
           id: true,
@@ -136,6 +137,7 @@ export default async function EditEventPage({ params }: EditEventPageProps) {
           minAttendeeAge: event.minAttendeeAge,
           maxAttendeeAge: event.maxAttendeeAge,
           allowedClubTypes: event.allowedClubTypes,
+          isPublished: event.isPublished,
         }}
       />
 

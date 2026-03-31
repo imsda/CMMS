@@ -9,6 +9,7 @@ import {
   FormFieldScope,
   FormFieldType,
   RegistrationStatus,
+  PaymentStatus,
   type Prisma,
 } from "@prisma/client";
 import { revalidatePath } from "next/cache";
@@ -17,8 +18,10 @@ import { redirect } from "next/navigation";
 import {
   type CreateEventActionState,
   type EventTemplateActionState,
+  type SendEventBroadcastActionState,
   type UpdateEventActionState,
 } from "./event-admin-state";
+import { getResendConfig } from "../../lib/email/resend";
 import { auth } from "../../auth";
 import {
   createEventFromInput,
@@ -779,6 +782,7 @@ export async function updateEventCoreDetails(
     const minAttendeeAge = parseOptionalPositiveInt(formData.get("minAttendeeAge"));
     const maxAttendeeAge = parseOptionalPositiveInt(formData.get("maxAttendeeAge"));
     const allowedClubTypes = parseAllowedClubTypes(formData);
+    const isPublished = formData.get("isPublished") === "true";
 
     validateEventTimeline({
       startsAt,
@@ -807,8 +811,11 @@ export async function updateEventCoreDetails(
         minAttendeeAge,
         maxAttendeeAge,
         allowedClubTypes,
+        isPublished,
       },
     });
+
+    revalidatePath("/events");
 
     revalidatePath("/admin/events");
     revalidatePath(`/admin/events/${eventId}`);
@@ -900,144 +907,196 @@ export async function updateEventDynamicFields(
   }
 }
 
-export async function reviewRegistration(formData: FormData) {
-  const adminUserId = await requireSuperAdminUserId();
+// --- Event Broadcast ---
 
-  const registrationId = requireTrimmedString(formData.get("registrationId"), "Registration");
+type BroadcastFilter = "ALL" | "APPROVED_ONLY" | "PENDING_PAYMENT_ONLY";
 
-  const registration = await prisma.eventRegistration.findUnique({
-    where: { id: registrationId },
-    select: {
-      id: true,
-      status: true,
-      eventId: true,
-      clubId: true,
-      club: {
-        select: {
-          name: true,
-          memberships: {
-            where: { user: { role: "CLUB_DIRECTOR" } },
-            orderBy: { isPrimary: "desc" },
-            take: 1,
-            select: { user: { select: { email: true } } },
-          },
-        },
-      },
-      event: {
-        select: {
-          id: true,
-          name: true,
-          startsAt: true,
-          endsAt: true,
-          locationName: true,
-          locationAddress: true,
-        },
-      },
-    },
-  });
-
-  if (!registration) {
-    throw new Error("Registration not found.");
-  }
-
-  if (registration.status !== RegistrationStatus.SUBMITTED && registration.status !== RegistrationStatus.REVIEWED) {
-    throw new Error("Only submitted or reviewed registrations can be approved.");
-  }
-
-  await prisma.eventRegistration.update({
-    where: { id: registrationId },
-    data: {
-      status: RegistrationStatus.APPROVED,
-      reviewedAt: new Date(),
-      reviewedByUserId: adminUserId,
-      revisionRequestedReason: null,
-    },
-  });
-
-  revalidatePath(`/admin/events/${registration.eventId}/checkin`);
-  revalidatePath(`/admin/events/${registration.eventId}`);
-  revalidatePath(`/director/events/${registration.eventId}`);
-
-  const directorEmail = registration.club.memberships[0]?.user?.email ?? null;
-  if (directorEmail) {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-    await sendRegistrationApprovedEmail({
-      to: directorEmail,
-      eventName: registration.event.name,
-      clubName: registration.club.name,
-      eventStartsAt: registration.event.startsAt,
-      eventEndsAt: registration.event.endsAt,
-      locationName: registration.event.locationName,
-      locationAddress: registration.event.locationAddress,
-      registrationUrl: `${appUrl}/director/events/${registration.event.id}`,
-    });
-  }
+function parseBroadcastFilter(value: FormDataEntryValue | null): BroadcastFilter {
+  if (value === "APPROVED_ONLY") return "APPROVED_ONLY";
+  if (value === "PENDING_PAYMENT_ONLY") return "PENDING_PAYMENT_ONLY";
+  return "ALL";
 }
 
-export async function requestRevision(formData: FormData) {
-  const adminUserId = await requireSuperAdminUserId();
+export async function getEventBroadcastRecipientCount(
+  eventId: string,
+  filter: BroadcastFilter,
+): Promise<number> {
+  const session = await auth();
+  if (!session?.user || session.user.role !== "SUPER_ADMIN") {
+    return 0;
+  }
 
-  const registrationId = requireTrimmedString(formData.get("registrationId"), "Registration");
-  const reason = requireTrimmedString(formData.get("reason"), "Revision reason");
+  const where = buildBroadcastWhere(eventId, filter);
+  const count = await prisma.eventRegistration.count({ where });
+  return count;
+}
 
-  const registration = await prisma.eventRegistration.findUnique({
-    where: { id: registrationId },
-    select: {
-      id: true,
-      status: true,
-      eventId: true,
-      clubId: true,
-      club: {
-        select: {
-          name: true,
-          memberships: {
-            where: { user: { role: "CLUB_DIRECTOR" } },
-            orderBy: { isPrimary: "desc" },
-            take: 1,
-            select: { user: { select: { email: true } } },
+const ACTIVE_REGISTRATION_STATUSES: RegistrationStatus[] = [
+  RegistrationStatus.SUBMITTED,
+  RegistrationStatus.REVIEWED,
+  RegistrationStatus.NEEDS_CHANGES,
+  RegistrationStatus.APPROVED,
+];
+
+function buildBroadcastWhere(
+  eventId: string,
+  filter: BroadcastFilter,
+): Prisma.EventRegistrationWhereInput {
+  if (filter === "APPROVED_ONLY") {
+    return {
+      eventId,
+      status: RegistrationStatus.APPROVED,
+    };
+  }
+
+  if (filter === "PENDING_PAYMENT_ONLY") {
+    return {
+      eventId,
+      status: { in: ACTIVE_REGISTRATION_STATUSES },
+      paymentStatus: PaymentStatus.PENDING,
+    };
+  }
+
+  return {
+    eventId,
+    status: { in: ACTIVE_REGISTRATION_STATUSES },
+  };
+}
+
+export async function sendEventBroadcast(
+  _prevState: SendEventBroadcastActionState,
+  formData: FormData,
+): Promise<SendEventBroadcastActionState> {
+  try {
+    await requireSuperAdminUserId();
+
+    const eventId = requireTrimmedString(formData.get("eventId"), "Event");
+    const subject = requireTrimmedString(formData.get("subject"), "Subject");
+    const body = requireTrimmedString(formData.get("body"), "Message body");
+    const filter = parseBroadcastFilter(formData.get("filter"));
+
+    // Verify event exists
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+      select: { id: true, name: true },
+    });
+
+    if (!event) {
+      return { status: "error", message: "Event not found.", sentCount: null };
+    }
+
+    // Fetch registrations matching the filter with primary director email
+    const registrations = await prisma.eventRegistration.findMany({
+      where: buildBroadcastWhere(eventId, filter),
+      select: {
+        id: true,
+        club: {
+          select: {
+            name: true,
+            memberships: {
+              where: { isPrimary: true },
+              select: {
+                user: { select: { email: true, name: true } },
+              },
+              take: 1,
+            },
           },
         },
       },
-      event: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-    },
-  });
-
-  if (!registration) {
-    throw new Error("Registration not found.");
-  }
-
-  if (registration.status !== RegistrationStatus.SUBMITTED && registration.status !== RegistrationStatus.REVIEWED) {
-    throw new Error("Only submitted or reviewed registrations can have revisions requested.");
-  }
-
-  await prisma.eventRegistration.update({
-    where: { id: registrationId },
-    data: {
-      status: RegistrationStatus.NEEDS_CHANGES,
-      reviewedAt: new Date(),
-      reviewedByUserId: adminUserId,
-      revisionRequestedReason: reason,
-    },
-  });
-
-  revalidatePath(`/admin/events/${registration.eventId}/checkin`);
-  revalidatePath(`/admin/events/${registration.eventId}`);
-  revalidatePath(`/director/events/${registration.eventId}`);
-
-  const directorEmail = registration.club.memberships[0]?.user?.email ?? null;
-  if (directorEmail) {
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-    await sendRevisionRequestedEmail({
-      to: directorEmail,
-      eventName: registration.event.name,
-      clubName: registration.club.name,
-      reason,
-      registrationUrl: `${appUrl}/director/events/${registration.event.id}`,
     });
+
+    const resendConfig = getResendConfig();
+    let sentCount = 0;
+    const failures: string[] = [];
+
+    const htmlBody = body
+      .split("\n")
+      .map((line) => `<p>${line}</p>`)
+      .join("");
+
+    for (const reg of registrations) {
+      const primaryMembership = reg.club.memberships[0];
+      if (!primaryMembership) {
+        failures.push(`${reg.club.name}: no primary director email`);
+        continue;
+      }
+
+      const recipientEmail = primaryMembership.user.email;
+
+      if (!resendConfig) {
+        console.warn(
+          `Skipping broadcast email to ${recipientEmail}: RESEND not configured.`,
+        );
+        failures.push(`${reg.club.name}: email service not configured`);
+        continue;
+      }
+
+      const response = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${resendConfig.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: resendConfig.from,
+          to: [recipientEmail],
+          subject,
+          html: `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #1e293b;">${subject}</h2>
+              <p style="color: #475569; font-size: 14px;">
+                Message regarding: <strong>${event.name}</strong>
+              </p>
+              <hr style="border-color: #e2e8f0; margin: 16px 0;" />
+              <div style="color: #334155; line-height: 1.6;">
+                ${htmlBody}
+              </div>
+              <hr style="border-color: #e2e8f0; margin: 16px 0;" />
+              <p style="color: #94a3b8; font-size: 12px;">
+                This message was sent to ${primaryMembership.user.name ?? recipientEmail}
+                as the primary director for ${reg.club.name}.
+              </p>
+            </div>
+          `,
+        }),
+      });
+
+      if (response.ok) {
+        sentCount += 1;
+      } else {
+        const payload = await response.text();
+        failures.push(
+          `${reg.club.name}: ${response.status} ${payload}`.slice(0, 200),
+        );
+      }
+    }
+
+    // Store broadcast record
+    await prisma.eventBroadcast.create({
+      data: {
+        eventId,
+        subject,
+        recipientCount: sentCount,
+      },
+    });
+
+    revalidatePath(`/admin/events/${eventId}`);
+
+    const failureSummary =
+      failures.length > 0
+        ? ` (${failures.length} failed: ${failures.slice(0, 3).join("; ")})`
+        : "";
+
+    return {
+      status: "success",
+      message: `Sent to ${sentCount} director(s).${failureSummary}`,
+      sentCount,
+    };
+  } catch (error) {
+    return {
+      status: "error",
+      message: error instanceof Error ? error.message : "Unable to send broadcast.",
+      sentCount: null,
+    };
   }
 }

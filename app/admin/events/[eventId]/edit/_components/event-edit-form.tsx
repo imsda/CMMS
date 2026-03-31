@@ -31,6 +31,7 @@ type EventEditDefaults = {
   minAttendeeAge: number | null;
   maxAttendeeAge: number | null;
   allowedClubTypes: string[];
+  isPublished: boolean;
 };
 
 type EventEditFormProps = {
@@ -223,6 +224,27 @@ export function EventEditForm({ defaults }: EventEditFormProps) {
           </div>
           <p className="text-xs text-slate-500">Club type restrictions trigger a warning (not a block) at registration.</p>
         </fieldset>
+
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 md:col-span-2">
+          <label className="inline-flex cursor-pointer items-center gap-3">
+            <input
+              type="checkbox"
+              name="isPublished"
+              value="true"
+              defaultChecked={defaults.isPublished}
+              className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+            />
+            <span className="text-sm font-semibold text-slate-900">
+              Publish to public event listing
+            </span>
+          </label>
+          <p className="mt-1 text-xs text-slate-500">
+            When checked, this event appears on the public{" "}
+            <code className="rounded bg-slate-200 px-1 py-0.5">/events</code>{" "}
+            page visible to anyone without login. Pricing and registration details
+            are not shown publicly.
+          </p>
+        </div>
       </div>
 
       {state.status === "error" && state.message ? (
