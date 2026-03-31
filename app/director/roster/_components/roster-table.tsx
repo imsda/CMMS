@@ -107,16 +107,9 @@ function hasMissingRequiredConsent(member: RosterMemberRow) {
 }
 
 function downloadCsvTemplate() {
-  const commentRow = [
-    "# Required: firstName,lastName,memberRole,dateOfBirth",
-    "# memberRole values: PATHFINDER|ADVENTURER|TLT|STAFF|CHILD|DIRECTOR|COUNSELOR",
-    "# gender values: MALE|FEMALE|NON_BINARY|PREFER_NOT_TO_SAY",
-    "# dateOfBirth format: YYYY-MM-DD",
-    "# Boolean columns (isFirstTime/isMedicalPersonnel/masterGuide): true|false",
-  ].join("\n");
   const headerRow = CSV_IMPORT_HEADERS.join(",");
   const exampleRow = "Jane,Doe,PATHFINDER,2012-05-14,FEMALE,12,Parent Name,555-0100,,,false,false,false";
-  const csv = `${commentRow}\n${headerRow}\n${exampleRow}\n`;
+  const csv = `${headerRow}\n${exampleRow}\n`;
   const blob = new Blob([csv], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");

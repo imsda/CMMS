@@ -1020,11 +1020,10 @@ export async function sendEventBroadcast(
       const recipientEmail = primaryMembership.user.email;
 
       if (!resendConfig) {
-        // Email not configured; count as "sent" for tracking purposes but warn
         console.warn(
           `Skipping broadcast email to ${recipientEmail}: RESEND not configured.`,
         );
-        sentCount += 1;
+        failures.push(`${reg.club.name}: email service not configured`);
         continue;
       }
 
