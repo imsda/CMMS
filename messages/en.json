@@ -509,8 +509,8 @@
           "FIELD_GROUP": "Section"
         },
         "scopeOptions": {
-          "GLOBAL": "Club / registration",
-          "ATTENDEE": "Each attendee"
+          "GLOBAL": "Club-level (one answer for whole club)",
+          "ATTENDEE": "Per-person (separate answer per attendee)"
         },
         "operators": {
           "equals": "equals",
@@ -688,14 +688,14 @@
       }
     },
     "registrationForm": {
-      "modules": "Registration Modules",
+      "modules": "Registration Steps",
       "modulesDescription": "Work through each section in order. Conditional sections will appear when earlier answers require them.",
       "progressTitle": "Registration progress",
       "step": "Step {current} of {total}",
-      "module": "Module {index}",
+      "module": "Step {index}",
       "rosterTitle": "Roster Attendees",
       "rosterDescription": "Select all roster members from your club who will attend this event.",
-      "clubTitle": "Club Registration",
+      "clubTitle": "Club Information",
       "clubDescription": "Complete the club-wide questions that drive the rest of the registration.",
       "rosterSectionDescription": "Select the club members attending this event.",
       "groupDefaultDescription": "Finish this registration section before moving on.",
@@ -738,7 +738,7 @@
       "submitRegistration": "Submit Registration",
       "eligibilityWarnings": "Eligibility warnings — registration was still submitted:",
       "yes": "Yes",
-      "activePrompts": "{count, plural, one {# active prompt} other {# active prompts}}",
+      "activePrompts": "{count} question(s) in this section",
       "walkInBadge": "Walk-in",
       "addTemporaryAttendee": "Add Temporary Attendee",
       "walkInFormTitle": "Add Temporary Attendee",

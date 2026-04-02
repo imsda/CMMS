@@ -83,6 +83,43 @@ const INITIAL_ACTION_STATE: RegistrationActionState = {
   message: null,
 };
 
+const SDA_TERMS: Record<string, string> = {
+  "TLT": "Teen Leadership Training — a development program for Pathfinder youth ages 14–15 who are preparing to become junior counselors.",
+  "Investiture": "Investiture Achievement — the Pathfinder curriculum of progressive awards covering spiritual, outdoor, and practical skills.",
+  "Honors": "Honors are skill-based achievement patches earned in subject areas such as nature, arts, health, and vocational crafts.",
+  "Pathfinder": "Pathfinders is the Seventh-day Adventist club program for children ages 10–15, focused on faith, service, and achievement.",
+  "Adventurer": "Adventurers is the Seventh-day Adventist club program for children ages 4–9, building early faith and character foundations.",
+  "Master Guide": "Master Guide is the highest volunteer leadership certification in the Pathfinder and Adventurer ministry.",
+};
+
+function TermTooltip({ term }: { term: string }) {
+  const definition = SDA_TERMS[term];
+  if (!definition) return null;
+  return (
+    <span
+      title={definition}
+      aria-label={`What is ${term}? ${definition}`}
+      className="ml-1 inline-flex h-4 w-4 cursor-help items-center justify-center rounded-full bg-slate-200 text-[0.6rem] font-bold text-slate-600 hover:bg-indigo-100 hover:text-indigo-700"
+    >
+      ?
+    </span>
+  );
+}
+
+function renderLabelWithTooltip(label: string) {
+  for (const term of Object.keys(SDA_TERMS)) {
+    if (label.includes(term)) {
+      return (
+        <>
+          {label}
+          <TermTooltip term={term} />
+        </>
+      );
+    }
+  }
+  return label;
+}
+
 function attendeeName(attendee: Attendee) {
   return `${attendee.firstName} ${attendee.lastName}`;
 }
@@ -577,7 +614,7 @@ export function RegistrationFormFulfiller({
       <div key={field.id} className="glass-subsection space-y-3">
         <div>
           <p className="text-sm font-semibold text-slate-900">
-            {field.label}
+            {renderLabelWithTooltip(field.label)}
             {field.isRequired ? <span className="ml-1 text-rose-600">*</span> : null}
           </p>
           {field.description ? <p className="text-xs text-slate-500">{field.description}</p> : null}
@@ -830,14 +867,15 @@ export function RegistrationFormFulfiller({
               <h2 className="section-title mt-2">{eventName}</h2>
               <p className="section-copy">{t("registrationForm.modulesDescription")}</p>
             </div>
-            <div className="min-w-[12rem] space-y-2">
-              <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-500">
-                <span>{t("registrationForm.progressTitle")}</span>
-                <span>{t("registrationForm.step", { current: currentSectionIndex + 1, total: sections.length })}</span>
-              </div>
-              <div className="h-2 rounded-full bg-slate-200">
-                <div className="h-2 rounded-full bg-indigo-600 transition-all" style={{ width: `${progressPercent}%` }} />
-              </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-500">
+              <span>{t("registrationForm.progressTitle")}</span>
+              <span>{t("registrationForm.step", { current: currentSectionIndex + 1, total: sections.length })}</span>
+            </div>
+            <div className="h-2 rounded-full bg-slate-200">
+              <div className="h-2 rounded-full bg-indigo-600 transition-all" style={{ width: `${progressPercent}%` }} />
             </div>
           </div>
 
@@ -1001,7 +1039,7 @@ export function RegistrationFormFulfiller({
             {t("registrationForm.saveDraft")}
           </button>
           {currentSection?.id !== "review" ? (
-            <button type="button" onClick={openReviewStep} className="btn-primary">
+            <button type="button" onClick={openReviewStep} className="btn-primary w-full sm:w-auto">
               {t("registrationForm.continueToReview")}
             </button>
           ) : (
@@ -1017,7 +1055,7 @@ export function RegistrationFormFulfiller({
                   event.preventDefault();
                 }
               }}
-              className="btn-primary"
+              className="btn-primary w-full sm:w-auto"
             >
               {t("registrationForm.submitRegistration")}
             </button>
