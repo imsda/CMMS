@@ -504,8 +504,8 @@
           "FIELD_GROUP": "Sección"
         },
         "scopeOptions": {
-          "GLOBAL": "Club / registro",
-          "ATTENDEE": "Cada asistente"
+          "GLOBAL": "A nivel de club (una respuesta para todo el club)",
+          "ATTENDEE": "Por persona (respuesta separada por asistente)"
         },
         "operators": {
           "equals": "igual a",
@@ -683,14 +683,14 @@
       }
     },
     "registrationForm": {
-      "modules": "Módulos de registro",
+      "modules": "Pasos de registro",
       "modulesDescription": "Trabaje cada sección en orden. Las secciones condicionales aparecerán cuando respuestas anteriores las requieran.",
       "progressTitle": "Progreso del registro",
       "step": "Paso {current} de {total}",
-      "module": "Módulo {index}",
+      "module": "Paso {index}",
       "rosterTitle": "Asistentes de la nómina",
       "rosterDescription": "Seleccione todos los miembros de su club que asistirán a este evento.",
-      "clubTitle": "Registro del club",
+      "clubTitle": "Información del club",
       "clubDescription": "Complete las preguntas generales del club que impulsan el resto del registro.",
       "rosterSectionDescription": "Seleccione los miembros del club que asistirán a este evento.",
       "groupDefaultDescription": "Complete esta sección del registro antes de continuar.",
@@ -733,7 +733,7 @@
       "submitRegistration": "Enviar registro",
       "eligibilityWarnings": "Advertencias de elegibilidad — el registro fue enviado igualmente:",
       "yes": "Sí",
-      "activePrompts": "{count, plural, one {# pregunta activa} other {# preguntas activas}}"
+      "activePrompts": "{count} pregunta(s) en esta sección"
     },
     "roster": {
       "eyebrow": "Gestión de nómina",
