@@ -149,10 +149,10 @@ export function StudentPortalLinkForm({
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Portal User</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Student</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Roster Year</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Action</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Portal User</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Student</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Roster Year</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

@@ -83,11 +83,11 @@ export default async function DirectorTltDashboardPage({
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">{t("tlt.table.member")}</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">{t("tlt.table.grade")}</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">{t("tlt.table.baptized")}</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">{t("tlt.table.status")}</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">{t("tlt.table.action")}</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">{t("tlt.table.member")}</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">{t("tlt.table.grade")}</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">{t("tlt.table.baptized")}</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">{t("tlt.table.status")}</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">{t("tlt.table.action")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

@@ -65,12 +65,12 @@ export default async function AdminAuditPage() {
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
                 <tr>
-                  <th className="px-4 py-3">When</th>
-                  <th className="px-4 py-3">Action</th>
-                  <th className="px-4 py-3">Actor</th>
-                  <th className="px-4 py-3">Target</th>
-                  <th className="px-4 py-3">Scope</th>
-                  <th className="px-4 py-3">Summary</th>
+                  <th scope="col" className="px-4 py-3">When</th>
+                  <th scope="col" className="px-4 py-3">Action</th>
+                  <th scope="col" className="px-4 py-3">Actor</th>
+                  <th scope="col" className="px-4 py-3">Target</th>
+                  <th scope="col" className="px-4 py-3">Scope</th>
+                  <th scope="col" className="px-4 py-3">Summary</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

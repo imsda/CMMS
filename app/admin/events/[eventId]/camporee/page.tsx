@@ -330,12 +330,12 @@ export default async function CamporeePage({ params }: CamporeePageProps) {
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
                 <tr>
-                  <th className="px-4 py-3">Club</th>
-                  <th className="px-4 py-3">District</th>
-                  <th className="px-4 py-3">Type</th>
-                  <th className="px-4 py-3">Sq Ft</th>
-                  <th className="px-4 py-3">Trailers</th>
-                  <th className="px-4 py-3">Camp Near</th>
+                  <th scope="col" className="px-4 py-3">Club</th>
+                  <th scope="col" className="px-4 py-3">District</th>
+                  <th scope="col" className="px-4 py-3">Type</th>
+                  <th scope="col" className="px-4 py-3">Sq Ft</th>
+                  <th scope="col" className="px-4 py-3">Trailers</th>
+                  <th scope="col" className="px-4 py-3">Camp Near</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -360,10 +360,10 @@ export default async function CamporeePage({ params }: CamporeePageProps) {
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
                 <tr>
-                  <th className="px-4 py-3">Club</th>
-                  <th className="px-4 py-3">Arrival</th>
-                  <th className="px-4 py-3">Departure</th>
-                  <th className="px-4 py-3">Vehicles</th>
+                  <th scope="col" className="px-4 py-3">Club</th>
+                  <th scope="col" className="px-4 py-3">Arrival</th>
+                  <th scope="col" className="px-4 py-3">Departure</th>
+                  <th scope="col" className="px-4 py-3">Vehicles</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -386,11 +386,11 @@ export default async function CamporeePage({ params }: CamporeePageProps) {
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
                 <tr>
-                  <th className="px-4 py-3">Club</th>
-                  <th className="px-4 py-3">Meal Plan</th>
-                  <th className="px-4 py-3">Sabbath Supper</th>
-                  <th className="px-4 py-3">Sunday Breakfast</th>
-                  <th className="px-4 py-3">Water</th>
+                  <th scope="col" className="px-4 py-3">Club</th>
+                  <th scope="col" className="px-4 py-3">Meal Plan</th>
+                  <th scope="col" className="px-4 py-3">Sabbath Supper</th>
+                  <th scope="col" className="px-4 py-3">Sunday Breakfast</th>
+                  <th scope="col" className="px-4 py-3">Water</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -414,10 +414,10 @@ export default async function CamporeePage({ params }: CamporeePageProps) {
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
                 <tr>
-                  <th className="px-4 py-3">Club</th>
-                  <th className="px-4 py-3">Duty Preferences</th>
-                  <th className="px-4 py-3">Highlights</th>
-                  <th className="px-4 py-3">First Aid / Staff</th>
+                  <th scope="col" className="px-4 py-3">Club</th>
+                  <th scope="col" className="px-4 py-3">Duty Preferences</th>
+                  <th scope="col" className="px-4 py-3">Highlights</th>
+                  <th scope="col" className="px-4 py-3">First Aid / Staff</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -442,10 +442,10 @@ export default async function CamporeePage({ params }: CamporeePageProps) {
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
                 <tr>
-                  <th className="px-4 py-3">Club</th>
-                  <th className="px-4 py-3">Emergency Contact</th>
-                  <th className="px-4 py-3">Meeting Point</th>
-                  <th className="px-4 py-3">Notes</th>
+                  <th scope="col" className="px-4 py-3">Club</th>
+                  <th scope="col" className="px-4 py-3">Emergency Contact</th>
+                  <th scope="col" className="px-4 py-3">Meeting Point</th>
+                  <th scope="col" className="px-4 py-3">Notes</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

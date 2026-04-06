@@ -36,10 +36,10 @@ export function SpiritualReportTable({ rows }: SpiritualReportTableProps) {
       <table className="min-w-full divide-y divide-slate-200 text-sm">
         <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
           <tr>
-            <th className="px-4 py-3">{t("pages.operationalReports.table.club")}</th>
-            <th className="px-4 py-3">{t("pages.operationalReports.table.clubCode")}</th>
-            <th className="px-4 py-3">{t("pages.operationalReports.table.formField")}</th>
-            <th className="px-4 py-3">{t("pages.operationalReports.table.nameResponse")}</th>
+            <th scope="col" className="px-4 py-3">{t("pages.operationalReports.table.club")}</th>
+            <th scope="col" className="px-4 py-3">{t("pages.operationalReports.table.clubCode")}</th>
+            <th scope="col" className="px-4 py-3">{t("pages.operationalReports.table.formField")}</th>
+            <th scope="col" className="px-4 py-3">{t("pages.operationalReports.table.nameResponse")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -72,8 +72,8 @@ export function DutyReportTable({ rows }: DutyReportTableProps) {
       <table className="min-w-full divide-y divide-slate-200 text-sm">
         <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
           <tr>
-            <th className="px-4 py-3">{t("pages.operationalReports.table.dutyActivity")}</th>
-            <th className="px-4 py-3">{t("pages.operationalReports.table.assignedClubs")}</th>
+            <th scope="col" className="px-4 py-3">{t("pages.operationalReports.table.dutyActivity")}</th>
+            <th scope="col" className="px-4 py-3">{t("pages.operationalReports.table.assignedClubs")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
@@ -112,9 +112,9 @@ export function AvReportTable({ rows }: AvReportTableProps) {
       <table className="min-w-full divide-y divide-slate-200 text-sm">
         <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
           <tr>
-            <th className="px-4 py-3">{t("pages.operationalReports.table.club")}</th>
-            <th className="px-4 py-3">{t("pages.operationalReports.table.clubCode")}</th>
-            <th className="px-4 py-3">{t("pages.operationalReports.table.requestedItems")}</th>
+            <th scope="col" className="px-4 py-3">{t("pages.operationalReports.table.club")}</th>
+            <th scope="col" className="px-4 py-3">{t("pages.operationalReports.table.clubCode")}</th>
+            <th scope="col" className="px-4 py-3">{t("pages.operationalReports.table.requestedItems")}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">

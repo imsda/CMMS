@@ -109,11 +109,11 @@ export default async function SuperAdminDashboardPage() {
             <table className="text-sm">
               <thead>
                 <tr>
-                  <th className="px-4 py-3">Event</th>
-                  <th className="px-4 py-3">Dates</th>
-                  <th className="px-4 py-3">Location</th>
-                  <th className="px-4 py-3">Registrations</th>
-                  <th className="px-4 py-3">Actions</th>
+                  <th scope="col" className="px-4 py-3">Event</th>
+                  <th scope="col" className="px-4 py-3">Dates</th>
+                  <th scope="col" className="px-4 py-3">Location</th>
+                  <th scope="col" className="px-4 py-3">Registrations</th>
+                  <th scope="col" className="px-4 py-3">Actions</th>
                 </tr>
               </thead>
               <tbody>

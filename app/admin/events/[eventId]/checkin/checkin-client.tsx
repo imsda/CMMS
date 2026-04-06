@@ -212,27 +212,33 @@ export function CheckinClient({ eventId, eventName, registrations }: CheckinClie
       </div>
 
       {/* QR scan result */}
-      {scanMessage && (
-        <div
-          className={`rounded-xl border px-4 py-3 text-sm font-medium ${
-            scanMessage.type === "success"
-              ? "border-emerald-300 bg-emerald-50 text-emerald-800"
-              : "border-rose-300 bg-rose-50 text-rose-800"
-          }`}
-        >
-          {scanMessage.text}
-          <button
-            onClick={() => setScanMessage(null)}
-            className="ml-3 underline"
+      <div aria-live="polite" aria-atomic="true">
+        {scanMessage && (
+          <div
+            role={scanMessage.type === "error" ? "alert" : "status"}
+            className={`rounded-xl border px-4 py-3 text-sm font-medium ${
+              scanMessage.type === "success"
+                ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                : "border-rose-300 bg-rose-50 text-rose-800"
+            }`}
           >
-            Dismiss
-          </button>
-        </div>
-      )}
+            {scanMessage.text}
+            <button
+              onClick={() => setScanMessage(null)}
+              className="ml-3 underline"
+              aria-label="Dismiss message"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Search + Scan row */}
       <div className="flex gap-2">
+        <label htmlFor="checkin-search" className="sr-only">Search attendees by name or club</label>
         <input
+          id="checkin-search"
           type="search"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
@@ -241,9 +247,10 @@ export function CheckinClient({ eventId, eventName, registrations }: CheckinClie
         />
         <button
           onClick={startQrScan}
+          aria-label="Scan attendee QR code"
           className="flex min-h-[48px] shrink-0 items-center gap-1.5 rounded-xl border-2 border-indigo-300 bg-indigo-50 px-4 text-sm font-semibold text-indigo-700 hover:bg-indigo-100 active:scale-95"
         >
-          <span aria-hidden>📷</span> Scan QR
+          <span aria-hidden="true">📷</span> Scan QR
         </button>
       </div>
 
@@ -306,6 +313,7 @@ export function CheckinClient({ eventId, eventName, registrations }: CheckinClie
                     <button
                       type="submit"
                       disabled={reg.attendees.length === 0 || allCheckedIn || isPending}
+                      aria-label={`Check in all attendees for ${reg.club.name}`}
                       className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:bg-slate-300 active:scale-95"
                     >
                       {allCheckedIn ? "All Checked In ✓" : "Check In Entire Club"}
@@ -331,7 +339,10 @@ export function CheckinClient({ eventId, eventName, registrations }: CheckinClie
                           <p className="truncate text-xs text-slate-500">
                             {reg.club.name} &middot; {attendee.rosterMember.memberRole.replace(/_/g, " ")}
                             {attendee.rosterMember.swimTestCleared ? (
-                              <span className="ml-1.5 inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-xs font-semibold text-emerald-700">
+                              <span
+                                className="ml-1.5 inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 text-xs font-semibold text-emerald-700"
+                                aria-label="Swim test cleared"
+                              >
                                 Swim ✓
                               </span>
                             ) : null}
@@ -345,13 +356,17 @@ export function CheckinClient({ eventId, eventName, registrations }: CheckinClie
                         </div>
 
                         {checkedIn ? (
-                          <span className="shrink-0 rounded-xl bg-emerald-100 px-3 py-2 text-sm font-semibold text-emerald-700">
+                          <span
+                            className="shrink-0 rounded-xl bg-emerald-100 px-3 py-2 text-sm font-semibold text-emerald-700"
+                            aria-label="Checked in"
+                          >
                             ✓
                           </span>
                         ) : (
                           <button
                             onClick={() => handleAttendeeCheckIn(attendee.id)}
                             disabled={isPending}
+                            aria-label={`Check in ${attendee.rosterMember.firstName} ${attendee.rosterMember.lastName}`}
                             className="min-h-[44px] shrink-0 rounded-xl bg-indigo-600 px-5 py-2 text-sm font-bold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-300 active:scale-95"
                           >
                             CHECK IN

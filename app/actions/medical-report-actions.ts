@@ -14,6 +14,7 @@ export type MedicalManifestRow = {
   role: MemberRole;
   clubName: string;
   emergencyContactInfo: string;
+  swimTestCleared: boolean;
   dietaryRestrictions: string | null;
   medicalFlags: string | null;
   photoReleaseConsentAt: Date | null;
@@ -192,6 +193,7 @@ export async function getMedicalManifest(eventId: string): Promise<MedicalManife
           attendee.rosterMember.emergencyContactName,
           attendee.rosterMember.emergencyContactPhone,
         ),
+        swimTestCleared: attendee.rosterMember.swimTestCleared,
         dietaryRestrictions,
         medicalFlags,
         photoReleaseConsentAt: attendee.rosterMember.photoReleaseConsentAt,

@@ -77,9 +77,9 @@ export default async function EventPatchOrderReportPage({ params }: EventPatchOr
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
                 <tr>
-                  <th className="px-4 py-3">Honor Name</th>
-                  <th className="px-4 py-3">Honor Code</th>
-                  <th className="px-4 py-3">Total Count Needed</th>
+                  <th scope="col" className="px-4 py-3">Honor Name</th>
+                  <th scope="col" className="px-4 py-3">Honor Code</th>
+                  <th scope="col" className="px-4 py-3">Total Count Needed</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

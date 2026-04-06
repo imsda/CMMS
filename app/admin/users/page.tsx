@@ -216,11 +216,11 @@ export default async function AdminUsersPage() {
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Name</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Email</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Role</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Primary Club</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Linked Students</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Name</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Email</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Role</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Primary Club</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Linked Students</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

@@ -286,6 +286,7 @@ model RosterMember {
   isFirstTime                Boolean               @default(false)
   isMedicalPersonnel         Boolean               @default(false)
   masterGuide                Boolean               @default(false)
+  swimTestCleared            Boolean               @default(false)
   backgroundCheckDate        DateTime?
   backgroundCheckCleared     Boolean               @default(false)
   memberStatus               MemberStatus          @default(ACTIVE)
@@ -417,6 +418,8 @@ model Event {
   lateFeeStartsAt      DateTime
   locationName         String?
   locationAddress      String?
+  eventBringNote       String?
+  reviewTurnaroundDays Int?
   minAttendeeAge       Int?
   maxAttendeeAge       Int?
   allowedClubTypes     String[]             @default([])

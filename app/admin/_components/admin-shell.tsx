@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 
 import { LanguageSwitcher } from "../../../components/language-switcher";
@@ -23,7 +23,36 @@ export function AdminShell({ children, currentLocale, user }: AdminShellProps) {
   const t = useTranslations("Admin");
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [openMenu, setOpenMenu] = useState<"quickCreate" | "userMenu" | null>(null);
+  const quickCreateRef = useRef<HTMLDivElement>(null);
+  const userMenuRef = useRef<HTMLDivElement>(null);
   const shellState = getAdminShellState(pathname);
+
+  useEffect(() => {
+    if (!openMenu) return;
+
+    function handleOutsideClick(event: MouseEvent) {
+      const target = event.target as Node;
+      if (
+        quickCreateRef.current?.contains(target) ||
+        userMenuRef.current?.contains(target)
+      ) {
+        return;
+      }
+      setOpenMenu(null);
+    }
+
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setOpenMenu(null);
+    }
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [openMenu]);
 
   return (
     <div className="admin-shell space-y-6">
@@ -89,47 +118,63 @@ export function AdminShell({ children, currentLocale, user }: AdminShellProps) {
                 {t("shell.notifications")}
               </button>
 
-              <details className="admin-topbar-menu">
-                <summary className="btn-secondary list-none cursor-pointer admin-topbar-button">
+              <div ref={quickCreateRef} className="admin-topbar-menu relative">
+                <button
+                  type="button"
+                  aria-expanded={openMenu === "quickCreate"}
+                  aria-haspopup="menu"
+                  onClick={() => setOpenMenu((prev) => (prev === "quickCreate" ? null : "quickCreate"))}
+                  className="btn-secondary cursor-pointer admin-topbar-button"
+                >
                   {t("shell.quickCreate")}
-                </summary>
-                <div className="admin-menu-surface">
-                  <Link href="/admin/events/new" className="admin-menu-item">
-                    {t("shell.quickCreateItems.newEvent")}
-                  </Link>
-                  <Link href="/admin/clubs" className="admin-menu-item">
-                    {t("shell.quickCreateItems.newClub")}
-                  </Link>
-                  <Link href="/admin/users" className="admin-menu-item">
-                    {t("shell.quickCreateItems.newUser")}
-                  </Link>
-                </div>
-              </details>
+                </button>
+                {openMenu === "quickCreate" ? (
+                  <div className="admin-menu-surface" role="menu">
+                    <Link href="/admin/events/new" className="admin-menu-item" role="menuitem" onClick={() => setOpenMenu(null)}>
+                      {t("shell.quickCreateItems.newEvent")}
+                    </Link>
+                    <Link href="/admin/clubs" className="admin-menu-item" role="menuitem" onClick={() => setOpenMenu(null)}>
+                      {t("shell.quickCreateItems.newClub")}
+                    </Link>
+                    <Link href="/admin/users" className="admin-menu-item" role="menuitem" onClick={() => setOpenMenu(null)}>
+                      {t("shell.quickCreateItems.newUser")}
+                    </Link>
+                  </div>
+                ) : null}
+              </div>
 
-              <details className="admin-topbar-menu">
-                <summary className="btn-secondary list-none cursor-pointer admin-user-chip">
+              <div ref={userMenuRef} className="admin-topbar-menu relative">
+                <button
+                  type="button"
+                  aria-expanded={openMenu === "userMenu"}
+                  aria-haspopup="menu"
+                  onClick={() => setOpenMenu((prev) => (prev === "userMenu" ? null : "userMenu"))}
+                  className="btn-secondary cursor-pointer admin-user-chip"
+                >
                   <span className="admin-user-avatar">{(user.name ?? "A").slice(0, 1).toUpperCase()}</span>
                   <span className="text-left">
-                  <span className="block text-sm font-semibold text-slate-900">{user.name ?? "Admin"}</span>
-                  <span className="block text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-slate-500">
+                    <span className="block text-sm font-semibold text-slate-900">{user.name ?? "Admin"}</span>
+                    <span className="block text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-slate-500">
                       {t(`roles.${user.role}`)}
+                    </span>
                   </span>
-                </span>
-              </summary>
-              <div className="admin-menu-surface">
-                <Link href="/admin/dashboard" className="admin-menu-item">
-                    {t("shell.userMenu.dashboard")}
-                </Link>
-                <Link href="/director/dashboard" className="admin-menu-item">
-                    {t("shell.userMenu.directorWorkspace")}
-                </Link>
-                  <form action={signOutAction}>
-                    <button type="submit" className="admin-menu-item w-full text-left">
-                      {t("shell.userMenu.signOutHint")}
-                    </button>
-                  </form>
+                </button>
+                {openMenu === "userMenu" ? (
+                  <div className="admin-menu-surface" role="menu">
+                    <Link href="/admin/dashboard" className="admin-menu-item" role="menuitem" onClick={() => setOpenMenu(null)}>
+                      {t("shell.userMenu.dashboard")}
+                    </Link>
+                    <Link href="/director/dashboard" className="admin-menu-item" role="menuitem" onClick={() => setOpenMenu(null)}>
+                      {t("shell.userMenu.directorWorkspace")}
+                    </Link>
+                    <form action={signOutAction}>
+                      <button type="submit" className="admin-menu-item w-full text-left" role="menuitem">
+                        {t("shell.userMenu.signOutHint")}
+                      </button>
+                    </form>
+                  </div>
+                ) : null}
               </div>
-            </details>
             </div>
           </div>
         </div>

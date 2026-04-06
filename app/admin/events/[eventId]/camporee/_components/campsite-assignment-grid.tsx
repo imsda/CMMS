@@ -51,11 +51,11 @@ export function CampsiteAssignmentGrid({ rows, fileBase }: Props) {
         <table className="min-w-full divide-y divide-slate-200 text-sm">
           <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
             <tr>
-              <th className="px-4 py-3">Club Name</th>
-              <th className="px-4 py-3">Type Requested</th>
-              <th className="px-4 py-3">Sq Ft</th>
-              <th className="px-4 py-3">Tent Summary</th>
-              <th className="px-4 py-3">Assignment</th>
+              <th scope="col" className="px-4 py-3">Club Name</th>
+              <th scope="col" className="px-4 py-3">Type Requested</th>
+              <th scope="col" className="px-4 py-3">Sq Ft</th>
+              <th scope="col" className="px-4 py-3">Tent Summary</th>
+              <th scope="col" className="px-4 py-3">Assignment</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">

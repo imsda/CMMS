@@ -207,12 +207,12 @@ export default async function RecommendationManagerPage({
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Email</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Status</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Email delivery</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Submitted</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Actions</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Secure link</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Email</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Status</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Email delivery</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Submitted</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Actions</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Secure link</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

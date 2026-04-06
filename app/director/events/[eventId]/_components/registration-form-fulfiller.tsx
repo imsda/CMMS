@@ -494,6 +494,7 @@ export function RegistrationFormFulfiller({
     field: DynamicField,
     currentValue: unknown,
     onValueChange: (value: unknown) => void,
+    inputId?: string,
   ) {
     if (field.type === "BOOLEAN") {
       return (
@@ -542,6 +543,7 @@ export function RegistrationFormFulfiller({
 
       return (
         <select
+          id={inputId}
           value={value}
           onChange={(event) => onValueChange(event.currentTarget.value)}
           className="select-glass"
@@ -567,6 +569,7 @@ export function RegistrationFormFulfiller({
     if (field.type === "NUMBER") {
       return (
         <input
+          id={inputId}
           type="number"
           value={typeof currentValue === "number" ? Number(currentValue) : ""}
           onChange={(event) => onValueChange(event.currentTarget.value === "" ? "" : Number(event.currentTarget.value))}
@@ -578,6 +581,7 @@ export function RegistrationFormFulfiller({
     if (field.type === "DATE") {
       return (
         <input
+          id={inputId}
           type="date"
           value={parseDateInputValue(currentValue)}
           onChange={(event) => onValueChange(event.currentTarget.value)}
@@ -589,6 +593,7 @@ export function RegistrationFormFulfiller({
     if (field.type === "LONG_TEXT") {
       return (
         <textarea
+          id={inputId}
           value={typeof currentValue === "string" ? String(currentValue) : ""}
           onChange={(event) => onValueChange(event.currentTarget.value)}
           rows={4}
@@ -599,6 +604,7 @@ export function RegistrationFormFulfiller({
 
     return (
       <input
+        id={inputId}
         type="text"
         value={typeof currentValue === "string" ? String(currentValue) : ""}
         onChange={(event) => onValueChange(event.currentTarget.value)}
@@ -609,14 +615,30 @@ export function RegistrationFormFulfiller({
 
   function renderFieldCard(field: DynamicField) {
     const isAttendeeScoped = field.fieldScope === FormFieldScope.ATTENDEE;
+    const globalInputId = `field-${field.id}`;
+
+    const labelContent = (
+      <>
+        {renderLabelWithTooltip(field.label)}
+        {field.isRequired ? (
+          <>
+            <span className="ml-1 text-rose-600" aria-hidden="true">*</span>
+            <span className="sr-only"> (required)</span>
+          </>
+        ) : null}
+      </>
+    );
 
     return (
       <div key={field.id} className="glass-subsection space-y-3">
         <div>
-          <p className="text-sm font-semibold text-slate-900">
-            {renderLabelWithTooltip(field.label)}
-            {field.isRequired ? <span className="ml-1 text-rose-600">*</span> : null}
-          </p>
+          {isAttendeeScoped ? (
+            <p className="text-sm font-semibold text-slate-900">{labelContent}</p>
+          ) : (
+            <label htmlFor={globalInputId} className="block text-sm font-semibold text-slate-900">
+              {labelContent}
+            </label>
+          )}
           {field.description ? <p className="text-xs text-slate-500">{field.description}</p> : null}
         </div>
         {isAttendeeScoped ? (
@@ -627,20 +649,21 @@ export function RegistrationFormFulfiller({
               {selectedAttendeeIds.map((attendeeId) => {
                 const attendee = attendeeById[attendeeId];
                 const currentValue = responseState.attendeeResponses[attendeeId]?.[field.id];
+                const attendeeInputId = `field-${field.id}-${attendeeId}`;
 
                 return (
                   <div key={`${field.id}-${attendeeId}`} className="glass-card-soft space-y-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    <label htmlFor={attendeeInputId} className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
                       {attendee ? attendeeName(attendee) : attendeeId}
-                    </p>
-                    {renderFieldInput(field, currentValue, (value) => updateAttendeeResponse(attendeeId, field.id, value))}
+                    </label>
+                    {renderFieldInput(field, currentValue, (value) => updateAttendeeResponse(attendeeId, field.id, value), attendeeInputId)}
                   </div>
                 );
               })}
             </div>
           )
         ) : (
-          renderFieldInput(field, responseState.globalResponses[field.id], (value) => updateGlobalResponse(field.id, value))
+          renderFieldInput(field, responseState.globalResponses[field.id], (value) => updateGlobalResponse(field.id, value), globalInputId)
         )}
       </div>
     );
@@ -798,22 +821,22 @@ export function RegistrationFormFulfiller({
           <input type="hidden" name="eventId" value={eventId} />
           {managedClubId ? <input type="hidden" name="clubId" value={managedClubId} /> : null}
           <div className="space-y-1">
-            <label className="block text-xs font-semibold text-amber-900">
-              {t("registrationForm.walkInFirstName")} <span className="text-rose-600">*</span>
+            <label htmlFor="walk-in-firstName" className="block text-xs font-semibold text-amber-900">
+              {t("registrationForm.walkInFirstName")} <span className="text-rose-600" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
             </label>
-            <input type="text" name="firstName" required className="input-glass" />
+            <input id="walk-in-firstName" type="text" name="firstName" required className="input-glass" />
           </div>
           <div className="space-y-1">
-            <label className="block text-xs font-semibold text-amber-900">
-              {t("registrationForm.walkInLastName")} <span className="text-rose-600">*</span>
+            <label htmlFor="walk-in-lastName" className="block text-xs font-semibold text-amber-900">
+              {t("registrationForm.walkInLastName")} <span className="text-rose-600" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
             </label>
-            <input type="text" name="lastName" required className="input-glass" />
+            <input id="walk-in-lastName" type="text" name="lastName" required className="input-glass" />
           </div>
           <div className="space-y-1">
-            <label className="block text-xs font-semibold text-amber-900">
-              {t("registrationForm.walkInRole")} <span className="text-rose-600">*</span>
+            <label htmlFor="walk-in-memberRole" className="block text-xs font-semibold text-amber-900">
+              {t("registrationForm.walkInRole")} <span className="text-rose-600" aria-hidden="true">*</span><span className="sr-only"> (required)</span>
             </label>
-            <select name="memberRole" required className="select-glass">
+            <select id="walk-in-memberRole" name="memberRole" required className="select-glass">
               <option value="">{t("registrationForm.selectOption")}</option>
               {Object.values(MemberRole).map((role) => (
                 <option key={role} value={role}>
@@ -823,10 +846,10 @@ export function RegistrationFormFulfiller({
             </select>
           </div>
           <div className="space-y-1">
-            <label className="block text-xs font-semibold text-amber-900">
+            <label htmlFor="walk-in-age" className="block text-xs font-semibold text-amber-900">
               {t("registrationForm.walkInAge")}
             </label>
-            <input type="number" name="age" min={0} max={120} className="input-glass" />
+            <input id="walk-in-age" type="number" name="age" min={0} max={120} className="input-glass" />
           </div>
           {walkInState.status === "error" && walkInState.message ? (
             <p className="col-span-2 text-xs font-medium text-rose-700">{walkInState.message}</p>
@@ -989,7 +1012,7 @@ export function RegistrationFormFulfiller({
       </fieldset>
 
       <div className="sticky-action-bar flex flex-wrap items-center justify-between gap-4 px-5 py-4">
-        <div className="space-y-1">
+        <div className="space-y-1" aria-live="polite" aria-atomic="false">
           {validationIssues.length > 0 ? <p className="text-xs font-medium text-rose-700">{t("registrationForm.validationSummaryShort", { count: validationIssues.length })}</p> : null}
           <p className="text-xs text-slate-500">
             {t("registrationForm.currentStatus", {

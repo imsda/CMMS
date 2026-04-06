@@ -6,6 +6,9 @@ import { revalidatePath } from "next/cache";
 import { getManagedClubContext } from "../../lib/club-management";
 import { sendRegistrationConfirmationEmail } from "../../lib/email/resend";
 import { getEventRegistrationExportDataById } from "../../lib/data/event-registration-export";
+import { createElement } from "react";
+import type { ReactElement } from "react";
+import { type DocumentProps, renderToBuffer } from "@react-pdf/renderer";
 import {
   EventRegistrationPdfDocument,
   generateAttendeeQrCodes,

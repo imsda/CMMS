@@ -330,9 +330,9 @@ export default async function DirectorEventRegistrationPage({
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
                 <tr>
-                  <th className="px-4 py-3">{t("eventDetail.table.category")}</th>
-                  <th className="px-4 py-3">{t("eventDetail.table.score")}</th>
-                  <th className="px-4 py-3">{t("eventDetail.table.notes")}</th>
+                  <th scope="col" className="px-4 py-3">{t("eventDetail.table.category")}</th>
+                  <th scope="col" className="px-4 py-3">{t("eventDetail.table.score")}</th>
+                  <th scope="col" className="px-4 py-3">{t("eventDetail.table.notes")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

@@ -46,13 +46,13 @@ export default async function AdminEventsPage() {
             <table className="text-sm">
               <thead>
                 <tr>
-                  <th className="px-4 py-3">{t("pages.events.columns.event")}</th>
-                  <th className="px-4 py-3">{t("pages.events.columns.mode")}</th>
-                  <th className="px-4 py-3">{t("pages.events.columns.dates")}</th>
-                  <th className="px-4 py-3">{t("pages.events.columns.registration")}</th>
-                  <th className="px-4 py-3">{t("pages.events.columns.location")}</th>
-                  <th className="px-4 py-3">{t("pages.events.columns.clubs")}</th>
-                  <th className="px-4 py-3">{t("pages.events.columns.actions")}</th>
+                  <th scope="col" className="px-4 py-3">{t("pages.events.columns.event")}</th>
+                  <th scope="col" className="px-4 py-3">{t("pages.events.columns.mode")}</th>
+                  <th scope="col" className="px-4 py-3">{t("pages.events.columns.dates")}</th>
+                  <th scope="col" className="px-4 py-3">{t("pages.events.columns.registration")}</th>
+                  <th scope="col" className="px-4 py-3">{t("pages.events.columns.location")}</th>
+                  <th scope="col" className="px-4 py-3">{t("pages.events.columns.clubs")}</th>
+                  <th scope="col" className="px-4 py-3">{t("pages.events.columns.actions")}</th>
                 </tr>
               </thead>
               <tbody>

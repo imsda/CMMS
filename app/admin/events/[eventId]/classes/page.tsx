@@ -1410,12 +1410,12 @@ export default async function AdminEventClassesPage({
                   <table className="min-w-full divide-y divide-slate-200 text-sm">
                     <thead className="bg-slate-50">
                       <tr>
-                        <th className="px-4 py-3 text-left font-semibold text-slate-700">Club / Attendee</th>
-                        <th className="px-4 py-3 text-left font-semibold text-slate-700">Preferences</th>
-                        <th className="px-4 py-3 text-left font-semibold text-slate-700">Current</th>
-                        <th className="px-4 py-3 text-left font-semibold text-slate-700">Warnings</th>
-                        <th className="px-4 py-3 text-left font-semibold text-slate-700">Assist</th>
-                        <th className="px-4 py-3 text-left font-semibold text-slate-700">Place</th>
+                        <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Club / Attendee</th>
+                        <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Preferences</th>
+                        <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Current</th>
+                        <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Warnings</th>
+                        <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Assist</th>
+                        <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Place</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 bg-white">

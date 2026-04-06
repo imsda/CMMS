@@ -165,11 +165,11 @@ export default async function EventComplianceReportPage({ params }: CompliancePa
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
                 <tr>
-                  <th className="px-4 py-3">Club Name</th>
-                  <th className="px-4 py-3">Attendee Name</th>
-                  <th className="px-4 py-3">Role</th>
-                  <th className="px-4 py-3">Registration Status</th>
-                  <th className="px-4 py-3">Compliance</th>
+                  <th scope="col" className="px-4 py-3">Club Name</th>
+                  <th scope="col" className="px-4 py-3">Attendee Name</th>
+                  <th scope="col" className="px-4 py-3">Role</th>
+                  <th scope="col" className="px-4 py-3">Registration Status</th>
+                  <th scope="col" className="px-4 py-3">Compliance</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

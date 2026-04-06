@@ -226,11 +226,11 @@ export default async function TeacherDashboardPage() {
                       <table className="min-w-full divide-y divide-slate-100 text-sm">
                         <thead className="text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                           <tr>
-                            <th className="pb-2 pr-4">Name</th>
-                            <th className="pb-2 pr-4">Club</th>
-                            <th className="pb-2 pr-4">Age</th>
-                            <th className="pb-2 pr-4">Role</th>
-                            <th className="pb-2">Prerequisite Flags</th>
+                            <th scope="col" className="pb-2 pr-4">Name</th>
+                            <th scope="col" className="pb-2 pr-4">Club</th>
+                            <th scope="col" className="pb-2 pr-4">Age</th>
+                            <th scope="col" className="pb-2 pr-4">Role</th>
+                            <th scope="col" className="pb-2">Prerequisite Flags</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">

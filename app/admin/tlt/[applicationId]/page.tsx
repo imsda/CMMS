@@ -171,12 +171,12 @@ export default async function AdminTltDetailPage({ params }: AdminTltDetailPageP
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Recommender</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Relationship</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Status</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Submitted</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Qualities</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Stress Response</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Recommender</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Relationship</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Status</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Submitted</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Qualities</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Stress Response</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

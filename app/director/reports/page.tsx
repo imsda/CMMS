@@ -333,10 +333,10 @@ export default async function DirectorReportsPage({
               <table className="min-w-full divide-y divide-slate-200 text-sm">
                 <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
                   <tr>
-                    <th className="px-4 py-3">Month</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3">Score</th>
-                    <th className="px-4 py-3">Submitted</th>
+                    <th scope="col" className="px-4 py-3">Month</th>
+                    <th scope="col" className="px-4 py-3">Status</th>
+                    <th scope="col" className="px-4 py-3">Score</th>
+                    <th scope="col" className="px-4 py-3">Submitted</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">

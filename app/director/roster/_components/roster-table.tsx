@@ -241,6 +241,7 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                 t("rosterTable.headers.actions"),
               ].map((header) => (
                 <th
+                  scope="col"
                   key={header}
                   className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"
                 >

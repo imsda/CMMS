@@ -26,11 +26,18 @@ export type StudentPortalData = {
   eventClassAssignments: Array<{
     enrollmentId: string;
     eventName: string;
-    classTitle: string;
+    classTitle: string | null;
     eventStartsAt: Date;
     eventEndsAt: Date;
-    location: string | null;
+    locationName: string | null;
+    locationAddress: string | null;
+    eventBringNote: string | null;
     rosterMemberName: string;
+  }>;
+  directorContacts: Array<{
+    name: string;
+    email: string;
+    clubName: string;
   }>;
 };
 
@@ -39,6 +46,7 @@ export type LinkedRosterMember = {
   firstName: string;
   lastName: string;
   memberRole: string;
+  clubId: string;
   clubName: string;
   clubCode: string;
   rosterYearLabel: string;
@@ -51,20 +59,35 @@ type LinkedRequirement = {
   rosterMemberId: string | null;
 };
 
-type LinkedEnrollment = {
-  id: string;
+type LinkedAttendance = {
   rosterMemberId: string;
-  offering: {
-    classCatalog: {
-      title: string;
-    };
+  eventRegistration: {
     event: {
+      id: string;
       name: string;
       startsAt: Date;
       endsAt: Date;
       locationName: string | null;
+      locationAddress: string | null;
+      eventBringNote: string | null;
     };
   };
+};
+
+type LinkedEnrollment = {
+  rosterMemberId: string;
+  offering: {
+    eventId: string;
+    classCatalog: {
+      title: string;
+    };
+  };
+};
+
+type DirectorContact = {
+  name: string;
+  email: string;
+  clubId: string;
 };
 
 function readHonorCodeFromMetadata(metadata: Prisma.JsonValue): string | null {
@@ -98,6 +121,7 @@ async function getLinkedRosterMembers(userId: string): Promise<LinkedRosterMembe
               yearLabel: true,
               club: {
                 select: {
+                  id: true,
                   name: true,
                   code: true,
                 },
@@ -136,6 +160,7 @@ async function getLinkedRosterMembers(userId: string): Promise<LinkedRosterMembe
       firstName: member.firstName,
       lastName: member.lastName,
       memberRole: member.memberRole,
+      clubId: member.clubRosterYear.club.id,
       clubName: member.clubRosterYear.club.name,
       clubCode: member.clubRosterYear.club.code,
       rosterYearLabel: member.clubRosterYear.yearLabel,
@@ -145,17 +170,20 @@ async function getLinkedRosterMembers(userId: string): Promise<LinkedRosterMembe
 export function buildStudentPortalData(input: {
   linkedRosterMembers: LinkedRosterMember[];
   completedRequirements: LinkedRequirement[];
+  upcomingAttendances: LinkedAttendance[];
   upcomingEnrollments: LinkedEnrollment[];
   honorCatalog: Array<{
     code: string;
     title: string;
   }>;
+  directorContacts: DirectorContact[];
 }): StudentPortalData {
   if (input.linkedRosterMembers.length === 0) {
     return {
       linkedStudents: [],
       completedHonors: [],
       eventClassAssignments: [],
+      directorContacts: [],
     };
   }
 
@@ -164,6 +192,15 @@ export function buildStudentPortalData(input: {
     input.linkedRosterMembers.map((member) => [member.id, getRosterMemberDisplayName(member)]),
   );
   const honorByCode = new Map(input.honorCatalog.map((item) => [item.code, item.title]));
+
+  // Build a map of (memberId, eventId) -> classTitle for quick lookup
+  const enrollmentMap = new Map<string, string>();
+  for (const enrollment of input.upcomingEnrollments) {
+    if (linkedRosterMemberIds.has(enrollment.rosterMemberId)) {
+      const key = `${enrollment.rosterMemberId}::${enrollment.offering.eventId}`;
+      enrollmentMap.set(key, enrollment.offering.classCatalog.title);
+    }
+  }
 
   const completedHonorEntries = input.completedRequirements
     .filter(
@@ -175,6 +212,18 @@ export function buildStudentPortalData(input: {
       honorCode: readHonorCodeFromMetadata(requirement.metadata),
     }))
     .filter((requirement): requirement is typeof requirement & { honorCode: string } => Boolean(requirement.honorCode));
+
+  // Build club -> director mapping for display
+  const clubDirectorMap = new Map<string, DirectorContact>();
+  for (const director of input.directorContacts) {
+    clubDirectorMap.set(director.clubId, director);
+  }
+
+  // Collect unique club IDs for the linked members to build director list
+  const linkedClubIds = new Set(input.linkedRosterMembers.map((m) => m.clubId));
+  const clubNameById = new Map(
+    input.linkedRosterMembers.map((m) => [m.clubId, m.clubName]),
+  );
 
   return {
     linkedStudents: input.linkedRosterMembers.map((member) => ({
@@ -195,18 +244,35 @@ export function buildStudentPortalData(input: {
           ? "Linked Student"
           : rosterMemberNameById.get(requirement.rosterMemberId) ?? "Linked Student",
     })),
-    eventClassAssignments: input.upcomingEnrollments
-      .filter((enrollment) => linkedRosterMemberIds.has(enrollment.rosterMemberId))
-      .map((enrollment) => ({
-        enrollmentId: enrollment.id,
-        eventName: enrollment.offering.event.name,
-        classTitle: enrollment.offering.classCatalog.title,
-        eventStartsAt: enrollment.offering.event.startsAt,
-        eventEndsAt: enrollment.offering.event.endsAt,
-        location: enrollment.offering.event.locationName,
-        rosterMemberName:
-          rosterMemberNameById.get(enrollment.rosterMemberId) ?? "Linked Student",
-      })),
+    eventClassAssignments: input.upcomingAttendances
+      .filter((attendance) => linkedRosterMemberIds.has(attendance.rosterMemberId))
+      .map((attendance) => {
+        const event = attendance.eventRegistration.event;
+        const enrollmentKey = `${attendance.rosterMemberId}::${event.id}`;
+        const classTitle = enrollmentMap.get(enrollmentKey) ?? null;
+        return {
+          enrollmentId: `${attendance.rosterMemberId}::${event.id}`,
+          eventName: event.name,
+          classTitle,
+          eventStartsAt: event.startsAt,
+          eventEndsAt: event.endsAt,
+          locationName: event.locationName,
+          locationAddress: event.locationAddress,
+          eventBringNote: event.eventBringNote,
+          rosterMemberName: rosterMemberNameById.get(attendance.rosterMemberId) ?? "Linked Student",
+        };
+      }),
+    directorContacts: [...linkedClubIds]
+      .map((clubId) => {
+        const director = clubDirectorMap.get(clubId);
+        if (!director) return null;
+        return {
+          name: director.name,
+          email: director.email,
+          clubName: clubNameById.get(clubId) ?? "",
+        };
+      })
+      .filter((d): d is { name: string; email: string; clubName: string } => d !== null),
   };
 }
 
@@ -217,82 +283,120 @@ export async function getStudentPortalData(userId: string): Promise<StudentPorta
     return buildStudentPortalData({
       linkedRosterMembers,
       completedRequirements: [],
+      upcomingAttendances: [],
       upcomingEnrollments: [],
       honorCatalog: [],
+      directorContacts: [],
     });
   }
 
   const linkedRosterMemberIds = linkedRosterMembers.map((member) => member.id);
+  const uniqueClubIds = [...new Set(linkedRosterMembers.map((m) => m.clubId))];
   const now = new Date();
 
-  const [completedRequirements, upcomingEnrollments] = await Promise.all([
-    prisma.memberRequirement.findMany({
-      where: {
-        rosterMemberId: {
-          in: linkedRosterMemberIds,
-        },
-        requirementType: RequirementType.COMPLETED_HONOR,
-      },
-      select: {
-        id: true,
-        metadata: true,
-        completedAt: true,
-        rosterMemberId: true,
-      },
-      orderBy: [{ completedAt: "desc" }],
-    }),
-    prisma.classEnrollment.findMany({
-      where: {
-        rosterMemberId: {
-          in: linkedRosterMemberIds,
-        },
-        offering: {
-          event: {
-            endsAt: {
-              gte: now,
-            },
+  const [completedRequirements, upcomingAttendances, upcomingEnrollments, primaryMemberships] =
+    await Promise.all([
+      prisma.memberRequirement.findMany({
+        where: {
+          rosterMemberId: {
+            in: linkedRosterMemberIds,
           },
+          requirementType: RequirementType.COMPLETED_HONOR,
         },
-      },
-      select: {
-        id: true,
-        rosterMemberId: true,
-        offering: {
-          select: {
-            classCatalog: {
-              select: {
-                title: true,
-              },
-            },
+        select: {
+          id: true,
+          metadata: true,
+          completedAt: true,
+          rosterMemberId: true,
+        },
+        orderBy: [{ completedAt: "desc" }],
+      }),
+      prisma.registrationAttendee.findMany({
+        where: {
+          rosterMemberId: {
+            in: linkedRosterMemberIds,
+          },
+          eventRegistration: {
             event: {
-              select: {
-                name: true,
-                startsAt: true,
-                endsAt: true,
-                locationName: true,
+              endsAt: {
+                gte: now,
               },
             },
           },
         },
-      },
-      orderBy: [
-        {
+        select: {
+          rosterMemberId: true,
+          eventRegistration: {
+            select: {
+              event: {
+                select: {
+                  id: true,
+                  name: true,
+                  startsAt: true,
+                  endsAt: true,
+                  locationName: true,
+                  locationAddress: true,
+                  eventBringNote: true,
+                },
+              },
+            },
+          },
+        },
+        orderBy: [
+          {
+            eventRegistration: {
+              event: {
+                startsAt: "asc",
+              },
+            },
+          },
+        ],
+      }),
+      prisma.classEnrollment.findMany({
+        where: {
+          rosterMemberId: {
+            in: linkedRosterMemberIds,
+          },
           offering: {
             event: {
-              startsAt: "asc",
+              endsAt: {
+                gte: now,
+              },
             },
           },
         },
-        {
+        select: {
+          rosterMemberId: true,
           offering: {
-            classCatalog: {
-              title: "asc",
+            select: {
+              eventId: true,
+              classCatalog: {
+                select: {
+                  title: true,
+                },
+              },
             },
           },
         },
-      ],
-    }),
-  ]);
+      }),
+      prisma.clubMembership.findMany({
+        where: {
+          clubId: {
+            in: uniqueClubIds,
+          },
+          isPrimary: true,
+        },
+        select: {
+          clubId: true,
+          user: {
+            select: {
+              name: true,
+              email: true,
+            },
+          },
+        },
+      }),
+    ]);
 
   const completedHonorEntries = completedRequirements
     .map((requirement) => ({
@@ -317,10 +421,18 @@ export async function getStudentPortalData(userId: string): Promise<StudentPorta
           },
         });
 
+  const directorContacts: DirectorContact[] = primaryMemberships.map((m) => ({
+    clubId: m.clubId,
+    name: m.user.name,
+    email: m.user.email,
+  }));
+
   return buildStudentPortalData({
     linkedRosterMembers,
     completedRequirements,
+    upcomingAttendances,
     upcomingEnrollments,
     honorCatalog,
+    directorContacts,
   });
 }

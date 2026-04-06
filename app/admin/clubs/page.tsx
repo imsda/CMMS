@@ -67,13 +67,13 @@ export default async function AdminClubsPage() {
             <table className="text-sm">
               <thead>
                 <tr>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Club</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Type</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Location</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">District</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Users</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Roster Years</th>
-                  <th className="px-4 py-3 text-left font-semibold text-slate-700">Actions</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Club</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Type</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Location</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">District</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Users</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Roster Years</th>
+                  <th scope="col" className="px-4 py-3 text-left font-semibold text-slate-700">Actions</th>
                 </tr>
               </thead>
               <tbody>

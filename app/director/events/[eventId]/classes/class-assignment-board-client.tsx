@@ -234,13 +234,15 @@ export function ClassAssignmentBoardClient({
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
           {saveAllButton}
-          {hasDirtyRows && !isSavingAll && (
-            <span className="text-sm text-amber-600 font-medium">You have unsaved changes.</span>
-          )}
-          {saveAllSuccess && !hasDirtyRows && (
-            <span className="text-sm text-emerald-600 font-medium">All preferences saved.</span>
-          )}
-          {saveAllError && <span className="text-sm text-red-600">{saveAllError}</span>}
+          <div aria-live="polite" aria-atomic="true" className="flex flex-wrap items-center gap-3">
+            {hasDirtyRows && !isSavingAll && (
+              <span className="text-sm text-amber-600 font-medium">You have unsaved changes.</span>
+            )}
+            {saveAllSuccess && !hasDirtyRows && (
+              <span className="text-sm text-emerald-600 font-medium">All preferences saved.</span>
+            )}
+            {saveAllError && <span className="text-sm text-red-600">{saveAllError}</span>}
+          </div>
         </div>
       </header>
 
@@ -312,17 +314,19 @@ export function ClassAssignmentBoardClient({
                       <div className="flex items-center gap-2">
                         {/* Save status indicator */}
                         {rowState === "saving" ? (
-                          <span className="text-slate-400 text-sm">⏳</span>
+                          <span className="text-slate-400 text-sm" aria-label="Saving…" role="status">⏳</span>
                         ) : rowState === "error" ? (
-                          <span title="Save failed" className="text-red-500 text-sm">✗</span>
+                          <span aria-label="Save failed" role="alert" className="text-red-500 text-sm">✗</span>
                         ) : dirty ? (
                           <span
-                            title="Unsaved changes"
+                            aria-label="Unsaved changes"
+                            role="status"
                             className="inline-block h-2.5 w-2.5 rounded-full bg-amber-400"
                           />
                         ) : (
                           <span
-                            title="Saved"
+                            aria-label="Saved"
+                            role="status"
                             className="text-emerald-500 text-base leading-none"
                           >
                             ✓
@@ -451,12 +455,13 @@ export function ClassAssignmentBoardClient({
                         type="button"
                         onClick={() => handleSaveRow(attendee.id, timeslot.id)}
                         disabled={rowState === "saving"}
+                        aria-label={`Save preferences for ${attendee.rosterMember.firstName} ${attendee.rosterMember.lastName}`}
                         className="btn-primary"
                       >
                         {rowState === "saving" ? "Saving…" : "Save Preferences"}
                       </button>
                       {rowState === "error" && (
-                        <p className="mt-1 text-xs text-red-600">Save failed. Please try again.</p>
+                        <p className="mt-1 text-xs text-red-600" role="alert">Save failed. Please try again.</p>
                       )}
                     </div>
                   </div>
@@ -471,10 +476,12 @@ export function ClassAssignmentBoardClient({
       {classTimeslots.length > 0 && (
         <div className="glass-panel flex flex-wrap items-center gap-3">
           {saveAllButton}
-          {saveAllSuccess && !hasDirtyRows && (
-            <span className="text-sm text-emerald-600 font-medium">All preferences saved.</span>
-          )}
-          {saveAllError && <span className="text-sm text-red-600">{saveAllError}</span>}
+          <div aria-live="polite" aria-atomic="true" className="flex flex-wrap items-center gap-3">
+            {saveAllSuccess && !hasDirtyRows && (
+              <span className="text-sm text-emerald-600 font-medium">All preferences saved.</span>
+            )}
+            {saveAllError && <span className="text-sm text-red-600">{saveAllError}</span>}
+          </div>
         </div>
       )}
     </section>

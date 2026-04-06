@@ -156,10 +156,10 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
                 <tr>
-                  <th className="px-4 py-3">Club</th>
-                  <th className="px-4 py-3">Code</th>
-                  <th className="px-4 py-3">Type</th>
-                  <th className="px-4 py-3">Gap</th>
+                  <th scope="col" className="px-4 py-3">Club</th>
+                  <th scope="col" className="px-4 py-3">Code</th>
+                  <th scope="col" className="px-4 py-3">Type</th>
+                  <th scope="col" className="px-4 py-3">Gap</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -186,14 +186,14 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
                 <tr>
-                  <th className="px-4 py-3">Club</th>
-                  <th className="px-4 py-3">Code</th>
-                  <th className="px-4 py-3">Report month</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Score</th>
-                  <th className="px-4 py-3">Submitted by</th>
-                  <th className="px-4 py-3">Updated</th>
-                  <th className="px-4 py-3">Review</th>
+                  <th scope="col" className="px-4 py-3">Club</th>
+                  <th scope="col" className="px-4 py-3">Code</th>
+                  <th scope="col" className="px-4 py-3">Report month</th>
+                  <th scope="col" className="px-4 py-3">Status</th>
+                  <th scope="col" className="px-4 py-3">Score</th>
+                  <th scope="col" className="px-4 py-3">Submitted by</th>
+                  <th scope="col" className="px-4 py-3">Updated</th>
+                  <th scope="col" className="px-4 py-3">Review</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -228,15 +228,15 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
                 <tr>
-                  <th className="px-4 py-3">{t("pages.reports.columns.club")}</th>
-                  <th className="px-4 py-3">{t("pages.reports.columns.year")}</th>
-                  <th className="px-4 py-3">{t("pages.reports.columns.friend")}</th>
-                  <th className="px-4 py-3">{t("pages.reports.columns.companion")}</th>
-                  <th className="px-4 py-3">{t("pages.reports.columns.explorer")}</th>
-                  <th className="px-4 py-3">{t("pages.reports.columns.ranger")}</th>
-                  <th className="px-4 py-3">{t("pages.reports.columns.voyager")}</th>
-                  <th className="px-4 py-3">{t("pages.reports.columns.guide")}</th>
-                  <th className="px-4 py-3">{t("pages.reports.columns.submitted")}</th>
+                  <th scope="col" className="px-4 py-3">{t("pages.reports.columns.club")}</th>
+                  <th scope="col" className="px-4 py-3">{t("pages.reports.columns.year")}</th>
+                  <th scope="col" className="px-4 py-3">{t("pages.reports.columns.friend")}</th>
+                  <th scope="col" className="px-4 py-3">{t("pages.reports.columns.companion")}</th>
+                  <th scope="col" className="px-4 py-3">{t("pages.reports.columns.explorer")}</th>
+                  <th scope="col" className="px-4 py-3">{t("pages.reports.columns.ranger")}</th>
+                  <th scope="col" className="px-4 py-3">{t("pages.reports.columns.voyager")}</th>
+                  <th scope="col" className="px-4 py-3">{t("pages.reports.columns.guide")}</th>
+                  <th scope="col" className="px-4 py-3">{t("pages.reports.columns.submitted")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

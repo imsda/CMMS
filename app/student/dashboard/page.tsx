@@ -91,34 +91,76 @@ export default async function StudentDashboardPage() {
       </article>
 
       <article className="glass-panel">
-        <h2 className="section-title">Upcoming Event Class Assignments</h2>
+        <h2 className="section-title">Upcoming Events</h2>
 
         {portalData.eventClassAssignments.length === 0 ? (
           <p className="empty-state mt-4 text-sm text-slate-600">
-            No linked students are currently enrolled in upcoming event classes.
+            No upcoming events found for linked student profiles.
           </p>
         ) : (
           <ol className="mt-4 space-y-4 border-l-2 border-slate-200 pl-4">
             {portalData.eventClassAssignments.map((entry) => (
               <li key={entry.enrollmentId} className="relative">
-                <span className="absolute -left-[1.45rem] top-1.5 h-3 w-3 rounded-full bg-indigo-600" />
+                <span className="absolute -left-[1.45rem] top-1.5 h-3 w-3 rounded-full bg-indigo-600" aria-hidden="true" />
                 <div className="glass-card-soft">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-indigo-700">
-                    {entry.eventName}
-                  </p>
-                  <h3 className="mt-1 text-lg font-semibold text-slate-900">{entry.classTitle}</h3>
-                  <p className="mt-1 text-sm font-medium text-slate-700">Event dates</p>
-                  <p className="text-sm text-slate-600">
+                  <h3 className="text-lg font-semibold text-slate-900">{entry.eventName}</h3>
+                  <p className="mt-1 text-sm text-slate-600">
                     {formatDateTimeRange(entry.eventStartsAt, entry.eventEndsAt)}
                   </p>
-                  <p className="text-sm text-slate-600">Location: {entry.location ?? "TBD"}</p>
-                  <p className="text-sm text-slate-500">Student: {entry.rosterMemberName}</p>
+
+                  {(entry.locationName ?? entry.locationAddress) ? (
+                    <p className="mt-1 text-sm text-slate-600">
+                      <span className="font-medium">Location:</span>{" "}
+                      {[entry.locationName, entry.locationAddress].filter(Boolean).join(" — ")}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-sm text-slate-500">Location: TBD</p>
+                  )}
+
+                  <p className="mt-2 text-sm text-slate-700">
+                    <span className="font-medium">Class assignment:</span>{" "}
+                    {entry.classTitle ? (
+                      <span className="font-semibold text-indigo-700">{entry.classTitle}</span>
+                    ) : (
+                      <span className="font-medium text-amber-600">Assignments pending</span>
+                    )}
+                  </p>
+
+                  {entry.eventBringNote ? (
+                    <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                      <span className="font-semibold">What to bring:</span> {entry.eventBringNote}
+                    </p>
+                  ) : null}
+
+                  <p className="mt-2 text-sm text-slate-500">Student: {entry.rosterMemberName}</p>
                 </div>
               </li>
             ))}
           </ol>
         )}
       </article>
+
+      {portalData.directorContacts.length > 0 ? (
+        <article className="glass-panel">
+          <h2 className="section-title">Your Club Director</h2>
+          <p className="mt-1 text-sm text-slate-500">Contact your director with questions.</p>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {portalData.directorContacts.map((director) => (
+              <div key={director.email} className="glass-card-soft">
+                <h3 className="text-base font-semibold text-slate-900">{director.name}</h3>
+                <p className="mt-1 text-sm text-slate-500">{director.clubName}</p>
+                <a
+                  href={`mailto:${director.email}`}
+                  className="mt-2 block text-sm font-medium text-indigo-700 underline underline-offset-2 hover:text-indigo-900"
+                >
+                  {director.email}
+                </a>
+              </div>
+            ))}
+          </div>
+        </article>
+      ) : null}
     </section>
   );
 }

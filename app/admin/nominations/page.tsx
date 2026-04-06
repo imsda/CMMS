@@ -37,15 +37,15 @@ export default async function AdminNominationsPage() {
             <table className="min-w-full divide-y divide-slate-200 text-sm">
               <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
                 <tr>
-                  <th className="px-4 py-3">Submitted</th>
-                  <th className="px-4 py-3">Club</th>
-                  <th className="px-4 py-3">Nominee</th>
-                  <th className="px-4 py-3">Award</th>
-                  <th className="px-4 py-3">Year</th>
-                  <th className="px-4 py-3">Justification & Leadership</th>
-                  <th className="px-4 py-3">Community Service</th>
-                  <th className="px-4 py-3">Status</th>
-                  <th className="px-4 py-3">Review Action</th>
+                  <th scope="col" className="px-4 py-3">Submitted</th>
+                  <th scope="col" className="px-4 py-3">Club</th>
+                  <th scope="col" className="px-4 py-3">Nominee</th>
+                  <th scope="col" className="px-4 py-3">Award</th>
+                  <th scope="col" className="px-4 py-3">Year</th>
+                  <th scope="col" className="px-4 py-3">Justification & Leadership</th>
+                  <th scope="col" className="px-4 py-3">Community Service</th>
+                  <th scope="col" className="px-4 py-3">Status</th>
+                  <th scope="col" className="px-4 py-3">Review Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

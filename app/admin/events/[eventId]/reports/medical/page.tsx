@@ -27,6 +27,7 @@ type ManifestTableProps = {
   roleHeader: string;
   clubHeader: string;
   emergencyHeader: string;
+  swimTestHeader: string;
   consentHeader: string;
   locale: string;
   getDetail: (row: MedicalManifestRow) => string;
@@ -60,6 +61,7 @@ function ManifestTable({
   roleHeader,
   clubHeader,
   emergencyHeader,
+  swimTestHeader,
   consentHeader,
   locale,
   getDetail,
@@ -75,14 +77,14 @@ function ManifestTable({
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-600 print:bg-white">
               <tr>
-                <th className="px-4 py-3">{attendeeHeader}</th>
-                <th className="px-4 py-3">{ageHeader}</th>
-                <th className="px-4 py-3">{roleHeader}</th>
-                <th className="px-4 py-3">{clubHeader}</th>
-                <th className="px-4 py-3">{emergencyHeader}</th>
-                <th className="px-4 py-3">{swimTestHeader}</th>
-                <th className="px-4 py-3">{detailHeader}</th>
-                <th className="px-4 py-3">{consentHeader}</th>
+                <th scope="col" className="px-4 py-3">{attendeeHeader}</th>
+                <th scope="col" className="px-4 py-3">{ageHeader}</th>
+                <th scope="col" className="px-4 py-3">{roleHeader}</th>
+                <th scope="col" className="px-4 py-3">{clubHeader}</th>
+                <th scope="col" className="px-4 py-3">{emergencyHeader}</th>
+                <th scope="col" className="px-4 py-3">{swimTestHeader}</th>
+                <th scope="col" className="px-4 py-3">{detailHeader}</th>
+                <th scope="col" className="px-4 py-3">{consentHeader}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
@@ -191,6 +193,7 @@ export default async function MedicalManifestPage({ params }: MedicalManifestPag
         roleHeader={t("pages.medical.table.role")}
         clubHeader={t("pages.medical.table.club")}
         emergencyHeader={t("pages.medical.table.emergency")}
+        swimTestHeader="Swim Test"
         consentHeader="Consent Timestamps"
         locale={locale}
         getDetail={(row) => row.dietaryRestrictions ?? ""}
@@ -206,6 +209,7 @@ export default async function MedicalManifestPage({ params }: MedicalManifestPag
         roleHeader={t("pages.medical.table.role")}
         clubHeader={t("pages.medical.table.club")}
         emergencyHeader={t("pages.medical.table.emergency")}
+        swimTestHeader="Swim Test"
         consentHeader="Consent Timestamps"
         locale={locale}
         getDetail={(row) => row.medicalFlags ?? ""}

@@ -61,33 +61,6 @@ type SendClassAssignmentInput = {
   classesUrl: string;
 };
 
-type SendRegistrationApprovedInput = {
-  to: string;
-  eventName: string;
-  clubName: string;
-  eventStartsAt: Date;
-  eventEndsAt: Date;
-  locationName: string | null;
-  locationAddress: string | null;
-  registrationUrl: string;
-};
-
-type SendRevisionRequestedInput = {
-  to: string;
-  eventName: string;
-  clubName: string;
-  reason: string;
-  registrationUrl: string;
-};
-
-type SendClassAssignmentInput = {
-  to: string;
-  eventName: string;
-  clubName: string;
-  members: ClassAssignmentMember[];
-  classesUrl: string;
-};
-
 type SendDirectorReadinessReminderInput = {
   to: string;
   clubName: string;
