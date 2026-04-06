@@ -5,7 +5,7 @@ import { useMemo, useState } from "react";
 import { useFormState } from "react-dom";
 import { useTranslations } from "next-intl";
 
-import { saveRosterMember, importRosterMembers, type ImportRosterResult } from "../../../actions/roster-actions";
+import { saveRosterMember, importRosterMembers, type ImportRosterResult, type SaveRosterMemberResult } from "../../../actions/roster-actions";
 
 // ---------------------------------------------------------------------------
 // CSV template column headers (order matters — matches the import parser)
@@ -125,6 +125,7 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
   const [modalState, setModalState] = useState<ModalState | null>(null);
   const [showImportForm, setShowImportForm] = useState(false);
   const [importResult, importAction] = useFormState<ImportRosterResult | null, FormData>(importRosterMembers, null);
+  const [saveResult, saveAction] = useFormState<SaveRosterMemberResult | null, FormData>(saveRosterMember, null);
 
   const sortedMembers = useMemo(
     () =>
@@ -351,10 +352,16 @@ export function RosterTable({ rosterYearId, managedClubId, members }: RosterTabl
                 </button>
               </div>
 
-              <form action={saveRosterMember} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <form action={saveAction} className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <input type="hidden" name="clubRosterYearId" value={rosterYearId} />
               {managedClubId ? <input type="hidden" name="clubId" value={managedClubId} /> : null}
               {modalState.member ? <input type="hidden" name="memberId" value={modalState.member.id} /> : null}
+
+                {saveResult?.error ? (
+                  <div className="mx-6 mt-4 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+                    <p className="font-semibold">{saveResult.error}</p>
+                  </div>
+                ) : null}
 
                 <div className="min-h-0 flex-1 space-y-6 overflow-y-auto px-6 py-5">
                   <div className="grid gap-4 md:grid-cols-2">

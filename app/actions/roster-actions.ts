@@ -16,12 +16,15 @@ export type ImportRosterResult = {
   errors: string[];
 };
 
+import { isRedirectError } from "../../lib/action-utils";
 import { auth } from "../../auth";
 import { safeWriteAuditLog } from "../../lib/audit-log";
 import { getManagedClubContext } from "../../lib/club-management";
 import { buildDirectorPath, readManagedClubId } from "../../lib/director-path";
 import { decryptMedicalFields, prepareMedicalFieldsForWrite } from "../../lib/medical-data";
 import { prisma } from "../../lib/prisma";
+
+export type SaveRosterMemberResult = { error: string | null };
 
 function parseOptionalNumber(value: FormDataEntryValue | null) {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -45,7 +48,11 @@ async function getRosterManagementContext(clubIdOverride?: string | null) {
   return getManagedClubContext(clubIdOverride);
 }
 
-export async function saveRosterMember(formData: FormData) {
+export async function saveRosterMember(
+  _prevState: SaveRosterMemberResult | null,
+  formData: FormData,
+): Promise<SaveRosterMemberResult> {
+  try {
   const clubIdOverride = readManagedClubId(formData.get("clubId"));
   const managedClub = await getRosterManagementContext(clubIdOverride);
   const clubId = managedClub.clubId;
@@ -260,6 +267,14 @@ export async function saveRosterMember(formData: FormData) {
 
   revalidatePath("/director/roster");
   redirect(buildDirectorPath("/director/roster", clubId, managedClub.isSuperAdmin));
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+    return {
+      error: error instanceof Error ? error.message : "An unexpected error occurred.",
+    };
+  }
 }
 
 export async function createRosterYear(newYearLabel: string, clubIdOverride?: string | null) {
