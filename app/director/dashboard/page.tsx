@@ -7,11 +7,8 @@ import { getManagedClubContext } from "../../../lib/club-management";
 import { getDirectorComplianceDashboardData } from "../../../lib/data/compliance-dashboard";
 import { buildDirectorDashboardHealth } from "../../../lib/director-dashboard-health";
 import { buildDirectorPath } from "../../../lib/director-path";
+import { formatDateRange } from "../../../lib/format";
 import { prisma } from "../../../lib/prisma";
-
-function formatDateRange(startsAt: Date, endsAt: Date, locale: string) {
-  return `${startsAt.toLocaleDateString(locale)} - ${endsAt.toLocaleDateString(locale)}`;
-}
 
 function formatDateTime(value: Date | null, locale: string, noneLabel: string) {
   return value ? value.toLocaleString(locale) : noneLabel;
@@ -25,7 +22,24 @@ export default async function ClubDirectorDashboardPage({
   const td = await getTranslations("Director");
   const locale = await getLocale();
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
-  const managedClub = await getManagedClubContext(resolvedSearchParams?.clubId ?? null);
+
+  let managedClub;
+  try {
+    managedClub = await getManagedClubContext(resolvedSearchParams?.clubId ?? null);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to load club context.";
+    return (
+      <section className="glass-panel mx-auto max-w-lg py-12 text-center">
+        <h2 className="text-lg font-semibold text-slate-900">{td("dashboard.errorTitle")}</h2>
+        <p className="mt-2 text-sm text-slate-600">{message}</p>
+        <div className="mt-6 flex justify-center gap-3">
+          <Link href="/director/events" className="btn-primary">
+            {td("dashboard.continueRegistration")}
+          </Link>
+        </div>
+      </section>
+    );
+  }
 
   const club = await prisma.club.findUnique({
     where: {
@@ -255,7 +269,7 @@ export default async function ClubDirectorDashboardPage({
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         <article className="metric-card">
           <p className="metric-label">{td("dashboard.metrics.activeMembers")}</p>
           <p className="metric-value">{activeMembers.length}</p>

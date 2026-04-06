@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { type Session } from "next-auth";
 
 import { auth } from "../../auth";
+import { isRedirectError } from "../../lib/action-utils";
 import { prisma } from "../../lib/prisma";
 import { getSystemHealthSummary } from "../../lib/system-health";
 
@@ -35,16 +36,6 @@ function ensureSuperAdmin(session: Session | null) {
   if (!session?.user || session.user.role !== "SUPER_ADMIN") {
     throw new Error("Only super admins can perform this action.");
   }
-}
-
-function isRedirectError(error: unknown) {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "digest" in error &&
-    typeof (error as { digest?: unknown }).digest === "string" &&
-    (error as { digest: string }).digest.startsWith("NEXT_REDIRECT")
-  );
 }
 
 function parseOptionalNonNegativeInt(value: FormDataEntryValue | null, label: string) {

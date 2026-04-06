@@ -36,7 +36,7 @@ export async function getManagedClubContext(clubIdOverride?: string | null): Pro
     });
 
     if (!membership?.club) {
-      throw new Error("No club membership found for current user.");
+      throw new Error("No club membership found for your account. Please contact your conference administrator to be assigned to a club.");
     }
 
     return {
@@ -50,7 +50,7 @@ export async function getManagedClubContext(clubIdOverride?: string | null): Pro
 
   if (session.user.role === UserRole.SUPER_ADMIN) {
     if (!clubIdOverride) {
-      throw new Error("Select a club before opening director workflows as Super Admin.");
+      throw new Error("Select a club before opening director workflows as Super Admin. Navigate to Admin > Clubs and choose a club to manage.");
     }
 
     const club = await prisma.club.findUnique({

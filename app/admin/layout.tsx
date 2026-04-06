@@ -2,16 +2,8 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 
 import { auth } from "../../auth";
-import { routing, type AppLocale } from "../../i18n";
+import { getLocaleFromCookie } from "../../lib/locale";
 import { AdminShell } from "./_components/admin-shell";
-
-function getLocaleFromCookie(cookieLocale: string | undefined): AppLocale {
-  if (cookieLocale && routing.locales.includes(cookieLocale as AppLocale)) {
-    return cookieLocale as AppLocale;
-  }
-
-  return routing.defaultLocale;
-}
 
 export default async function AdminLayout({
   children,

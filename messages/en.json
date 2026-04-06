@@ -223,6 +223,7 @@
     "actions": {
       "createEvent": "Create Event",
       "reviewReports": "Review Reports",
+      "reviewApplications": "Review applications",
       "manageTemplates": "Manage Templates",
       "openUsers": "Open Users",
       "backToClubs": "Back to Clubs",
@@ -258,7 +259,35 @@
       "dashboard": {
         "eyebrow": "Super Admin Dashboard",
         "title": "Conference Overview",
-        "description": "Monitor club participation, conference member totals, and active event windows."
+        "description": "Monitor club participation, conference member totals, and active event windows.",
+        "errorTitle": "Unable to load dashboard",
+        "metrics": {
+          "totalActiveClubs": "Total Active Clubs",
+          "conferenceMembers": "Conference Members",
+          "conferenceMembersCaption": "From active members in active roster years.",
+          "upcomingEvents": "Upcoming Events",
+          "upcomingEventsCaption": "Events ending today or later.",
+          "pendingTltApplications": "Pending TLT Applications"
+        },
+        "systemHealth": {
+          "title": "System Health",
+          "description": "Launch-critical startup checks and maintenance warnings surfaced from the live system state.",
+          "healthy": "Healthy",
+          "warningCount": "{count, plural, one {# warning} other {# warnings}}",
+          "noWarnings": "No system-health warnings detected."
+        },
+        "eventTimeline": {
+          "title": "Upcoming Event Timeline",
+          "empty": "No upcoming events have been scheduled.",
+          "columns": {
+            "event": "Event",
+            "dates": "Dates",
+            "location": "Location",
+            "registrations": "Registrations",
+            "actions": "Actions"
+          },
+          "openOverseer": "Open Overseer"
+        }
       },
       "events": {
         "eyebrow": "Super Admin",
@@ -593,6 +622,7 @@
     "dashboard": {
       "eyebrow": "Club Director Dashboard",
       "description": "Manage roster readiness, event registrations, and class workflows from one place.",
+      "errorTitle": "Unable to load dashboard",
       "clubNotFoundDescription": "The selected club could not be loaded for dashboard workflows.",
       "viewRoster": "View roster",
       "continueRegistration": "Continue registration",

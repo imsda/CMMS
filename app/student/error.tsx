@@ -1,17 +1,15 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useEffect } from "react";
 
-export default function AdminError({
+export default function StudentError({
   error,
   reset,
 }: {
   error: Error & { digest?: string };
   reset: () => void;
 }) {
-  const router = useRouter();
-
   useEffect(() => {
     console.error(error);
   }, [error]);
@@ -21,7 +19,7 @@ export default function AdminError({
       <div className="glass-card-soft max-w-md space-y-3">
         <h2 className="text-lg font-semibold text-slate-900">Something went wrong</h2>
         <p className="text-sm text-slate-600">
-          An unexpected error occurred while loading this page.
+          An unexpected error occurred while loading this page. Please try again or return to the dashboard.
         </p>
         {error.digest && (
           <p className="font-mono text-xs text-slate-400">Ref: {error.digest}</p>
@@ -30,12 +28,9 @@ export default function AdminError({
           <button onClick={() => reset()} className="btn-primary">
             Try again
           </button>
-          <button
-            onClick={() => router.push("/admin/dashboard")}
-            className="btn-secondary"
-          >
+          <Link href="/student/dashboard" className="btn-secondary">
             Go to dashboard
-          </button>
+          </Link>
         </div>
       </div>
     </div>

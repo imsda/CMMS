@@ -218,6 +218,7 @@
     "actions": {
       "createEvent": "Crear evento",
       "reviewReports": "Revisar informes",
+      "reviewApplications": "Revisar solicitudes",
       "manageTemplates": "Administrar plantillas",
       "openUsers": "Abrir usuarios",
       "backToClubs": "Volver a clubes",
@@ -253,7 +254,35 @@
       "dashboard": {
         "eyebrow": "Panel de superadministración",
         "title": "Resumen de la conferencia",
-        "description": "Monitoree la participación de clubes, el total de miembros y las ventanas activas de eventos."
+        "description": "Monitoree la participación de clubes, el total de miembros y las ventanas activas de eventos.",
+        "errorTitle": "No se pudo cargar el panel",
+        "metrics": {
+          "totalActiveClubs": "Clubes activos totales",
+          "conferenceMembers": "Miembros de la conferencia",
+          "conferenceMembersCaption": "De miembros activos en años de nómina activos.",
+          "upcomingEvents": "Próximos eventos",
+          "upcomingEventsCaption": "Eventos que terminan hoy o después.",
+          "pendingTltApplications": "Solicitudes TLT pendientes"
+        },
+        "systemHealth": {
+          "title": "Estado del sistema",
+          "description": "Verificaciones críticas de inicio y advertencias de mantenimiento del estado actual del sistema.",
+          "healthy": "Saludable",
+          "warningCount": "{count, plural, one {# advertencia} other {# advertencias}}",
+          "noWarnings": "No se detectaron advertencias del sistema."
+        },
+        "eventTimeline": {
+          "title": "Línea de tiempo de próximos eventos",
+          "empty": "No se han programado próximos eventos.",
+          "columns": {
+            "event": "Evento",
+            "dates": "Fechas",
+            "location": "Ubicación",
+            "registrations": "Registros",
+            "actions": "Acciones"
+          },
+          "openOverseer": "Abrir supervisor"
+        }
       },
       "events": {
         "eyebrow": "Superadministrador",
@@ -588,6 +617,7 @@
     "dashboard": {
       "eyebrow": "Panel del director del club",
       "description": "Administre la preparación de la nómina, los registros a eventos y los flujos de clases desde un solo lugar.",
+      "errorTitle": "No se pudo cargar el panel",
       "clubNotFoundDescription": "No se pudo cargar el club seleccionado para el panel.",
       "viewRoster": "Ver nómina",
       "continueRegistration": "Continuar registro",

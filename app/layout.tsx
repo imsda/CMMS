@@ -6,7 +6,7 @@ import {getMessages, getTranslations} from 'next-intl/server';
 
 import {LanguageSwitcher} from '../components/language-switcher';
 import {auth, signOut} from '../auth';
-import {routing, type AppLocale} from '../i18n';
+import {getLocaleFromCookie} from '../lib/locale';
 
 import './globals.css';
 
@@ -15,14 +15,6 @@ export const metadata: Metadata = {
   description:
     'Conference-wide platform for yearly roster management, event registration, and class scheduling.'
 };
-
-function getLocaleFromCookie(cookieLocale: string | undefined): AppLocale {
-  if (cookieLocale && routing.locales.includes(cookieLocale as AppLocale)) {
-    return cookieLocale as AppLocale;
-  }
-
-  return routing.defaultLocale;
-}
 
 export default async function RootLayout({
   children

@@ -22,6 +22,7 @@ import {
   type UpdateEventActionState,
 } from "./event-admin-state";
 import { getResendConfig } from "../../lib/email/resend";
+import { isRedirectError } from "../../lib/action-utils";
 import { auth } from "../../auth";
 import {
   createEventFromInput,
@@ -491,16 +492,6 @@ function parseAllowedClubTypes(formData: FormData): string[] {
   return values
     .filter((v): v is string => typeof v === "string")
     .filter((v) => validClubTypes.has(v));
-}
-
-function isRedirectError(error: unknown) {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "digest" in error &&
-    typeof (error as { digest?: unknown }).digest === "string" &&
-    (error as { digest: string }).digest.startsWith("NEXT_REDIRECT")
-  );
 }
 
 async function parseEventMutationInput(formData: FormData): Promise<EventMutationInput> {

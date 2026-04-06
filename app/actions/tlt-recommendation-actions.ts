@@ -5,6 +5,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
+import { isRedirectError } from "../../lib/action-utils";
 import { getManagedClubContext } from "../../lib/club-management";
 import { buildDirectorPath, readManagedClubId } from "../../lib/director-path";
 import { getResendConfig } from "../../lib/email/resend";
@@ -89,16 +90,6 @@ function toInviteEmailErrorMessage(error: unknown) {
   }
 
   return "Unknown email delivery failure.";
-}
-
-function isRedirectError(error: unknown) {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "digest" in error &&
-    typeof (error as { digest?: unknown }).digest === "string" &&
-    (error as { digest: string }).digest.startsWith("NEXT_REDIRECT")
-  );
 }
 
 export async function generateTltRecommendationLinks(
